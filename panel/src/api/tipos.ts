@@ -239,3 +239,72 @@ export interface Agenda {
   recursos: AgendaRecurso[]
   sin_recurso: TurnoAgenda[]
 }
+
+// ─── Cobro y factura ─────────────────────────────────────────────────────────
+//
+// Espejo de los DTO de E8/W4-A (core/internal/dto/cobro_dto.go). Los cinco
+// medios son los del CHECK de la tabla `cobro`: si allá se agrega uno, entra
+// acá y la botonera del popover lo muestra sola.
+
+export type MedioPago = 'efectivo' | 'transferencia' | 'debito' | 'credito' | 'qr'
+
+export type EstadoComprobante = 'pendiente' | 'emitido' | 'error'
+
+export interface Comprobante {
+  id: string
+  estado: EstadoComprobante
+  /** 11 = Factura C. Monotributo no discrimina IVA. */
+  tipo_cbte: number
+  punto_venta: number
+  numero: number | null
+  /** '0001-00000123', como sale impreso. Lo arma el core. */
+  numero_formateado: string | null
+  cae: string | null
+  cae_vence: string | null
+  importe: Plata
+  intentos: number
+  /** Texto crudo de ARCA. Va al soporte, jamás a la pantalla del mostrador. */
+  ultimo_error: string | null
+  emitido_en: string | null
+}
+
+export interface Cobro {
+  id: string
+  compromiso_id: string
+  medio_pago: MedioPago
+  monto: Plata
+  cobrado_en: string
+  /** null cuando el negocio todavía no cargó sus datos de ARCA. */
+  comprobante: Comprobante | null
+  /** Frase del core. El panel arma la suya, con la misma tabla de estados. */
+  facturacion: string
+}
+
+// ─── Cierre del día ──────────────────────────────────────────────────────────
+
+export interface CierreComprobantes {
+  emitidos: number
+  pendientes: number
+  con_error: number
+}
+
+/**
+ * Todo el día en un objeto: el core agrega en la timezone del negocio. Los dos
+ * cortes vienen como mapa y sólo traen las claves que tuvieron movimiento.
+ */
+export interface Cierre {
+  fecha: string
+  timezone: string
+  compromisos: number
+  completados: number
+  cancelados: number
+  ausentes: number
+  /** origen → cuántos compromisos. */
+  por_origen: Partial<Record<OrigenCompromiso, number>>
+  cobros: number
+  total_cobrado: Plata
+  ticket_promedio: Plata
+  /** medio de pago → cuánta plata. */
+  por_medio_pago: Partial<Record<MedioPago, Plata>>
+  comprobantes: CierreComprobantes
+}

@@ -1,0 +1,4 @@
+# Dependencias sólo de test. pyafipws NO va acá: los tests lo doblan
+# (tests/fake_pyafipws.py) y no tocan la red.
+-r requirements-base.txt
+pytest==8.2.0

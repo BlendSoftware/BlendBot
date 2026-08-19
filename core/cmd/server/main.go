@@ -7,6 +7,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -121,6 +122,22 @@ func main() {
 	negDatosRepo := repository.NewNegocioDatosRepository(db)
 	listaEsperaRepo := repository.NewListaEsperaRepository(db)
 	avisoRepo := repository.NewAvisoRepository(db)
+	cobroRepo := repository.NewCobroRepository(db)
+
+	// ── Cifrado fiscal ──────────────────────────────────────────────
+	// Sin FISCAL_CIPHER_KEY el módulo fiscal queda apagado: no se pueden
+	// guardar certificados (la API lo rechaza con 503) ni facturar. Lo que no
+	// pasa nunca es guardar un certificado en claro.
+	var cifrador infra.Cifrador
+	if c, err := infra.NewCifrador(cfg.FiscalCipherKey); err != nil {
+		if errors.Is(err, infra.ErrCifradoNoConfigurado) {
+			log.Warn().Msg("FISCAL_CIPHER_KEY no está seteada: el módulo fiscal (ARCA) queda deshabilitado")
+		} else {
+			log.Fatal().Err(err).Msg("FISCAL_CIPHER_KEY inválida")
+		}
+	} else {
+		cifrador = c
+	}
 
 	// ── Anti-ausentismo ─────────────────────────────────────────────
 	// Los workers viven mientras viva el proceso; el ctx se cancela en el
@@ -137,6 +154,21 @@ func main() {
 	// cancela un turno futuro.
 	huecoLiberado := worker.NewListaEsperaNotificador(listaEsperaRepo, avisoRepo, publicador, nil)
 
+	// ── Facturador ARCA ─────────────────────────────────────────────
+	// Barrido cross-tenant: es un proceso de fondo, no un request, y por eso
+	// es el único lugar del core que mira comprobantes de todos los negocios.
+	if fact := worker.NewFacturador(worker.FacturadorConfig{
+		Repo:          cobroRepo,
+		Pub:           publicador,
+		Cifrador:      cifrador,
+		SidecarURL:    cfg.ARCASidecarURL,
+		InternalToken: cfg.InternalAPIToken,
+	}); fact != nil {
+		fact.Start(ctxWorkers)
+	} else {
+		log.Warn().Msg("worker facturador apagado: falta FISCAL_CIPHER_KEY o ARCA_SIDECAR_URL")
+	}
+
 	r := router.New(router.Deps{
 		Cfg:          cfg,
 		DB:           db,
@@ -151,6 +183,7 @@ func main() {
 		DispoSvc:     service.NewDisponibilidadService(dispoRepo),
 		TokenSvc:     service.NewNegocioTokenService(negDatosRepo),
 		ListaEspSvc:  service.NewListaEsperaService(listaEsperaRepo),
+		CobroSvc:     service.NewCobroService(cobroRepo, negDatosRepo, cifrador),
 		NegDatosRepo: negDatosRepo,
 		HorarioH:     handler.NewHorariosHandler(horarioRepo),
 	})

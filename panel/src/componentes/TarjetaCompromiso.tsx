@@ -5,9 +5,10 @@
  */
 
 import { useEffect, useState } from 'react'
-import type { Estado, TipoCompromiso } from '../api/tipos'
+import type { Cobro, Estado, TipoCompromiso } from '../api/tipos'
 import { COLOR_ESTADO, TINTA_ESTADO, accionesPara, etiquetaEstado } from '../dominio/estados'
 import { horaDe, nombreVisible, plata } from '../dominio/formato'
+import { BotonCobrar } from './BotonCobrar'
 import { SelectorDemora } from './SelectorDemora'
 
 export interface DatosCompromiso {
@@ -33,6 +34,13 @@ interface Props {
   compacta?: boolean
   /** Reloj inyectable: los tests no dependen de la hora de la máquina. */
   ahora?: Date
+  /**
+   * El cobro sólo tiene sentido donde se cobra. La agenda lo prende; una lista
+   * de historial que muestra la misma tarjeta, no.
+   */
+  cobrable?: boolean
+  /** Lo que ya se sabe del cobro. undefined = que lo pregunte la tarjeta. */
+  cobro?: Cobro | null
 }
 
 function minutosHasta(rfc3339: string, ahora: Date): number {
@@ -71,6 +79,8 @@ export function TarjetaCompromiso({
   alTransicionar,
   compacta = false,
   ahora,
+  cobrable = false,
+  cobro,
 }: Props) {
   const [pidiendoDemora, setPidiendoDemora] = useState(false)
   const [enVuelo, setEnVuelo] = useState<Estado | null>(null)
@@ -158,6 +168,10 @@ export function TarjetaCompromiso({
             </button>
           ))}
         </div>
+      )}
+
+      {cobrable && datos.estado === 'completado' && (
+        <BotonCobrar compromisoID={datos.id} total={datos.total} cobroInicial={cobro} />
       )}
 
       {pidiendoDemora && (

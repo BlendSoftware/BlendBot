@@ -1,6 +1,7 @@
 /**
- * Navegación tablet-first: cuatro destinos, íconos grandes, siempre abajo y a
- * mano del pulgar. La pantalla operativa no tiene más chrome que esto.
+ * Navegación tablet-first: íconos grandes, siempre abajo y a mano del pulgar.
+ * La pantalla operativa no tiene más chrome que esto. El cierre del día entró
+ * como quinto destino (E8): es la otra pantalla que el dueño abre solo.
  */
 
 import { NavLink } from 'react-router-dom'
@@ -56,6 +57,15 @@ function IconoClientes() {
   )
 }
 
+function IconoCierre() {
+  return (
+    <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" {...trazo}>
+      <path d="M6 3h12v18l-2.4-1.6L13.2 21 12 19.8 10.8 21 8.4 19.4 6 21z" />
+      <path d="M9.5 8h5M9.5 12h5" />
+    </svg>
+  )
+}
+
 function IconoAdmin() {
   return (
     <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" {...trazo}>
@@ -74,6 +84,7 @@ export function BarraInferior({ rol }: Props) {
           { a: '/catalogo', texto: 'Catálogo', icono: <IconoCatalogo /> },
           { a: '/equipo', texto: 'Equipo', icono: <IconoEquipo /> },
           { a: '/clientes', texto: 'Clientes', icono: <IconoClientes /> },
+          { a: '/cierre', texto: 'Cierre', icono: <IconoCierre /> },
         ]
 
   return (

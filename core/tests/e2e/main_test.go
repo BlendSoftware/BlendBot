@@ -30,6 +30,7 @@ import (
 	"copiloto/core/internal/config"
 	"copiloto/core/internal/dto"
 	"copiloto/core/internal/handler"
+	"copiloto/core/internal/infra"
 	"copiloto/core/internal/middleware"
 	"copiloto/core/internal/model"
 	"copiloto/core/internal/repository"
@@ -58,6 +59,10 @@ const (
 	// Secreto de 32+ caracteres: config.validate() lo exige en producción y acá
 	// se respeta igual para no probar contra una configuración que no existe.
 	secretoJWT = "secreto-de-test-e2e-copiloto-comercios-32+"
+
+	// claveFiscalTest son 32 bytes en hexa (lo que pide FISCAL_CIPHER_KEY).
+	// Es de test y no protege nada: los certificados del e2e son inventados.
+	claveFiscalTest = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 )
 
 var (
@@ -133,6 +138,14 @@ func armarRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) *gin.Engine
 	negDatosRepo := repository.NewNegocioDatosRepository(db)
 	listaEsperaRepo := repository.NewListaEsperaRepository(db)
 	avisoRepo := repository.NewAvisoRepository(db)
+	cobroRepo := repository.NewCobroRepository(db)
+
+	// El cifrado fiscal va con una clave de test: sin cifrador, cargar
+	// certificados devolvería 503 y el e2e no probaría el camino real.
+	cifrador, err := infra.NewCifrador(claveFiscalTest)
+	if err != nil {
+		panic("cifrador fiscal de test: " + err.Error())
+	}
 
 	// El anti-ausentismo va cableado como en producción: el motor del e2e lleva
 	// el notificador puesto, así que si el hook rompiera un flujo existente se
@@ -154,6 +167,7 @@ func armarRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) *gin.Engine
 		DispoSvc:     service.NewDisponibilidadService(dispoRepo),
 		TokenSvc:     service.NewNegocioTokenService(negDatosRepo),
 		ListaEspSvc:  service.NewListaEsperaService(listaEsperaRepo),
+		CobroSvc:     service.NewCobroService(cobroRepo, negDatosRepo, cifrador),
 		NegDatosRepo: negDatosRepo,
 		HorarioH:     handler.NewHorariosHandler(horarioRepo),
 	})

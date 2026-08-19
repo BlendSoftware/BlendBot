@@ -27,11 +27,11 @@ archivos y contratos. **Un agente sólo toca los archivos de su workstream.**
 | Epic | Qué | Estado |
 |---|---|---|
 | E1 | Core motor: repos + services + handlers + tests | **✔ hecho** (commit ab3ec61, 23 tests verdes) |
-| E2 | Disponibilidad + agenda + token de agente | **en curso** |
+| E2 | Disponibilidad + agenda + token de agente | **✔ hecho** (commit 289b096) |
 | E3 | Panel API: auth endpoints, admin alta negocios, tablero, interruptor | ✔ dentro de E1/E2 |
-| E4 | Agente MCP (Python FastMCP, 7 tools, SKILL.md salud) | **en curso** |
-| E5 | Gateway WhatsApp (Node, webhook, sesiones, outbox) | pendiente |
-| E6 | Panel web (React: agenda, catálogo, profesionales, ficha) | pendiente |
+| E4 | Agente MCP (Python FastMCP, 7 tools, SKILL.md salud) | **✔ hecho** (33 pytest) |
+| E5 | Gateway WhatsApp (Node, webhook, sesiones, outbox) | **✔ hecho** (108 tests) |
+| E6 | Panel web (React: agenda, catálogo, profesionales, ficha) | **✔ hecho** (38 tests) |
 | E7 | Anti-ausentismo (recordatorio 24h, liberación, lista de espera) | **✔ hecho** (migración 000003, workers, hook y endpoints cableados) |
 | E8 | Cobro + sidecar ARCA (Factura C) | pendiente |
 | E9 | Compose integrado + smoke e2e | pendiente |
@@ -294,3 +294,48 @@ NO reescribas lógica existente salvo el hook puntual en motor_service.
 - `internal/handler/lista_espera.go` + dto: `GET/POST /api/lista-espera`, `DELETE /api/lista-espera/:id`. Register método, cablealo vos en router.go (grupo tenant) y los workers en main.go (composition root, con el ctx de shutdown existente).
 - Tests integración (harness existente, `tests/integration/anti_ausentismo_test.go`): recordatorio se encola una sola vez (dos ticks → un solo LPUSH, verificar con miniredis o redis de test), fuera de ventana no encola, cancelación de turno futuro notifica al primero de la lista del mismo servicio y lo marca, lista de espera tenant-scoped.
 - Verificá: go build/vet/test ./... completo verde (incluido e2e existente — el hook nil no debe romper nada).
+
+---
+
+## E8 — Cobro + ARCA (ola 4)
+
+### W4-A: cobro y facturación en el core (Go — único agente Go de la ola, cablea router/main)
+
+- `core/migrations/000004_cobro.up/.down.sql`:
+  - `config_fiscal(negocio_id uuid pk fk, cuit text not null, razon_social text, condicion text default 'monotributo', punto_venta int not null default 1, modo text not null default 'homologacion', cert_pem_cifrado text, key_pem_cifrado text, actualizado_en timestamptz)`
+  - `cobro(id uuid pk, negocio_id fk, compromiso_id uuid UNIQUE fk, usuario_id fk null, medio_pago text check in (efectivo,transferencia,debito,credito,qr), monto numeric(12,2), cobrado_en timestamptz default now())`
+  - `comprobante(id uuid pk, negocio_id fk, cobro_id uuid UNIQUE fk, tipo_cbte int not null default 11, punto_venta int, numero bigint null, cae text null, cae_vence date null, estado text default 'pendiente' check in (pendiente,emitido,error), retry_count int default 0, next_retry_at timestamptz, last_error text, receptor_doc_tipo int default 99, receptor_doc_nro text null, importe numeric(12,2), emitido_en timestamptz null)` + índice parcial pendientes por next_retry_at (patrón BlendPos migración 3).
+- `internal/infra/cifrado.go` — AES-256-GCM, clave env `FISCAL_CIPHER_KEY` (64 hex). `config.go` += FISCAL_CIPHER_KEY (BindEnv; si falta y hay certs que guardar → error explícito).
+- `internal/model/cobro.go` (Cobro, Comprobante, ConfigFiscal), `internal/repository/cobro_repo.go` (tenant-scoped; `ComprobantesPendientes(ctx, ahora, limite)` cross-tenant SOLO para el worker, con config fiscal y datos del cobro/cliente joineados).
+- `internal/service/cobro_service.go`:
+  - `Cobrar(ctx, negocioID, dto{CompromisoID, MedioPago})`: compromiso del tenant en estado `completado`, sin cobro previo (unique → ErrYaCobrado 409), monto = compromiso.total; en tx: crea cobro + comprobante `pendiente` (si el negocio tiene config_fiscal con cuit; si no, cobro sin comprobante y el response lo dice). Receptor: DNI del cliente si `cliente.documento`, si no consumidor final (99).
+  - `ConfigurarFiscal(ctx, negocioID, dto)` (admin): guarda config, certs cifrados con infra/cifrado.
+  - `CierreDelDia(ctx, negocioID, fecha)`: compromisos del día (por cerrado_en en TZ negocio): total cobrado, por medio_pago, por origen, ticket promedio, cancelados, ausentes, comprobantes emitidos/pendientes/error.
+- `internal/worker/facturador.go` — ticker 30s: `ComprobantesPendientes` (next_retry_at null o vencido) → arma request y POST `${ARCA_SIDECAR_URL}/facturar` con header `X-Internal-Token`; body: `{cuit_emisor, punto_venta, modo, cert_pem, key_pem (descifrados), tipo_cbte, concepto: 2, doc_tipo, doc_nro, importe_total, fecha, servicio_desde, servicio_hasta}`. Éxito → numero/cae/cae_vence, estado emitido, emitido_en; y LPUSH `salidas_whatsapp` texto al cliente ("Listo, tu factura C N° ... por $...; CAE ..."). Error → retry_count++, next_retry_at = backoff exponencial (1m,5m,25m..., tope 6h), last_error; a los 10 intentos estado `error`. HTTP client inyectable para tests. UPDATE de toma condicional (WHERE estado='pendiente' AND (next_retry_at IS NULL OR next_retry_at <= now)) para no facturar dos veces.
+- Handlers + dto: `POST /api/cobros`, `GET /api/cobros/:compromiso_id`, `GET /api/cierre?fecha=` (tenant); `PUT /api/admin/negocios/:id/fiscal` + `GET .../fiscal` (sin secretos, solo cuit/pv/modo/tiene_certs) en grupo admin. Register método; cableá router.go y main.go (worker con ctxWorkers existente).
+- Verificá: go build/vet/test ./... completo verde (e2e existentes incluidos; recordá replicar el wiring en tests/e2e/main_test.go si agregás deps a router.Deps).
+
+### W4-B: sidecar ARCA (Python, `arca-sidecar/` — todo tuyo)
+
+- Base: COPIÁ ~/Proyectos/BlendPos/afip-sidecar/ → arca-sidecar/ (cp -r; los patch_*.py son oro heredado: NO los toques salvo necesidad demostrada). Limpiá lo que no aplica (docs de Railway, scripts de email).
+- Adaptaciones en main.py/schemas.py/afip_client.py:
+  1. **Stateless multi-tenant**: `POST /facturar` recibe TODO por body (contrato exacto en W4-A). Los certs llegan en PEM por request: escribilos a archivos temporales por llamada (tmpdir por request, borrado en finally) o cache en disco keyed por sha256(cuit+cert) — lo que el cliente AFIP existente soporte con menos cirugía.
+  2. **Factura C** (CbteTipo 11) **concepto 2 (servicios)**: FchServDesde/FchServHasta/FchVtoPago obligatorios; sin IVA discriminado (ImpIVA=0, ImpNeto=total). Monotributo emisor.
+  3. Auth: header `X-Internal-Token` == env `INTERNAL_API_TOKEN` (401 si no). `/health` sin auth.
+  4. Respuesta: `{ok, numero, cae, cae_vencimiento, error?}` — errores de ARCA legibles (el core los guarda en last_error).
+- `tests/` pytest: el cliente AFIP/WSAA MOCKEADO (sin red): request válido → llama con CbteTipo 11 concepto 2 y los campos de fecha de servicio; token inválido → 401; PEMs malformados → 422 con mensaje claro; error de ARCA simulado → respuesta {ok:false, error}. Un test de que los patches se importan sin romper (smoke import).
+- Dockerfile actualizado si hace falta. README corto: qué cambió respecto del sidecar original.
+- Verificá: pytest verde con el venv que corresponda (uv o pip; el requirements ya existe).
+
+### W4-C: cierre del día en el panel + tests de cobro (panel/ y core/tests/ — NO toques core prod)
+
+- Panel (respetando PRODUCT.md/DESIGN.md y el estilo ya existente en panel/src):
+  - Vista `Cierre.tsx` (PANEL.md vista 3): números grandes tabulares (compromisos, facturado, ticket promedio, % WhatsApp), por medio de pago, cancelados y ausentes (salud), estado de comprobantes (emitidos/pendientes/error). Fecha navegable. Ruta /cierre + ícono en BarraInferior.
+  - Botón **Cobrar** en TarjetaCompromiso estado `completado` sin cobro: popover inline de medio de pago (efectivo/transferencia/débito/crédito/QR) → POST /api/cobros; muestra después el estado del comprobante ("Factura C emitida" / "Facturando…" / error legible).
+  - Tests vitest de ambos + tipos TS de los DTO nuevos (espejo de W4-A).
+- Go tests contra el contrato W4-A (tests/integration/cobro_test.go, tests/e2e/cobro_test.go):
+  - Cobrar completado OK; doble cobro 409; cobrar pendiente/confirmado 409/422; aislamiento de tenant del cobro y el cierre.
+  - Worker facturador contra un sidecar FAKE (httptest.Server): éxito sella cae/numero y encola aviso a salidas_whatsapp; fallo programa retry con backoff y a los 10 marca error; toma condicional no factura dos veces (dos Tick seguidos → un solo POST).
+  - Cierre del día: agrega bien por medio/origen en la TZ del negocio.
+  - Si W4-A no aterrizó, escribí contra el contrato y anotá.
+- Verificá: panel (tsc, test, build) y go test ./tests/... según lo que compile.

@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+tests/
+docs-heredados/
+.env
+*.pem
+*.crt
+*.key
+certs-locales/
+README.md

@@ -106,4 +106,23 @@ describe('cliente HTTP', () => {
 
     await expect(pedir('/api/agenda')).rejects.toThrow(/No hay conexión/)
   })
+
+  // Los dos rechazos del cobro llegan con el mismo 409 y significan cosas
+  // distintas: "ya está cobrado" y "todavía no se puede cobrar".
+  it.each([
+    ['el compromiso ya fue cobrado', 'Este turno ya lo cobraron.'],
+    ['solo se puede cobrar un compromiso completado', 'Para cobrarlo, primero marcá el turno como terminado.'],
+  ])('el 409 %s se lee como una frase del mostrador', async (detalle, frase) => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(json(409, { detail: detalle })))
+
+    await expect(pedir('/api/cobros', { metodo: 'POST' })).rejects.toThrow(frase)
+  })
+
+  it('un medio de pago rechazado no muestra el 422', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(json(422, { detail: 'medio de pago invalido' })))
+
+    await expect(pedir('/api/cobros', { metodo: 'POST' })).rejects.toThrow(
+      'Elegí de nuevo con qué te pagaron.',
+    )
+  })
 })

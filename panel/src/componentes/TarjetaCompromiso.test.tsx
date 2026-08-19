@@ -96,6 +96,34 @@ describe('TarjetaCompromiso', () => {
     expect(await screen.findByText('Ese horario se acaba de ocupar.')).toBeInTheDocument()
   })
 
+  it('donde se cobra, un turno terminado ofrece cobrarlo', () => {
+    render(
+      <TarjetaCompromiso
+        datos={datos({ estado: 'completado' })}
+        demorasSugeridas={[15]}
+        alTransicionar={vi.fn()}
+        ahora={new Date('2026-08-21T09:10:00-03:00')}
+        cobrable
+        cobro={null}
+      />,
+    )
+    expect(screen.getByRole('button', { name: 'Cobrar' })).toBeInTheDocument()
+  })
+
+  it('un turno que todavía no terminó no se cobra', () => {
+    render(
+      <TarjetaCompromiso
+        datos={datos({ estado: 'confirmado' })}
+        demorasSugeridas={[15]}
+        alTransicionar={vi.fn()}
+        ahora={new Date('2026-08-21T09:10:00-03:00')}
+        cobrable
+        cobro={null}
+      />,
+    )
+    expect(screen.queryByRole('button', { name: 'Cobrar' })).not.toBeInTheDocument()
+  })
+
   it('el estado se lee en criollo, nunca el valor del enum', () => {
     pintar({ estado: 'pendiente' })
     expect(screen.getByText('sin confirmar')).toBeInTheDocument()

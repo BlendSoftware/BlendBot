@@ -35,9 +35,18 @@ export function mensajeHumano(estado: number, detalle: string): string {
   if (estado === 404) return 'Eso ya no está.'
   if (estado === 409) {
     if (d.includes('ocupad') || d.includes('solap')) return 'Ese horario se acaba de ocupar.'
+    // "el compromiso ya fue cobrado" (ErrYaCobrado) vs "solo se puede cobrar un
+    // compromiso completado" (ErrNoCobrable): los dos son 409 y quieren decir
+    // cosas distintas del otro lado del mostrador.
+    if (d.includes('cobrad')) return 'Este turno ya lo cobraron.'
+    if (d.includes('cobrar')) return 'Para cobrarlo, primero marcá el turno como terminado.'
     return 'Alguien lo movió antes que vos. Actualizá la pantalla.'
   }
-  if (estado === 422) return 'Ese servicio está apagado en el catálogo.'
+  if (estado === 422) {
+    if (d.includes('medio de pago')) return 'Elegí de nuevo con qué te pagaron.'
+    return 'Ese servicio está apagado en el catálogo.'
+  }
+  if (estado === 503) return 'Ese servicio no está disponible ahora. Probá más tarde.'
   if (estado === 429) return 'Muchas cosas juntas. Esperá un segundo y repetí.'
   if (estado >= 500) return 'El sistema no está respondiendo. Probá de nuevo.'
   return 'Revisá los datos: algo no quedó bien cargado.'

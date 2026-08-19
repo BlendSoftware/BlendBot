@@ -185,6 +185,7 @@ export function Agenda() {
                     <TarjetaCompromiso
                       datos={datosDe(b.turno)}
                       demorasSugeridas={demorasSugeridas}
+                      cobrable
                       alTransicionar={(estado, extra) =>
                         mover(b.turno.compromiso_id, estado, extra)
                       }
@@ -220,6 +221,7 @@ export function Agenda() {
                 <TarjetaCompromiso
                   datos={datosDe(t)}
                   demorasSugeridas={demorasSugeridas}
+                  cobrable
                   alTransicionar={(estado, extra) => mover(t.compromiso_id, estado, extra)}
                 />
                 {t.estado === 'pendiente' && agenda.recursos.length > 0 && (

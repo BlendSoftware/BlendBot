@@ -51,6 +51,22 @@ vi.mock('./api/endpoints', () => ({
   borrarExcepcion: vi.fn(),
   crearCliente: vi.fn(),
   crearCobertura: vi.fn(),
+  cobrar: vi.fn(),
+  traerCobro: vi.fn().mockRejectedValue(new Error('Eso ya no está.')),
+  traerCierre: vi.fn().mockResolvedValue({
+    fecha: '2026-08-21',
+    timezone: 'America/Argentina/Mendoza',
+    compromisos: 0,
+    completados: 0,
+    cancelados: 0,
+    ausentes: 0,
+    cobros: 0,
+    facturado: '0',
+    ticket_promedio: '0',
+    por_medio: [],
+    por_origen: [],
+    comprobantes: { emitidos: 0, pendientes: 0, error: 0 },
+  }),
 }))
 
 function tokenFalso(rol: Rol, negocioID = 'n1'): string {

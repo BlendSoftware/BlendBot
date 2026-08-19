@@ -1,0 +1,9 @@
+# Runtime completo del sidecar.
+#
+# OJO: pyafipws NO se instala con pip. El Dockerfile baja el tarball 2.7.1874,
+# le aplica patch_setuppy.py (el setup.py original es Python 2) y recién ahí lo
+# instala. Ver Dockerfile y README. Esta línea queda como referencia de versión.
+#
+#   pyafipws==2.7.1874   ← instalado desde el tarball parcheado, no por pip
+
+-r requirements-base.txt

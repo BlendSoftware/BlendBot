@@ -651,6 +651,110 @@
   font-weight: 600;
 }
 
+/* ── Cierre del día ──────────────────────────────────────────────────────── */
+
+/*
+ * Los cuatro números se leen parado y de lejos: 43px tabulares, sin cajas ni
+ * sombras. No es un grid de cards idénticas (prohibido en DESIGN.md), es una
+ * fila de cifras separadas por aire.
+ */
+.cierre__grandes {
+  display: grid;
+  gap: var(--e4);
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  margin-bottom: var(--e5);
+  padding-bottom: var(--e4);
+  border-bottom: 1px solid var(--borde);
+}
+
+.cierre__etiqueta {
+  font-size: var(--t-mini);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--tinta-suave);
+}
+
+.cierre__valor {
+  font-size: var(--t-titulo);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+@media (min-width: 900px) {
+  .cierre__valor {
+    font-size: var(--t-mayor);
+  }
+}
+
+.cierre__numero--fuerte .cierre__valor {
+  color: var(--acento);
+}
+
+.cierre__pie {
+  font-size: var(--t-mini);
+  font-weight: 600;
+  color: var(--tinta-suave);
+}
+
+.cierre__detalle {
+  display: grid;
+  gap: var(--e5);
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.cierre__titulo {
+  margin-bottom: var(--e2);
+  font-size: var(--t-mini);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--tinta-suave);
+}
+
+.cierre__nada,
+.cierre__nota {
+  margin-top: var(--e2);
+  max-width: 52ch;
+  color: var(--tinta-suave);
+  font-size: var(--t-mini);
+}
+
+.cifras {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--borde);
+}
+
+.cifras__fila {
+  display: flex;
+  align-items: baseline;
+  gap: var(--e2);
+  padding: var(--e2) 0;
+  border-bottom: 1px solid var(--borde);
+}
+
+.cifras__nombre {
+  flex: 1 1 auto;
+  font-weight: 600;
+}
+
+.cifras__cantidad {
+  min-width: 3ch;
+  text-align: right;
+  font-size: var(--t-medio);
+  font-weight: 800;
+}
+
+.cifras__monto {
+  min-width: 8ch;
+  text-align: right;
+  color: var(--tinta-suave);
+  font-weight: 600;
+}
+
 /* ── Admin ───────────────────────────────────────────────────────────────── */
 
 .alta-negocio {

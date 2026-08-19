@@ -9,6 +9,7 @@ import { Agenda } from './vistas/Agenda'
 import { Catalogo } from './vistas/Catalogo'
 import { Equipo } from './vistas/Equipo'
 import { Clientes } from './vistas/Clientes'
+import { Cierre } from './vistas/Cierre'
 import { Admin } from './vistas/Admin'
 
 /**
@@ -87,6 +88,14 @@ export function Rutas() {
           element={
             <Protegida>
               <Clientes />
+            </Protegida>
+          }
+        />
+        <Route
+          path="/cierre"
+          element={
+            <Protegida>
+              <Cierre />
             </Protegida>
           }
         />

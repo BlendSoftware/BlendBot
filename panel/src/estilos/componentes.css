@@ -181,6 +181,100 @@
   background: oklch(0.99 0.004 60 / 0.55);
 }
 
+/* ── Cobro ───────────────────────────────────────────────────────────────── */
+
+.cobro-alta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e2);
+  margin-top: auto;
+  padding-top: var(--e2);
+}
+
+.cobro {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: auto;
+  padding: var(--e2) var(--e3);
+  border-radius: var(--radio);
+  background: var(--superficie);
+  color: var(--tinta);
+  font-size: var(--t-mini);
+}
+
+.cobro__hecho {
+  font-weight: 800;
+}
+
+.cobro__factura {
+  font-weight: 600;
+  color: var(--tinta-suave);
+}
+
+.cobro--bien .cobro__factura {
+  color: oklch(0.38 0.09 155);
+}
+
+.cobro--problema .cobro__factura {
+  color: oklch(0.42 0.16 25);
+}
+
+.cobro--espera .cobro__factura {
+  color: oklch(0.42 0.08 250);
+}
+
+.cobro__detalle {
+  color: var(--tinta-suave);
+}
+
+.cobro__problema {
+  padding: var(--e1) var(--e2);
+  border-radius: var(--radio-chico);
+  background: var(--superficie);
+  color: oklch(0.42 0.16 25);
+  font-size: var(--t-mini);
+  font-weight: 600;
+}
+
+/*
+ * Popover inline anclado a la tarjeta, igual que el selector de demora: cobrar
+ * no puede taparle el día a quien está mirando la agenda (DESIGN.md).
+ */
+.medios {
+  position: absolute;
+  left: var(--e2);
+  right: var(--e2);
+  bottom: calc(var(--tacto) + var(--e3));
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: var(--e2);
+  padding: var(--e3);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  background: var(--superficie);
+  color: var(--tinta);
+  box-shadow: var(--sombra-flotante);
+}
+
+.medios__titulo {
+  font-size: var(--t-mini);
+  font-weight: 800;
+  color: var(--tinta-suave);
+}
+
+.medios__lista {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e2);
+}
+
+.medios__opcion {
+  flex: 1 1 108px;
+  min-height: 56px;
+}
+
 /* ── Selector de demora ──────────────────────────────────────────────────── */
 
 .demora {

@@ -136,6 +136,18 @@ func responderErrorMotor(c *gin.Context, err error) {
 		c.JSON(http.StatusConflict, apierror.New(err.Error()))
 	case errors.Is(err, service.ErrNoDisponible):
 		c.JSON(http.StatusUnprocessableEntity, apierror.New(err.Error()))
+	case errors.Is(err, service.ErrYaCobrado), errors.Is(err, service.ErrNoCobrable):
+		c.JSON(http.StatusConflict, apierror.New(err.Error()))
+	case errors.Is(err, service.ErrMedioPagoInvalido),
+		errors.Is(err, service.ErrCUITInvalido),
+		errors.Is(err, service.ErrPuntoVentaInvalido),
+		errors.Is(err, service.ErrModoFiscalInvalido),
+		errors.Is(err, service.ErrTimezoneInvalida):
+		c.JSON(http.StatusUnprocessableEntity, apierror.New(err.Error()))
+	case errors.Is(err, service.ErrCifradoNoConfigurado):
+		// Es una falta de configuración del servidor, no del que llamó: 503
+		// para que se note en el monitoreo y no se confunda con un body malo.
+		c.JSON(http.StatusServiceUnavailable, apierror.New(err.Error()))
 	default:
 		c.JSON(http.StatusBadRequest, apierror.New(err.Error()))
 	}

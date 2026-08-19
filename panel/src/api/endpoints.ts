@@ -6,12 +6,15 @@ import type {
   Agenda,
   AltaNegocio,
   Categoria,
+  Cierre,
   Cliente,
   Cobertura,
+  Cobro,
   Compromiso,
   Estado,
   Excepcion,
   Horario,
+  MedioPago,
   Negocio,
   NegocioDatos,
   Plata,
@@ -81,6 +84,24 @@ export function transicionar(id: string, input: TransicionarInput): Promise<Comp
     metodo: 'PATCH',
     cuerpo: input,
   })
+}
+
+// ─── Cobro y cierre del día ──────────────────────────────────────────────────
+
+export function cobrar(compromisoID: string, medioPago: MedioPago): Promise<Cobro> {
+  return pedir<Cobro>('/api/cobros', {
+    metodo: 'POST',
+    cuerpo: { compromiso_id: compromisoID, medio_pago: medioPago },
+  })
+}
+
+/** 404 cuando todavía no se cobró: quien llama decide si eso es un problema. */
+export function traerCobro(compromisoID: string): Promise<Cobro> {
+  return pedir<Cobro>(`/api/cobros/${compromisoID}`)
+}
+
+export function traerCierre(fecha: string): Promise<Cierre> {
+  return pedir<Cierre>(`/api/cierre?fecha=${encodeURIComponent(fecha)}`)
 }
 
 // ─── Catálogo ────────────────────────────────────────────────────────────────

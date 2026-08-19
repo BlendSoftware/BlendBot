@@ -37,6 +37,10 @@ type Config struct {
 	// InternalAPIToken authenticates core → sidecar calls.
 	// Must match INTERNAL_API_TOKEN in the sidecar container.
 	InternalAPIToken string `mapstructure:"INTERNAL_API_TOKEN"`
+	// FiscalCipherKey (64 hex = 32 bytes) cifra en reposo los certificados de
+	// ARCA. Vacía = el módulo fiscal no puede guardar certificados y lo dice;
+	// nunca se guarda un PEM en claro. Generar con: openssl rand -hex 32
+	FiscalCipherKey string `mapstructure:"FISCAL_CIPHER_KEY"`
 }
 
 // Load reads configuration from environment variables (and optional .env file).
@@ -66,6 +70,7 @@ func Load() (*Config, error) {
 	_ = viper.BindEnv("DATABASE_URL")
 	_ = viper.BindEnv("REDIS_URL")
 	_ = viper.BindEnv("INTERNAL_API_TOKEN")
+	_ = viper.BindEnv("FISCAL_CIPHER_KEY")
 
 	// Optional .env file for local development — does not fail if missing
 	_ = viper.ReadInConfig()

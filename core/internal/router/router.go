@@ -33,6 +33,7 @@ type Deps struct {
 	DispoSvc     service.DisponibilidadService
 	TokenSvc     service.NegocioTokenService
 	ListaEspSvc  service.ListaEsperaService
+	CobroSvc     service.CobroService
 	NegDatosRepo repository.NegocioDatosRepository
 	HorarioH     *handler.HorariosHandler
 }
@@ -78,6 +79,7 @@ func New(d Deps) *gin.Engine {
 	admin := priv.Group("/admin/negocios", middleware.RequireRole(middleware.RolAdmin))
 	handler.NewAdminNegociosHandler(d.NegocioSvc, d.AuditSvc).Register(admin)
 	handler.NewAdminTokenHandler(d.TokenSvc, d.AuditSvc).Register(admin)
+	handler.NewAdminFiscalHandler(d.CobroSvc, d.AuditSvc).Register(admin)
 
 	// Rutas del negocio: el tenant sale del token, jamás del request.
 	tenant := priv.Group("", middleware.RequireNegocio())
@@ -88,6 +90,7 @@ func New(d Deps) *gin.Engine {
 	handler.NewDisponibilidadHandler(d.DispoSvc).Register(tenant)
 	handler.NewNegocioDatosHandler(d.NegDatosRepo).Register(tenant)
 	handler.NewListaEsperaHandler(d.ListaEspSvc).Register(tenant)
+	handler.NewCobrosHandler(d.CobroSvc).Register(tenant)
 	d.HorarioH.Register(tenant)
 
 	return r
