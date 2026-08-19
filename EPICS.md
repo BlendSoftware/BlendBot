@@ -33,8 +33,8 @@ archivos y contratos. **Un agente sólo toca los archivos de su workstream.**
 | E5 | Gateway WhatsApp (Node, webhook, sesiones, outbox) | **✔ hecho** (108 tests) |
 | E6 | Panel web (React: agenda, catálogo, profesionales, ficha) | **✔ hecho** (38 tests) |
 | E7 | Anti-ausentismo (recordatorio 24h, liberación, lista de espera) | **✔ hecho** (migración 000003, workers, hook y endpoints cableados) |
-| E8 | Cobro + sidecar ARCA (Factura C) | pendiente |
-| E9 | Compose integrado + smoke e2e | pendiente |
+| E8 | Cobro + sidecar ARCA (Factura C) | **✔ hecho** (commit 4e67b3e) |
+| E9 | Compose integrado + smoke e2e + revisión final | **en curso** |
 
 ---
 
@@ -339,3 +339,28 @@ NO reescribas lógica existente salvo el hook puntual en motor_service.
   - Cierre del día: agrega bien por medio/origen en la TZ del negocio.
   - Si W4-A no aterrizó, escribí contra el contrato y anotá.
 - Verificá: panel (tsc, test, build) y go test ./tests/... según lo que compile.
+
+---
+
+## E9 — Ola final: integración, revisión y pulido
+
+### W5-A: deploy integrado (Dockerfiles, compose, smoke)
+
+- `core/Dockerfile` (multi-stage, binario estático, migrations adentro), `gateway/Dockerfile`, `panel/Dockerfile` (build + nginx sirviendo dist con cache-busting: el bundle de Vite ya tiene hash en el nombre; nginx.conf con try_files para SPA y proxy /api → core).
+- `docker-compose.yml` raíz AMPLIADO (no pisar db/redis existentes): servicios core, arca-sidecar, gateway, panel con healthchecks, depends_on condition service_healthy, env por variables con defaults dev, red interna. El core espera db healthy. Volumen efímero para el cache de certs del sidecar (documentar que JAMÁS entra a backups).
+- `scripts/smoke.sh`: levanta compose completo → espera health de core/sidecar/gateway/panel → contra la API real: login admin (ADMIN_PASSWORD de env), alta negocio salud, login dueño + cambio de password, cobertura+servicio+recurso+horario, disponibilidad (asserts de huecos), hold, compromiso, confirmar→en_curso→completado, cobrar (sin config fiscal: cobro sin comprobante, assert del mensaje), cierre del día, rotar token agente y GET /api/negocio con cop_. Exit code != 0 si algo falla, con contexto. Idempotente (nombres con timestamp… no hay Date.now en workflows pero esto es bash: usar $RANDOM).
+- `docs/DEPLOY.md`: variables de cada servicio, cómo arrancar de cero, cómo dar de alta el primer negocio y conectar el gateway (tenants.json), qué falta para producción real (dominio, Traefik, certs ARCA, número de WhatsApp).
+- Verificá: docker compose build + smoke.sh pasando ENTERO en esta máquina (el postgres host 5433 ya está ocupado por el compose actual de dev: reusalo o pará/reusá los contenedores existentes con cuidado; los datos de dev son descartables).
+
+### W5-B: revisión adversarial (solo lectura + reporte)
+
+Revisar TODO el repo buscando bugs REALES, con foco en las costuras que ningún agente vio entera: gateway↔agente (env, sesiones, colas), agente↔core (shapes HTTP, errores), core↔sidecar (contrato facturar), panel↔core (DTOs), multi-tenant (cualquier query o flujo que pueda cruzar tenants), plata (decimal end-to-end, redondeos), timezones (TIME local vs timestamptz), concurrencia (holds, transiciones, lease), secretos (logs, responses, git). NO editar nada: reporte con archivo:línea, severidad, y escenario de fallo concreto por hallazgo. Verificar cada hallazgo contra el código real antes de reportarlo (nada de "podría ser").
+
+### W5-C: pulido fino
+
+1. Gate de rol en el panel: /cierre y montos sólo dueño+admin (PANEL.md roles); el operador ve agenda/catálogo/clientes sin plata. `Protegida` ya decodifica el rol.
+2. `AgendaResponse`: sumar estado de cobro del turno (cobrado bool / comprobante estado) al DTO Go + usarlo en el panel para evitar el GET /api/cobros/:id por turno (nota de W4-C). Actualizar tests afectados.
+3. DESIGN.md: barra inferior pasa a 5 íconos (cierre entró); dejarlo escrito.
+4. README.md raíz: estado real (qué está construido, cómo correrlo, make + smoke), sección "Estado" actualizada; ROADMAP.md: tildar lo hecho de Fase 1/2 con fecha 19/08/2026, dejando claro qué queda (Meta app, plantillas, piloto, homologación ARCA real).
+5. `panel/`: `GET /api/lista-espera` ya existe — vista mínima Lista de espera (o sección en Agenda) para VER quién espera + alta manual; el hueco libre de la agenda muestra cuántos esperan ese servicio si aplica (si es barato; si no, sólo la vista).
+- Verificá: go + panel suites completas verdes.
