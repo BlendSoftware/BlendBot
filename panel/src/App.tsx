@@ -1,0 +1,113 @@
+import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom'
+import type { ReactNode } from 'react'
+import { BarraInferior } from './componentes/BarraInferior'
+import { ProveedorSesion, useSesion } from './contexto'
+import { cambioPendiente } from './api/sesion'
+import { Login } from './vistas/Login'
+import { CambiarPassword } from './vistas/CambiarPassword'
+import { Agenda } from './vistas/Agenda'
+import { Catalogo } from './vistas/Catalogo'
+import { Equipo } from './vistas/Equipo'
+import { Clientes } from './vistas/Clientes'
+import { Admin } from './vistas/Admin'
+
+/**
+ * El guard: sin token no se entra; con contraseña temporal sin cambiar no se
+ * pasa de la pantalla de cambio; el admin de la plataforma no tiene agenda y
+ * el negocio no tiene alta de negocios.
+ */
+function Protegida({ children, soloAdmin = false }: { children: ReactNode; soloAdmin?: boolean }) {
+  const { claims } = useSesion()
+  const lugar = useLocation()
+
+  if (!claims) return <Navigate to="/login" replace state={{ desde: lugar.pathname }} />
+
+  if (cambioPendiente() && lugar.pathname !== '/cambiar-password') {
+    return <Navigate to="/cambiar-password" replace />
+  }
+
+  const esAdmin = claims.rol === 'admin'
+  if (soloAdmin && !esAdmin) return <Navigate to="/" replace />
+  if (!soloAdmin && esAdmin) return <Navigate to="/admin" replace />
+
+  return <>{children}</>
+}
+
+function Marco() {
+  const { claims } = useSesion()
+  return (
+    <div className="marco">
+      <main className="marco__cuerpo">
+        <Outlet />
+      </main>
+      {claims && <BarraInferior rol={claims.rol} />}
+    </div>
+  )
+}
+
+export function Rutas() {
+  return (
+    <Routes>
+      <Route path="/login" element={<Login />} />
+      <Route
+        path="/cambiar-password"
+        element={
+          <Protegida>
+            <CambiarPassword />
+          </Protegida>
+        }
+      />
+      <Route element={<Marco />}>
+        <Route
+          index
+          element={
+            <Protegida>
+              <Agenda />
+            </Protegida>
+          }
+        />
+        <Route
+          path="/catalogo"
+          element={
+            <Protegida>
+              <Catalogo />
+            </Protegida>
+          }
+        />
+        <Route
+          path="/equipo"
+          element={
+            <Protegida>
+              <Equipo />
+            </Protegida>
+          }
+        />
+        <Route
+          path="/clientes"
+          element={
+            <Protegida>
+              <Clientes />
+            </Protegida>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <Protegida soloAdmin>
+              <Admin />
+            </Protegida>
+          }
+        />
+      </Route>
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  )
+}
+
+export function App() {
+  return (
+    <ProveedorSesion>
+      <Rutas />
+    </ProveedorSesion>
+  )
+}

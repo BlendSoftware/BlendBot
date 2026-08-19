@@ -10,6 +10,7 @@ import (
 	"copiloto/core/internal/model"
 	"copiloto/core/internal/repository"
 
+	"github.com/rs/zerolog/log"
 	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 )
@@ -32,12 +33,27 @@ type MotorService interface {
 }
 
 type motorService struct {
-	repo  repository.CompromisoRepository
-	holds repository.HoldRepository
+	repo        repository.CompromisoRepository
+	holds       repository.HoldRepository
+	notificador Notificador // opcional: nil = el motor no avisa nada
 }
 
-func NewMotorService(repo repository.CompromisoRepository, holds repository.HoldRepository) MotorService {
-	return &motorService{repo: repo, holds: holds}
+// OpcionMotor configura el motor sin tocarle la firma al constructor: los
+// llamadores que no saben del anti-ausentismo siguen compilando igual.
+type OpcionMotor func(*motorService)
+
+// ConNotificador engancha el anti-ausentismo: cuando se cancela un turno
+// futuro, alguien se entera y le ofrece el hueco a la lista de espera.
+func ConNotificador(n Notificador) OpcionMotor {
+	return func(s *motorService) { s.notificador = n }
+}
+
+func NewMotorService(repo repository.CompromisoRepository, holds repository.HoldRepository, opts ...OpcionMotor) MotorService {
+	s := &motorService{repo: repo, holds: holds}
+	for _, o := range opts {
+		o(s)
+	}
+	return s
 }
 
 // ── Crear ─────────────────────────────────────────────────────────────────
@@ -221,7 +237,40 @@ func (s *motorService) Transicionar(ctx context.Context, negocioID, id string, n
 		return nil, fmt.Errorf("%w: el compromiso ya no esta en %s", ErrTransicionInvalida, c.Estado)
 	}
 
+	if nuevo == model.EstadoCancelado {
+		s.avisarHuecoLiberado(ctx, c, ahora)
+	}
+
 	return s.Obtener(ctx, negocioID, id)
+}
+
+// avisarHuecoLiberado dispara el hook del anti-ausentismo. Sólo un TURNO con
+// hora futura libera algo que se le pueda ofrecer a otro; y el aviso jamás
+// puede voltear la transición, que ya está confirmada en la base: un error del
+// notificador se loguea y se sigue.
+func (s *motorService) avisarHuecoLiberado(ctx context.Context, c *model.Compromiso, ahora time.Time) {
+	if s.notificador == nil {
+		return
+	}
+	if c.Tipo != model.CompromisoTurno || c.Inicio == nil || !c.Inicio.After(ahora) {
+		return
+	}
+	if len(c.Lineas) == 0 {
+		return
+	}
+
+	err := s.notificador.TurnoCancelado(ctx, TurnoCancelado{
+		NegocioID:    c.NegocioID,
+		CompromisoID: c.ID,
+		ClienteID:    c.ClienteID,
+		ServicioID:   c.Lineas[0].ServicioID,
+		Inicio:       *c.Inicio,
+		Fin:          c.Fin,
+	})
+	if err != nil {
+		log.Error().Err(err).Str("compromiso_id", c.ID).
+			Msg("motor: no se pudo ofrecer el hueco liberado")
+	}
 }
 
 // verificarHueco falla si el rango pisa un compromiso activo o un hold vigente

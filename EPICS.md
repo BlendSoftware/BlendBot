@@ -32,7 +32,7 @@ archivos y contratos. **Un agente sólo toca los archivos de su workstream.**
 | E4 | Agente MCP (Python FastMCP, 7 tools, SKILL.md salud) | **en curso** |
 | E5 | Gateway WhatsApp (Node, webhook, sesiones, outbox) | pendiente |
 | E6 | Panel web (React: agenda, catálogo, profesionales, ficha) | pendiente |
-| E7 | Anti-ausentismo (recordatorio 24h, liberación, lista de espera) | pendiente |
+| E7 | Anti-ausentismo (recordatorio 24h, liberación, lista de espera) | **✔ hecho** (migración 000003, workers, hook y endpoints cableados) |
 | E8 | Cobro + sidecar ARCA (Factura C) | pendiente |
 | E9 | Compose integrado + smoke e2e | pendiente |
 

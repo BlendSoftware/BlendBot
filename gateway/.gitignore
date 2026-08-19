@@ -1,0 +1,8 @@
+# tenants.json tiene los tokens de agente (cop_...) de cada comercio.
+# Un token filtrado = alguien leyendo y escribiendo la agenda de un cliente.
+tenants.json
+
+# Sesiones del agente (resume ids)
+data/
+
+node_modules/

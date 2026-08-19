@@ -35,6 +35,7 @@ import (
 	"copiloto/core/internal/repository"
 	"copiloto/core/internal/router"
 	"copiloto/core/internal/service"
+	"copiloto/core/internal/worker"
 	"copiloto/core/tests/testutil"
 
 	"github.com/alicebob/miniredis/v2"
@@ -130,6 +131,14 @@ func armarRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) *gin.Engine
 	horarioRepo := repository.NewHorarioRepository(db)
 	dispoRepo := repository.NewDisponibilidadRepository(db)
 	negDatosRepo := repository.NewNegocioDatosRepository(db)
+	listaEsperaRepo := repository.NewListaEsperaRepository(db)
+	avisoRepo := repository.NewAvisoRepository(db)
+
+	// El anti-ausentismo va cableado como en producción: el motor del e2e lleva
+	// el notificador puesto, así que si el hook rompiera un flujo existente se
+	// vería acá y no en producción.
+	huecoLiberado := worker.NewListaEsperaNotificador(
+		listaEsperaRepo, avisoRepo, worker.NewPublicador(rdb), nil)
 
 	return router.New(router.Deps{
 		Cfg:          cfg,
@@ -140,10 +149,11 @@ func armarRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) *gin.Engine
 		CatalogoSvc:  service.NewCatalogoService(categoriaRepo, recursoRepo, servicioRepo, coberturaRepo),
 		ClienteSvc:   service.NewClienteService(clienteRepo, coberturaRepo),
 		AuditSvc:     service.NewAuditService(auditRepo),
-		MotorSvc:     service.NewMotorService(compromisoRepo, holdRepo),
+		MotorSvc:     service.NewMotorService(compromisoRepo, holdRepo, service.ConNotificador(huecoLiberado)),
 		HoldSvc:      service.NewHoldService(holdRepo, compromisoRepo),
 		DispoSvc:     service.NewDisponibilidadService(dispoRepo),
 		TokenSvc:     service.NewNegocioTokenService(negDatosRepo),
+		ListaEspSvc:  service.NewListaEsperaService(listaEsperaRepo),
 		NegDatosRepo: negDatosRepo,
 		HorarioH:     handler.NewHorariosHandler(horarioRepo),
 	})

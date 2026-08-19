@@ -1,0 +1,59 @@
+/* Paleta y ritmo: DESIGN.md manda. No inventar valores acá. */
+
+:root {
+  /* Neutros papel, tintados cálidos */
+  --fondo: oklch(0.975 0.006 60);
+  --superficie: oklch(0.99 0.004 60);
+  --borde: oklch(0.88 0.008 60);
+  --tinta: oklch(0.24 0.012 55);
+  --tinta-suave: oklch(0.45 0.01 55);
+
+  /* Acento terracota: acciones primarias, foco, marca */
+  --acento: oklch(0.58 0.13 40);
+  --acento-tinta: oklch(0.99 0.004 60);
+
+  /* Estados del compromiso */
+  --pendiente: oklch(0.72 0.15 75);
+  --confirmado: oklch(0.62 0.1 155);
+  --en-curso: oklch(0.6 0.1 250);
+  --listo: oklch(0.55 0.12 300);
+  --vencido: oklch(0.55 0.18 25);
+  --hueco-libre: oklch(0.93 0.02 130);
+
+  /* Tinta sobre bloques de estado: los claros llevan tinta oscura */
+  --sobre-pendiente: oklch(0.24 0.03 60);
+  --sobre-confirmado: oklch(0.99 0.004 60);
+  --sobre-en-curso: oklch(0.99 0.004 60);
+  --sobre-listo: oklch(0.99 0.004 60);
+  --sobre-vencido: oklch(0.99 0.004 60);
+  --sobre-hueco: oklch(0.38 0.05 140);
+
+  /* Superficie secundaria: barras, encabezados pegajosos */
+  --panel: oklch(0.955 0.008 60);
+
+  /* Ritmo 4 / 8 / 16 / 24 / 40 */
+  --e1: 4px;
+  --e2: 8px;
+  --e3: 16px;
+  --e4: 24px;
+  --e5: 40px;
+
+  /* Escala tipográfica 1.33 */
+  --t-mini: 14px;
+  --t-cuerpo: 16px;
+  --t-medio: 18px;
+  --t-grande: 24px;
+  --t-titulo: 32px;
+  --t-mayor: 43px;
+
+  --radio: 10px;
+  --radio-chico: 6px;
+
+  --tacto: 48px;
+  --alto-barra: 68px; /* alto de la barra del día: la agenda se pega debajo */
+  --curva: cubic-bezier(0.165, 0.84, 0.44, 1); /* ease-out-quart */
+  --transicion: 200ms var(--curva);
+
+  --sombra-baja: 0 1px 2px oklch(0.24 0.012 55 / 0.08);
+  --sombra-flotante: 0 6px 20px oklch(0.24 0.012 55 / 0.16);
+}

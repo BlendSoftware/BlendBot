@@ -1,0 +1,14 @@
+{
+  "104938562847193": {
+    "negocio": "Consultorio Sarmiento",
+    "agente_token": "cop_reemplazar_por_el_token_que_devuelve_el_core",
+    "vertical": "salud",
+    "wa_numero": "+5492611234567"
+  },
+  "219847362518094": {
+    "negocio": "Rotisería La Esquina",
+    "agente_token": "cop_reemplazar_por_el_token_que_devuelve_el_core",
+    "vertical": "gastronomia",
+    "wa_numero": "+5492617654321"
+  }
+}

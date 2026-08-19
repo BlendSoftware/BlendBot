@@ -22,6 +22,7 @@ import (
 	"copiloto/core/internal/repository"
 	"copiloto/core/internal/router"
 	"copiloto/core/internal/service"
+	"copiloto/core/internal/worker"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -118,6 +119,23 @@ func main() {
 	horarioRepo := repository.NewHorarioRepository(db)
 	dispoRepo := repository.NewDisponibilidadRepository(db)
 	negDatosRepo := repository.NewNegocioDatosRepository(db)
+	listaEsperaRepo := repository.NewListaEsperaRepository(db)
+	avisoRepo := repository.NewAvisoRepository(db)
+
+	// ── Anti-ausentismo ─────────────────────────────────────────────
+	// Los workers viven mientras viva el proceso; el ctx se cancela en el
+	// shutdown para que el ticker corte antes de que se cierren db y redis.
+	ctxWorkers, pararWorkers := context.WithCancel(context.Background())
+	defer pararWorkers()
+
+	publicador := worker.NewPublicador(rdb)
+	worker.NewRecordatorios(worker.RecordatoriosConfig{
+		Repo: avisoRepo,
+		Pub:  publicador,
+	}).Start(ctxWorkers)
+	// El hook de liberación no es un ticker: lo dispara el motor cuando se
+	// cancela un turno futuro.
+	huecoLiberado := worker.NewListaEsperaNotificador(listaEsperaRepo, avisoRepo, publicador, nil)
 
 	r := router.New(router.Deps{
 		Cfg:          cfg,
@@ -128,10 +146,11 @@ func main() {
 		CatalogoSvc:  service.NewCatalogoService(categoriaRepo, recursoRepo, servicioRepo, coberturaRepo),
 		ClienteSvc:   service.NewClienteService(clienteRepo, coberturaRepo),
 		AuditSvc:     service.NewAuditService(auditRepo),
-		MotorSvc:     service.NewMotorService(compromisoRepo, holdRepo),
+		MotorSvc:     service.NewMotorService(compromisoRepo, holdRepo, service.ConNotificador(huecoLiberado)),
 		HoldSvc:      service.NewHoldService(holdRepo, compromisoRepo),
 		DispoSvc:     service.NewDisponibilidadService(dispoRepo),
 		TokenSvc:     service.NewNegocioTokenService(negDatosRepo),
+		ListaEspSvc:  service.NewListaEsperaService(listaEsperaRepo),
 		NegDatosRepo: negDatosRepo,
 		HorarioH:     handler.NewHorariosHandler(horarioRepo),
 	})
@@ -157,6 +176,7 @@ func main() {
 	<-quit
 
 	log.Info().Msg("shutting down…")
+	pararWorkers()
 
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer shutdownCancel()

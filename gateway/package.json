@@ -1,0 +1,24 @@
+{
+  "name": "copiloto-gateway",
+  "version": "1.0.0",
+  "description": "Gateway de WhatsApp del Copiloto de Comercios: webhook de la Cloud API oficial + Agent SDK + MCP",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.3.150",
+    "express": "^4.21.2",
+    "redis": "^4.7.0"
+  },
+  "devDependencies": {
+    "supertest": "^7.1.1",
+    "vitest": "^3.2.4"
+  }
+}
