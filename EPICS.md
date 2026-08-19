@@ -238,3 +238,59 @@ servicios, y de la máquina confirmado=False/True.
   (token revocado → 401).
 - Si W2-A aún no aterrizó cuando empieces, escribí contra este contrato y anotá
   lo que no compile.
+
+---
+
+## E5 — Gateway WhatsApp (Node, `gateway/` — W3-A)
+
+Patrón de wa-claude SIN Baileys: webhook Cloud API + Agent SDK + MCP.
+
+- `package.json` (node >=20, type module; deps: express, @anthropic-ai/claude-agent-sdk, redis; dev: vitest, supertest). `src/`:
+  - `config.js` — env: PORT(8090), REDIS_URL, META_APP_SECRET, META_VERIFY_TOKEN, META_GRAPH_TOKEN, CORE_URL, TENANTS_PATH (default ./tenants.json), SESIONES_DIR (default ./data/sesiones), ANTHROPIC_API_KEY, MODELO (default claude-haiku-4-5-20251001)
+  - `tenants.js` — carga tenants.json: `{ "<phone_number_id>": {"negocio": "...", "agente_token": "cop_...", "vertical": "salud", "wa_numero": "..."} }` + `tenants.example.json`
+  - `firma.js` — verificación X-Hub-Signature-256 (HMAC sha256 con META_APP_SECRET, timingSafeEqual, sobre el raw body)
+  - `webhook.js` — GET verificación (hub.challenge) + POST: valida firma → 200 inmediato → procesa async. Idempotencia: SETNX redis `wa:msg:<message.id>` TTL 24h (Meta reintenta; un mensaje procesado dos veces no puede crear dos pedidos). Ignora statuses/echoes. Extrae texto (text.body; interactive button/list reply → title).
+  - `sesiones.js` — patrón claude.js de wa-claude: Map chatKey(`<phone_number_id>:<telefono>`)→resumeId, PERSISTIDO a disco (JSON en SESIONES_DIR, write-through). Expiración 24h de inactividad.
+  - `agente.js` — runSdkQuery envolviendo query() del Agent SDK: systemPrompt = archivo agente/skills/<vertical>/SKILL.md, mcpServers: spawn `uv --directory <repo>/agente run python server.py` con env CORE_URL, AGENTE_TOKEN (del tenant), CLIENTE_TELEFONO; resume; TIMEOUT 90s con AbortController (gotcha wa-claude: timeout con aborto, consumidor aislado). Respuesta = texto final.
+  - `outbox.js` — patrón wa-claude/src/outbox.js: cola redis `outbox:<phone_number_id>`, worker con reintentos exponenciales (3 intentos), envía POST graph.facebook.com/v21.0/<phone_number_id>/messages (text body). DLQ `outbox:muertos` con log.
+  - `salidas.js` — consumidor BRPOP de la cola `salidas_whatsapp` (la llena el core, E7): manda plantilla o texto según payload `{negocio_id, wa_phone_id, telefono, tipo: "texto"|"plantilla", texto?, plantilla?, variables?}` → misma vía outbox.
+  - `index.js` — express con raw body capture para la firma, arranque, graceful shutdown.
+- `tests/` vitest: firma (válida/ inválida/ ausente), idempotencia (mismo id dos veces → un solo procesamiento), webhook GET challenge, parsing de mensajes (tabla con payloads reales de Cloud API), outbox reintenta y muere a DLQ, sesiones persisten y expiran. Graph API y Agent SDK MOCKEADOS (inyección de deps), nada de red real.
+- README.md corto: cómo dar de alta un tenant (rotar token en core → tenants.json), variables, cómo correr.
+- Verificá: `npm install && npm test` verde. No toques nada fuera de gateway/.
+
+## E6 — Panel web (React, `panel/` — W3-B)
+
+Vite + React 18 + TS estricto. **PRODUCT.md y DESIGN.md de la raíz son LEY** —
+paleta OKLCH, Manrope, targets ≥48px, tema claro, prohibiciones incluidas.
+Referencia de estructura (no de estética): ~/Proyectos/Skill-Moodle/panel/web.
+
+- `src/api/` — cliente typed: fetch con base VITE_API_URL, JWT en memoria+localStorage, refresh automático en 401 (una vez), tipos TS espejo de los DTO del core (mirá core/internal/dto/*.go).
+- `src/vistas/`:
+  - `Login.tsx` (+ flujo must_change_password → CambiarPassword)
+  - `Agenda.tsx` — LA vista (PANEL.md vista 1 salud): columnas por profesional, franjas del día, turnos con fondo por estado, huecos libres visibles (--hueco-libre), fecha navegable, acciones táctiles confirmar/cancelar/en_curso/completado/ausente según transiciones válidas. Poll cada 15s.
+  - `Catalogo.tsx` — vista 2: lista de FilaServicio con el switch GRANDE de disponible (optimista, PATCH /servicios/:id/disponible), precio, alta/edición inline (sin modal), categorías, precios por cobertura.
+  - `Equipo.tsx` — profesionales (recursos) + horarios semanales + excepciones; alta/edición.
+  - `Clientes.tsx` — búsqueda por teléfono/nombre, ficha (nombre, teléfono, cobertura, historial de compromisos del cliente vía GET /compromisos filtrado client-side si no hay endpoint).
+  - `Admin.tsx` — sólo rol admin: lista de negocios, alta (muestra password temporal UNA vez), rotar token de agente (muestra token UNA vez, con advertencia).
+- `src/componentes/` — TarjetaCompromiso, FilaServicio, SelectorDemora (presets de config + campo libre SIEMPRE), BarraInferior (4 íconos), Switch.
+- Rutas react-router: / (agenda), /catalogo, /equipo, /clientes, /admin, /login. Guard por token + rol.
+- Estados según claims del JWT (decodificar payload base64, sin lib).
+- Tests vitest + @testing-library/react: cliente API (refresh en 401), TarjetaCompromiso muestra acciones según estado (tabla de transiciones válidas — espejo de model/estado.go), SelectorDemora acepta valor libre, guard de rutas.
+- Copy en rioplatense neutro (PRODUCT.md), sin jerga técnica, sin em dashes.
+- Verificá: `npm install && npm run build && npm test` y `npx tsc --noEmit` verdes. No toques nada fuera de panel/.
+
+## E7 — Anti-ausentismo (Go, core — W3-C; único agente Go de la ola)
+
+Podés tocar core: migración nueva, archivos nuevos, y cablear router.go/main.go.
+NO reescribas lógica existente salvo el hook puntual en motor_service.
+
+- `core/migrations/000003_anti_ausentismo.up/.down.sql`:
+  - `ALTER TABLE compromiso ADD COLUMN recordatorio_enviado_en TIMESTAMPTZ;`
+  - tabla `lista_espera(id uuid pk, negocio_id fk, cliente_id fk, servicio_id fk, nota text, creado_en, notificado_en timestamptz null, compromiso_ofrecido_id uuid null)` + índices (negocio_id, servicio_id, creado_en).
+- `internal/model/lista_espera.go`, `internal/repository/lista_espera_repo.go` (CRUD tenant-scoped + `PrimeroSinNotificar(ctx, negocioID, servicioID)`).
+- `internal/worker/recordatorios.go` — ticker 60s: turnos `confirmado` con `inicio` en `[ahora + Hh - 5min, ahora + Hh]` (H = config `recordatorio_horas_antes`, default 24) y `recordatorio_enviado_en IS NULL` → UPDATE condicional (WHERE recordatorio_enviado_en IS NULL) y si afectó la fila → LPUSH redis `salidas_whatsapp` JSON `{negocio_id, wa_phone_id, telefono, tipo:"plantilla", plantilla:"recordatorio_turno", variables:{nombre, fecha_hora_local, negocio}, compromiso_id}`. Reloj inyectable (`func() time.Time`) para tests. Necesita wa_phone_id del negocio (join).
+- Hook de liberación: cuando `Transicionar` lleva un TURNO con `inicio` futuro a `cancelado`, publicar evento → `internal/worker/lista_espera.go`: toma `PrimeroSinNotificar` del mismo servicio (primera línea del compromiso cancelado), marca `notificado_en` y encola oferta `{tipo:"plantilla", plantilla:"hueco_liberado", ...}`. Hook mínimo en motor_service (inyectar un `Notificador` opcional; nil = no-op para no romper tests existentes).
+- `internal/handler/lista_espera.go` + dto: `GET/POST /api/lista-espera`, `DELETE /api/lista-espera/:id`. Register método, cablealo vos en router.go (grupo tenant) y los workers en main.go (composition root, con el ctx de shutdown existente).
+- Tests integración (harness existente, `tests/integration/anti_ausentismo_test.go`): recordatorio se encola una sola vez (dos ticks → un solo LPUSH, verificar con miniredis o redis de test), fuera de ventana no encola, cancelación de turno futuro notifica al primero de la lista del mismo servicio y lo marca, lista de espera tenant-scoped.
+- Verificá: go build/vet/test ./... completo verde (incluido e2e existente — el hook nil no debe romper nada).
