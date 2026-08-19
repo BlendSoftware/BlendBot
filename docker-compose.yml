@@ -1,0 +1,36 @@
+# Infraestructura de desarrollo. El core corre local con `make run`;
+# los servicios core/agente/gateway se suman acá cuando estén listos
+# para correr containerizados (deploy: Compose detrás de Traefik).
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: copiloto
+      POSTGRES_PASSWORD: copiloto
+      POSTGRES_DB: copiloto
+    ports:
+      # 5433 en el host: el 5432 ya lo ocupa otro postgres local
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U copiloto"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:
+  redisdata:

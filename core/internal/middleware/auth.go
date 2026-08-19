@@ -1,0 +1,128 @@
+package middleware
+
+import (
+	"net/http"
+	"strings"
+
+	"copiloto/core/internal/apierror"
+
+	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/redis/go-redis/v9"
+)
+
+const (
+	ClaimsKey        = "claims"
+	revokedKeyPrefix = "jwt:revoked:"
+)
+
+// Roles del panel.
+const (
+	RolAdmin    = "admin"    // panel admin de la plataforma; sin negocio
+	RolDueno    = "dueno"    // ve todo su negocio, incluida la plata
+	RolOperador = "operador" // tablero, catálogo, clientes; sin facturación
+)
+
+// JWTClaims are the custom claims embedded in every access token.
+//
+// NegocioID is the tenant. It travels in the token (transport), never as a
+// request parameter: a caller can only operate on the tenant its token was
+// issued for. Empty NegocioID is only valid for RolAdmin.
+type JWTClaims struct {
+	UserID    string `json:"user_id"`
+	Username  string `json:"username"`
+	Rol       string `json:"rol"`
+	NegocioID string `json:"negocio_id"`
+	Type      string `json:"type"` // "access" or "refresh"
+	jwt.RegisteredClaims
+}
+
+// JWTAuth validates the Bearer token on every protected route.
+// If rdb is non-nil, it also checks whether the token's jti has been
+// added to the Redis revocation set (e.g. after an explicit logout).
+func JWTAuth(secret string, rdb *redis.Client) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		header := c.GetHeader("Authorization")
+		if header == "" || !strings.HasPrefix(header, "Bearer ") {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, apierror.New("Autenticacion requerida"))
+			return
+		}
+
+		tokenStr := strings.TrimPrefix(header, "Bearer ")
+		claims := &JWTClaims{}
+		token, err := jwt.ParseWithClaims(tokenStr, claims, func(t *jwt.Token) (interface{}, error) {
+			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, jwt.ErrSignatureInvalid
+			}
+			return []byte(secret), nil
+		})
+
+		if err != nil || !token.Valid {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, apierror.New("Token invalido o expirado"))
+			return
+		}
+
+		// Reject refresh tokens used as access tokens.
+		if claims.Type != "access" {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, apierror.New("Tipo de token invalido"))
+			return
+		}
+
+		// Revocation check: if the jti appears in Redis the token was explicitly
+		// invalidated (logout). Fail fast without touching the DB.
+		if rdb != nil && claims.ID != "" {
+			n, redisErr := rdb.Exists(c.Request.Context(), revokedKeyPrefix+claims.ID).Result()
+			if redisErr == nil && n > 0 {
+				c.AbortWithStatusJSON(http.StatusUnauthorized, apierror.New("Token revocado"))
+				return
+			}
+		}
+
+		c.Set(ClaimsKey, claims)
+		c.Next()
+	}
+}
+
+// RequireRole rejects requests whose JWT role is not in the allowed list.
+func RequireRole(roles ...string) gin.HandlerFunc {
+	allowed := make(map[string]bool, len(roles))
+	for _, r := range roles {
+		allowed[r] = true
+	}
+	return func(c *gin.Context) {
+		claims, ok := c.MustGet(ClaimsKey).(*JWTClaims)
+		if !ok || !allowed[claims.Rol] {
+			c.AbortWithStatusJSON(http.StatusForbidden, apierror.New("Permisos insuficientes"))
+			return
+		}
+		c.Next()
+	}
+}
+
+// RequireNegocio rejects tokens that don't carry a tenant. Tenant-scoped
+// routes (everything except the platform admin) must pass through this.
+func RequireNegocio() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		claims, ok := c.MustGet(ClaimsKey).(*JWTClaims)
+		if !ok || claims.NegocioID == "" {
+			c.AbortWithStatusJSON(http.StatusForbidden, apierror.New("Token sin negocio asignado"))
+			return
+		}
+		c.Next()
+	}
+}
+
+// GetClaims is a helper to retrieve typed claims from the Gin context.
+func GetClaims(c *gin.Context) *JWTClaims {
+	claims, _ := c.MustGet(ClaimsKey).(*JWTClaims)
+	return claims
+}
+
+// NegocioID returns the tenant id from the token. Handlers must use this and
+// never accept a negocio_id from the request body or query string.
+func NegocioID(c *gin.Context) string {
+	if claims := GetClaims(c); claims != nil {
+		return claims.NegocioID
+	}
+	return ""
+}

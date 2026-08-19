@@ -1,0 +1,22 @@
+DROP TABLE IF EXISTS audit_log;
+DROP TABLE IF EXISTS hold;
+DROP TABLE IF EXISTS linea_compromiso;
+DROP TABLE IF EXISTS compromiso;
+DROP TABLE IF EXISTS precio_cobertura;
+DROP TABLE IF EXISTS cliente;
+DROP TABLE IF EXISTS cobertura;
+DROP TABLE IF EXISTS excepcion;
+DROP TABLE IF EXISTS horario;
+DROP TABLE IF EXISTS servicio_recurso;
+DROP TABLE IF EXISTS servicio;
+DROP TABLE IF EXISTS categoria;
+DROP TABLE IF EXISTS recurso;
+DROP TABLE IF EXISTS usuario;
+DROP TABLE IF EXISTS negocio;
+
+DROP TYPE IF EXISTS origen_compromiso;
+DROP TYPE IF EXISTS tipo_entrega;
+DROP TYPE IF EXISTS estado_compromiso;
+DROP TYPE IF EXISTS tipo_compromiso;
+DROP TYPE IF EXISTS tipo_recurso;
+DROP TYPE IF EXISTS vertical_negocio;

@@ -1,0 +1,23 @@
+# Secretos — jamás al repo
+.env
+*.env
+!env.example
+*.pem
+*.crt
+*.key
+
+# Go
+core/bin/
+*.test
+
+# Node
+node_modules/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Editor
+.idea/
+.vscode/
