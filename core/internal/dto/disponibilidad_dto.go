@@ -48,17 +48,26 @@ type FranjaHoraria struct {
 
 // TurnoAgenda es un compromiso del día visto desde la agenda: lo mínimo para
 // saber quién viene y a qué hora.
+//
+// Cobrado y ComprobanteEstado viajan acá a propósito: el panel pinta un botón
+// "Cobrar" por turno completado y sin esto tendría que preguntar
+// GET /api/cobros/:id una vez por turno, en cada refresco de la agenda. Un
+// LEFT JOIN acá es una consulta; allá eran N requests cada quince segundos.
+// ComprobanteEstado es nil cuando no hay cobro, o cuando el negocio todavía no
+// cargó sus datos de ARCA y el cobro salió sin comprobante.
 type TurnoAgenda struct {
-	CompromisoID    string                 `json:"compromiso_id"`
-	Inicio          string                 `json:"inicio"`
-	Fin             *string                `json:"fin"`
-	Tipo            model.TipoCompromiso   `json:"tipo"`
-	Estado          model.EstadoCompromiso `json:"estado"`
-	ClienteID       string                 `json:"cliente_id"`
-	ClienteNombre   *string                `json:"cliente_nombre"`
-	ClienteTelefono string                 `json:"cliente_telefono"`
-	Total           decimal.Decimal        `json:"total"`
-	Nota            *string                `json:"nota"`
+	CompromisoID      string                   `json:"compromiso_id"`
+	Inicio            string                   `json:"inicio"`
+	Fin               *string                  `json:"fin"`
+	Tipo              model.TipoCompromiso     `json:"tipo"`
+	Estado            model.EstadoCompromiso   `json:"estado"`
+	ClienteID         string                   `json:"cliente_id"`
+	ClienteNombre     *string                  `json:"cliente_nombre"`
+	ClienteTelefono   string                   `json:"cliente_telefono"`
+	Total             decimal.Decimal          `json:"total"`
+	Nota              *string                  `json:"nota"`
+	Cobrado           bool                     `json:"cobrado"`
+	ComprobanteEstado *model.EstadoComprobante `json:"comprobante_estado"`
 }
 
 // AgendaRecurso es la columna de un recurso: lo que declaró trabajar ese día y

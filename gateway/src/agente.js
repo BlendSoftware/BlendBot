@@ -82,8 +82,14 @@ export function crearAgente({
         type: 'stdio',
         command: 'uv',
         args: ['--directory', dirAgente, 'run', 'python', 'server.py'],
+        // Entorno MÍNIMO: sólo lo que el MCP necesita para arrancar (PATH para
+        // encontrar uv/python) más los cuatro datos de la sesión. NO se spreadea
+        // process.env: ahí viven ANTHROPIC_API_KEY, META_GRAPH_TOKEN y
+        // META_APP_SECRET, y un prompt injection que logre correr algo dentro
+        // del MCP no tiene por qué poder leerlos.
         env: {
-          ...process.env,
+          PATH: process.env.PATH,
+          HOME: process.env.HOME,
           CORE_URL: config.coreUrl,
           AGENTE_TOKEN: tenant.agente_token,
           CLIENTE_TELEFONO: telefono,
@@ -110,14 +116,21 @@ export function crearAgente({
       model: config.modelo,
       systemPrompt: systemPrompt(tenant.vertical),
       mcpServers: mcpServers(tenant, telefono),
-      // El agente sólo puede usar SUS tools. Sin esto el SDK le deja Bash, Read
-      // y Write: un prompt injection en un mensaje de WhatsApp pasaría de ser
-      // un chiste a ser acceso al disco del servidor.
+      // `tools: []` es lo que RESTRINGE el set de herramientas: deja fuera todo
+      // el preset de Claude Code (Bash, Read, Write, WebFetch…) y sólo sobreviven
+      // las tools del MCP `copiloto`. `allowedTools` NO restringe — según el SDK
+      // sólo auto-aprueba —, así que sin esto un prompt injection en un mensaje
+      // de WhatsApp tendría acceso al disco del servidor.
+      tools: [],
+      // Cinturón además del tirante: bloquea explícitamente las peligrosas por
+      // si una versión futura del SDK cambia el default de `tools`.
+      disallowedTools: ['Bash', 'Read', 'Write', 'Edit', 'WebFetch', 'WebSearch', 'Task', 'Glob', 'Grep'],
+      // Auto-aprueba las tools del MCP (son las únicas que quedan) para no colgar
+      // la conversación esperando un permiso que nadie va a contestar.
       allowedTools: ['mcp__copiloto'],
       // Nada de CLAUDE.md, settings ni skills del disco: la única instrucción
       // es el SKILL.md del vertical.
       settingSources: [],
-      permissionMode: 'bypassPermissions',
       cwd: dirAgente,
       includePartialMessages: false,
     };

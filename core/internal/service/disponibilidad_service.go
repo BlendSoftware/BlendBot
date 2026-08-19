@@ -383,14 +383,16 @@ func soloRecurso(rs []model.Recurso, id string) []model.Recurso {
 
 func turnoDesdeFila(f repository.CompromisoAgenda, loc *time.Location) dto.TurnoAgenda {
 	t := dto.TurnoAgenda{
-		CompromisoID:    f.ID,
-		Tipo:            f.Tipo,
-		Estado:          f.Estado,
-		ClienteID:       f.ClienteID,
-		ClienteNombre:   f.ClienteNombre,
-		ClienteTelefono: f.ClienteTelefono,
-		Total:           f.Total,
-		Nota:            f.Nota,
+		CompromisoID:      f.ID,
+		Tipo:              f.Tipo,
+		Estado:            f.Estado,
+		ClienteID:         f.ClienteID,
+		ClienteNombre:     f.ClienteNombre,
+		ClienteTelefono:   f.ClienteTelefono,
+		Total:             f.Total,
+		Nota:              f.Nota,
+		Cobrado:           f.CobroID != nil,
+		ComprobanteEstado: f.ComprobanteEstado,
 	}
 	if f.Inicio != nil {
 		t.Inicio = f.Inicio.In(loc).Format(time.RFC3339)

@@ -51,42 +51,47 @@ necesite construirse entera antes del primer peso.
 
 **Objetivo: un consultorio real usándolo todos los días.**
 
+**Construida entera el 19/08/2026.** Lo que falta para el criterio de salida no
+es código: es el número de WhatsApp productivo y el consultorio.
+
 ### Core
-- [ ] Esqueleto Go a partir de BlendPos (auth, middleware, config, apierror, dto)
-- [ ] Migraciones del motor: `negocio`, `recurso`, `servicio`, `horario`,
-      `compromiso`, `hold`, `cliente`, `cobertura`
-- [ ] Motor: crear compromiso, máquina de estados con validación
-- [ ] Disponibilidad: huecos reales descontando holds y excepciones
-- [ ] Holds con expiración
-- [ ] Catálogo con `disponible` (adaptado de `producto_service.go`)
-- [ ] Precio por cobertura (adaptado de `lista_precios`)
+- [x] Esqueleto Go a partir de BlendPos (auth, middleware, config, apierror, dto) — `core/` (19/08/2026)
+- [x] Migraciones del motor: `negocio`, `recurso`, `servicio`, `horario`,
+      `compromiso`, `hold`, `cliente`, `cobertura` — `core/migrations/` (19/08/2026)
+- [x] Motor: crear compromiso, máquina de estados con validación (19/08/2026)
+- [x] Disponibilidad: huecos reales descontando holds y excepciones (19/08/2026)
+- [x] Holds con expiración (19/08/2026)
+- [x] Catálogo con `disponible` (19/08/2026)
+- [x] Precio por cobertura (19/08/2026)
 
 ### Agente
-- [ ] Servidor MCP con FastMCP (patrón de `Skill-Moodle/mcp/server.py`)
-- [ ] Las 7 tools de [`ARQUITECTURA.md`](ARQUITECTURA.md)
-- [ ] `SKILL.md` del vertical salud, versionado
-- [ ] Confirmación en dos pasos con `confirmado=True`
+- [x] Servidor MCP con FastMCP — `agente/server.py` (19/08/2026)
+- [x] Las 7 tools de [`ARQUITECTURA.md`](ARQUITECTURA.md) (19/08/2026)
+- [x] `SKILL.md` del vertical salud, versionado — `agente/skills/` (19/08/2026)
+- [x] Confirmación en dos pasos con `confirmado=True` (19/08/2026)
 
 ### Gateway
-- [ ] Webhook con verificación de firma e idempotencia
-- [ ] Resolución de negocio por `phone_number_id`
-- [ ] Sesión de agente por número, con resume persistido a disco
-- [ ] Outbox con reintentos (de `wa-claude/src/outbox.js`)
-- [ ] Embedded Signup **v4** + coexistence
+- [x] Webhook con verificación de firma e idempotencia — `gateway/src/` (19/08/2026)
+- [x] Resolución de negocio por `phone_number_id` (19/08/2026)
+- [x] Sesión de agente por número, con resume persistido a disco (19/08/2026)
+- [x] Outbox con reintentos (19/08/2026)
+- [ ] Embedded Signup **v4** + coexistence — necesita la app en Meta, que no está dada de alta
 
 ### Panel
-- [ ] Vista agenda del día
-- [ ] Catálogo con interruptor
-- [ ] Alta y edición de profesionales, horarios y excepciones
-- [ ] Ficha de cliente
+- [x] Vista agenda del día (19/08/2026)
+- [x] Catálogo con interruptor (19/08/2026)
+- [x] Alta y edición de profesionales, horarios y excepciones (19/08/2026)
+- [x] Ficha de cliente (19/08/2026)
+- [x] Lista de espera: ver la cola, anotar a mano y sacar (19/08/2026)
 
 ### Anti ausentismo
-- [ ] Recordatorio automático 24hs antes con confirmar/cancelar
-- [ ] Liberación del hueco al cancelar
-- [ ] Lista de espera y oferta automática del hueco liberado
+- [x] Recordatorio automático 24hs antes con confirmar/cancelar (19/08/2026)
+- [x] Liberación del hueco al cancelar (19/08/2026)
+- [x] Lista de espera y oferta automática del hueco liberado (19/08/2026)
 
 **Criterio de salida:** el consultorio pasa una semana entera sin tocar el
-WhatsApp a mano.
+WhatsApp a mano. **Todavía no se cumplió: no hay consultorio ni número
+productivo.**
 
 ---
 
@@ -94,13 +99,18 @@ WhatsApp a mano.
 
 **Es lo que convierte el asistente en un sistema.**
 
-- [ ] Cierre de compromiso con cobro
-- [ ] Adaptar el sidecar a Factura C y concepto "servicios"
-- [ ] Certificados por tenant, cifrados
-- [ ] Cola de reintentos por negocio
-- [ ] Circuito completo probado en homologación
-- [ ] PDF de la factura al cliente por WhatsApp
-- [ ] Cierre del día en el panel
+**Construida el 19/08/2026, probada contra homologación con certificados de
+prueba.** Ningún CUIT real cargado todavía.
+
+- [x] Cierre de compromiso con cobro (19/08/2026)
+- [x] Adaptar el sidecar a Factura C y concepto "servicios" — `arca-sidecar/` (19/08/2026)
+- [x] Certificados por tenant, cifrados (AES-256-GCM, clave fuera de la base) (19/08/2026)
+- [x] Cola de reintentos por negocio, con backoff (19/08/2026)
+- [x] Cierre del día en el panel (19/08/2026)
+- [ ] Circuito completo probado en homologación **con certificados reales de un
+      CUIT** — hoy corre contra el sidecar con certificados de prueba
+- [ ] PDF de la factura al cliente por WhatsApp — hoy sale el aviso con número y
+      CAE en texto, no el PDF
 
 **Criterio de salida:** el consultorio no entra más al portal de ARCA.
 

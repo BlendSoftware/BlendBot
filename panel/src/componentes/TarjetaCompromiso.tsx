@@ -5,7 +5,7 @@
  */
 
 import { useEffect, useState } from 'react'
-import type { Cobro, Estado, TipoCompromiso } from '../api/tipos'
+import type { Cobro, EstadoCobroTurno, Estado, TipoCompromiso } from '../api/tipos'
 import { COLOR_ESTADO, TINTA_ESTADO, accionesPara, etiquetaEstado } from '../dominio/estados'
 import { horaDe, nombreVisible, plata } from '../dominio/formato'
 import { BotonCobrar } from './BotonCobrar'
@@ -41,6 +41,14 @@ interface Props {
   cobrable?: boolean
   /** Lo que ya se sabe del cobro. undefined = que lo pregunte la tarjeta. */
   cobro?: Cobro | null
+  /** Lo que dijo la agenda del cobro de este turno: evita preguntarlo. */
+  estadoCobro?: EstadoCobroTurno
+  /**
+   * El total del turno. Al operador no se le muestra la plata del día
+   * (PANEL.md: reportes de facturación son del dueño); lo que cobra sí lo ve,
+   * porque es lo que tiene que pedirle a la persona que tiene enfrente.
+   */
+  mostrarTotal?: boolean
 }
 
 function minutosHasta(rfc3339: string, ahora: Date): number {
@@ -81,6 +89,8 @@ export function TarjetaCompromiso({
   ahora,
   cobrable = false,
   cobro,
+  estadoCobro,
+  mostrarTotal = true,
 }: Props) {
   const [pidiendoDemora, setPidiendoDemora] = useState(false)
   const [enVuelo, setEnVuelo] = useState<Estado | null>(null)
@@ -135,14 +145,18 @@ export function TarjetaCompromiso({
 
       <p className="turno__nombre">{nombreVisible(datos.clienteNombre, datos.clienteTelefono)}</p>
 
-      <p className="turno__pie">
-        <span className="plata">{plata(datos.total)}</span>
-        {contador && (
-          <span className={`turno__contador tabular ${contador.vencido ? 'turno__contador--vencido' : ''}`}>
-            {contador.texto}
-          </span>
-        )}
-      </p>
+      {(mostrarTotal || contador) && (
+        <p className="turno__pie">
+          {mostrarTotal && <span className="plata">{plata(datos.total)}</span>}
+          {contador && (
+            <span
+              className={`turno__contador tabular ${contador.vencido ? 'turno__contador--vencido' : ''}`}
+            >
+              {contador.texto}
+            </span>
+          )}
+        </p>
+      )}
 
       {datos.nota && <p className="turno__nota">{datos.nota}</p>}
 
@@ -171,7 +185,12 @@ export function TarjetaCompromiso({
       )}
 
       {cobrable && datos.estado === 'completado' && (
-        <BotonCobrar compromisoID={datos.id} total={datos.total} cobroInicial={cobro} />
+        <BotonCobrar
+          compromisoID={datos.id}
+          total={datos.total}
+          cobroInicial={cobro}
+          estadoCobro={estadoCobro}
+        />
       )}
 
       {pidiendoDemora && (

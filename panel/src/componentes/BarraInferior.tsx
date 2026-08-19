@@ -1,10 +1,14 @@
 /**
  * Navegación tablet-first: íconos grandes, siempre abajo y a mano del pulgar.
  * La pantalla operativa no tiene más chrome que esto. El cierre del día entró
- * como quinto destino (E8): es la otra pantalla que el dueño abre solo.
+ * como quinto destino (E8): es la otra pantalla que el dueño abre solo, y por
+ * eso al operador no le aparece (docs/PANEL.md → Roles). La lista de espera no
+ * está acá a propósito: se entra desde el hueco libre de la agenda, que es
+ * cuando importa.
  */
 
 import { NavLink } from 'react-router-dom'
+import { rolVePlata } from '../contexto'
 import type { Rol } from '../api/tipos'
 
 interface Props {
@@ -76,16 +80,18 @@ function IconoAdmin() {
 }
 
 export function BarraInferior({ rol }: Props) {
+  const delNegocio = [
+    { a: '/', texto: 'Agenda', icono: <IconoAgenda /> },
+    { a: '/catalogo', texto: 'Catálogo', icono: <IconoCatalogo /> },
+    { a: '/equipo', texto: 'Equipo', icono: <IconoEquipo /> },
+    { a: '/clientes', texto: 'Clientes', icono: <IconoClientes /> },
+  ]
+  if (rolVePlata(rol)) {
+    delNegocio.push({ a: '/cierre', texto: 'Cierre', icono: <IconoCierre /> })
+  }
+
   const destinos =
-    rol === 'admin'
-      ? [{ a: '/admin', texto: 'Negocios', icono: <IconoAdmin /> }]
-      : [
-          { a: '/', texto: 'Agenda', icono: <IconoAgenda /> },
-          { a: '/catalogo', texto: 'Catálogo', icono: <IconoCatalogo /> },
-          { a: '/equipo', texto: 'Equipo', icono: <IconoEquipo /> },
-          { a: '/clientes', texto: 'Clientes', icono: <IconoClientes /> },
-          { a: '/cierre', texto: 'Cierre', icono: <IconoCierre /> },
-        ]
+    rol === 'admin' ? [{ a: '/admin', texto: 'Negocios', icono: <IconoAdmin /> }] : delNegocio
 
   return (
     <nav className="barra-inferior" aria-label="Secciones del panel">

@@ -1,7 +1,7 @@
 import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import { BarraInferior } from './componentes/BarraInferior'
-import { ProveedorSesion, useSesion } from './contexto'
+import { ProveedorSesion, rolVePlata, useSesion } from './contexto'
 import { cambioPendiente } from './api/sesion'
 import { Login } from './vistas/Login'
 import { CambiarPassword } from './vistas/CambiarPassword'
@@ -9,6 +9,7 @@ import { Agenda } from './vistas/Agenda'
 import { Catalogo } from './vistas/Catalogo'
 import { Equipo } from './vistas/Equipo'
 import { Clientes } from './vistas/Clientes'
+import { ListaEspera } from './vistas/ListaEspera'
 import { Cierre } from './vistas/Cierre'
 import { Admin } from './vistas/Admin'
 
@@ -16,8 +17,20 @@ import { Admin } from './vistas/Admin'
  * El guard: sin token no se entra; con contraseña temporal sin cambiar no se
  * pasa de la pantalla de cambio; el admin de la plataforma no tiene agenda y
  * el negocio no tiene alta de negocios.
+ *
+ * `soloDueno` es la puerta de la plata: el cierre del día es del dueño y un
+ * operador que escribe /cierre a mano vuelve a la agenda, sin cartel de reto.
+ * Esto es comodidad y prolijidad, no seguridad: la que manda es la del core.
  */
-function Protegida({ children, soloAdmin = false }: { children: ReactNode; soloAdmin?: boolean }) {
+function Protegida({
+  children,
+  soloAdmin = false,
+  soloDueno = false,
+}: {
+  children: ReactNode
+  soloAdmin?: boolean
+  soloDueno?: boolean
+}) {
   const { claims } = useSesion()
   const lugar = useLocation()
 
@@ -30,6 +43,7 @@ function Protegida({ children, soloAdmin = false }: { children: ReactNode; soloA
   const esAdmin = claims.rol === 'admin'
   if (soloAdmin && !esAdmin) return <Navigate to="/" replace />
   if (!soloAdmin && esAdmin) return <Navigate to="/admin" replace />
+  if (soloDueno && !rolVePlata(claims.rol)) return <Navigate to="/" replace />
 
   return <>{children}</>
 }
@@ -92,9 +106,17 @@ export function Rutas() {
           }
         />
         <Route
-          path="/cierre"
+          path="/lista-espera"
           element={
             <Protegida>
+              <ListaEspera />
+            </Protegida>
+          }
+        />
+        <Route
+          path="/cierre"
+          element={
+            <Protegida soloDueno>
               <Cierre />
             </Protegida>
           }

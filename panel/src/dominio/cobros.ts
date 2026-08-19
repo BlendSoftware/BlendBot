@@ -7,7 +7,14 @@
  *    mañana el core agrega un estado, se agrega acá y el test lo canta.
  */
 
-import type { Cierre, Cobro, MedioPago, OrigenCompromiso, Plata } from '../api/tipos'
+import type {
+  Cierre,
+  Cobro,
+  EstadoComprobante,
+  MedioPago,
+  OrigenCompromiso,
+  Plata,
+} from '../api/tipos'
 
 /** Los cinco del CHECK de la tabla `cobro`, en el orden en que se tocan. */
 export const MEDIOS_PAGO: { medio: MedioPago; etiqueta: string }[] = [
@@ -47,17 +54,35 @@ export interface EstadoFactura {
 /** LA tabla: un cobro entra, una frase sale. */
 export function estadoFactura(cobro: Cobro): EstadoFactura {
   const c = cobro.comprobante
+  const base = estadoFacturaDe(c?.estado ?? null)
 
-  if (!c) {
+  // El número y el CAE sólo existen cuando se leyó el comprobante entero (el
+  // response del cobro). La agenda trae el estado pelado y ahí la frase corta
+  // alcanza: quien quiere el número abre el turno.
+  if (c?.estado === 'emitido' && c.numero_formateado) {
     return {
-      texto: 'Cobrado, sin factura',
-      detalle: 'Para que salga la factura hay que cargar los datos de ARCA del negocio.',
-      tono: 'apagado',
-      esperando: false,
+      ...base,
+      texto: `Factura C emitida N° ${c.numero_formateado}`,
+      ...(c.cae ? { detalle: `CAE ${c.cae}` } : {}),
     }
   }
+  return base
+}
 
-  switch (c.estado) {
+/**
+ * La misma tabla, pero desde el estado pelado del comprobante: es lo que la
+ * agenda manda con cada turno (`comprobante_estado`), sin número ni CAE.
+ * null = se cobró sin factura, porque el negocio no cargó sus datos de ARCA.
+ */
+export function estadoFacturaDe(estado: EstadoComprobante | null): EstadoFactura {
+  switch (estado) {
+    case null:
+      return {
+        texto: 'Cobrado, sin factura',
+        detalle: 'Para que salga la factura hay que cargar los datos de ARCA del negocio.',
+        tono: 'apagado',
+        esperando: false,
+      }
     case 'pendiente':
       return {
         texto: 'Facturando…',
@@ -67,10 +92,7 @@ export function estadoFactura(cobro: Cobro): EstadoFactura {
       }
     case 'emitido':
       return {
-        texto: c.numero_formateado
-          ? `Factura C emitida N° ${c.numero_formateado}`
-          : 'Factura C emitida',
-        ...(c.cae ? { detalle: `CAE ${c.cae}` } : {}),
+        texto: 'Factura C emitida',
         tono: 'bien',
         esperando: false,
       }

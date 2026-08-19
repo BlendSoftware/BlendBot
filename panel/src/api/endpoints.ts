@@ -5,6 +5,7 @@ import { cerrarSesion, guardarSesion } from './sesion'
 import type {
   Agenda,
   AltaNegocio,
+  AnotadoEnEspera,
   Categoria,
   Cierre,
   Cliente,
@@ -84,6 +85,32 @@ export function transicionar(id: string, input: TransicionarInput): Promise<Comp
     metodo: 'PATCH',
     cuerpo: input,
   })
+}
+
+// ─── Lista de espera ─────────────────────────────────────────────────────────
+
+/** Sin filtro trae la cola entera; `pendientes` deja sólo a los que todavía no
+ *  recibieron una oferta. */
+export function listarListaEspera(
+  filtro: { servicioID?: string; soloPendientes?: boolean } = {},
+): Promise<AnotadoEnEspera[]> {
+  const q = new URLSearchParams()
+  if (filtro.servicioID) q.set('servicio_id', filtro.servicioID)
+  if (filtro.soloPendientes) q.set('pendientes', 'true')
+  const cola = q.toString()
+  return pedir<AnotadoEnEspera[]>(`/api/lista-espera${cola ? `?${cola}` : ''}`)
+}
+
+export function anotarEnListaEspera(cuerpo: {
+  cliente_id: string
+  servicio_id: string
+  nota?: string | null
+}): Promise<AnotadoEnEspera> {
+  return pedir<AnotadoEnEspera>('/api/lista-espera', { metodo: 'POST', cuerpo })
+}
+
+export function quitarDeListaEspera(id: string): Promise<void> {
+  return pedir<void>(`/api/lista-espera/${id}`, { metodo: 'DELETE' })
 }
 
 // ─── Cobro y cierre del día ──────────────────────────────────────────────────

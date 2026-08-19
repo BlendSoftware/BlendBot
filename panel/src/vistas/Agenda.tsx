@@ -7,8 +7,8 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { traerAgenda, transicionar } from '../api/endpoints'
+import { Link, useNavigate } from 'react-router-dom'
+import { listarListaEspera, traerAgenda, transicionar } from '../api/endpoints'
 import type { Agenda as AgendaDTO, Estado, TurnoAgenda } from '../api/tipos'
 import { TarjetaCompromiso } from '../componentes/TarjetaCompromiso'
 import { Aviso, Esqueleto, Vacio } from '../componentes/basicos'
@@ -22,6 +22,11 @@ const REFRESCO_MS = 15000
 /** Canal de horas + una columna por profesional, igual arriba y abajo. */
 function columnas(cantidad: number): string {
   return `76px repeat(${cantidad}, minmax(230px, 1fr))`
+}
+
+/** El cobro ya viene en la agenda: la tarjeta no tiene que ir a preguntarlo. */
+function cobroDe(t: TurnoAgenda) {
+  return { cobrado: t.cobrado, comprobante_estado: t.comprobante_estado }
 }
 
 function datosDe(t: TurnoAgenda) {
@@ -39,10 +44,11 @@ function datosDe(t: TurnoAgenda) {
 }
 
 export function Agenda() {
-  const { negocio, demorasSugeridas } = useSesion()
+  const { negocio, demorasSugeridas, vePlata } = useSesion()
   const ir = useNavigate()
   const [fecha, setFecha] = useState(hoyISO())
   const [agenda, setAgenda] = useState<AgendaDTO | null>(null)
+  const [esperando, setEsperando] = useState(0)
   const [cargando, setCargando] = useState(true)
   const [problema, setProblema] = useState('')
   const montado = useRef(true)
@@ -75,6 +81,22 @@ export function Agenda() {
   useEffect(() => {
     void cargar()
   }, [cargar])
+
+  // Cuánta gente está esperando un hueco. Una consulta por pantalla, no una por
+  // hueco: el número se muestra sobre los huecos libres, que es donde sirve.
+  useEffect(() => {
+    let vivo = true
+    listarListaEspera({ soloPendientes: true })
+      .then((cola) => {
+        if (vivo) setEsperando(cola.length)
+      })
+      .catch(() => {
+        /* la lista de espera es un extra: si falla, la agenda sigue */
+      })
+    return () => {
+      vivo = false
+    }
+  }, [])
 
   useEffect(() => {
     const id = window.setInterval(() => {
@@ -186,6 +208,8 @@ export function Agenda() {
                       datos={datosDe(b.turno)}
                       demorasSugeridas={demorasSugeridas}
                       cobrable
+                      estadoCobro={cobroDe(b.turno)}
+                      mostrarTotal={vePlata}
                       alTransicionar={(estado, extra) =>
                         mover(b.turno.compromiso_id, estado, extra)
                       }
@@ -201,6 +225,11 @@ export function Agenda() {
                     <span className="agenda__hueco-texto">
                       libre · {duracionCorta(b.hastaMin - b.desdeMin)}
                     </span>
+                    {esperando > 0 && (
+                      <Link className="agenda__hueco-espera" to="/lista-espera">
+                        {esperando} esperando
+                      </Link>
+                    )}
                   </div>
                 ),
               ),
@@ -222,6 +251,8 @@ export function Agenda() {
                   datos={datosDe(t)}
                   demorasSugeridas={demorasSugeridas}
                   cobrable
+                  estadoCobro={cobroDe(t)}
+                  mostrarTotal={vePlata}
                   alTransicionar={(estado, extra) => mover(t.compromiso_id, estado, extra)}
                 />
                 {t.estado === 'pendiente' && agenda.recursos.length > 0 && (
@@ -256,7 +287,8 @@ export function Agenda() {
         agenda.sin_recurso.length === 0 &&
         agenda.recursos.every((r) => r.turnos.length === 0) && (
           <p className="agenda__vacio-dia">
-            El día está entero libre. Buen momento para llamar a la lista de espera.
+            El día está entero libre. Buen momento para{' '}
+            <Link to="/lista-espera">llamar a la lista de espera</Link>.
           </p>
         )}
     </section>

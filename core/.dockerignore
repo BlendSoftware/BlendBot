@@ -1,0 +1,11 @@
+# Nada de secretos ni de artefactos locales dentro del contexto de build.
+.env
+*.env
+!env.example
+*.pem
+*.crt
+*.key
+bin/
+*.test
+Dockerfile
+.dockerignore

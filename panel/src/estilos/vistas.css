@@ -237,6 +237,28 @@
   font-weight: 800;
 }
 
+/*
+ * El hueco es plata por perderse y la lista de espera es la forma de no
+ * perderla: cuando hay gente anotada, el hueco lleva a la cola de un toque
+ * (DESIGN.md). Sin nadie esperando no aparece nada: un hueco tranquilo no
+ * tiene por qué gritar.
+ */
+.agenda__hueco-espera {
+  margin-left: auto;
+  padding: var(--e1) var(--e2);
+  border-radius: var(--radio-chico);
+  background: var(--superficie);
+  color: var(--sobre-hueco);
+  font-size: var(--t-mini);
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.agenda__hueco-espera:hover {
+  color: var(--acento);
+}
+
 .agenda__vacio-dia {
   margin-top: var(--e4);
   padding: var(--e3);
@@ -649,6 +671,93 @@
   color: var(--tinta-suave);
   font-size: var(--t-mini);
   font-weight: 600;
+}
+
+/* ── Lista de espera ─────────────────────────────────────────────────────── */
+
+/*
+ * Filas, no cards: es una cola y se lee de arriba hacia abajo, que además es el
+ * orden en que el core reparte los huecos que se liberan.
+ */
+.espera__alta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--e2);
+  margin-bottom: var(--e4);
+  padding-bottom: var(--e4);
+  border-bottom: 1px solid var(--borde);
+}
+
+.espera__campo-tel {
+  flex: 0 1 170px;
+}
+
+.espera__campo-nombre {
+  flex: 1 1 180px;
+}
+
+.espera__campo-servicio {
+  flex: 1 1 200px;
+}
+
+.espera__campo-nota {
+  flex: 1 1 220px;
+}
+
+.espera__alta .entrada {
+  min-height: var(--tacto);
+}
+
+.espera__lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.espera__fila {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--e3);
+  padding: var(--e2) 0;
+  border-bottom: 1px solid var(--borde);
+}
+
+.espera__quien {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 200px;
+}
+
+.espera__nombre {
+  font-size: var(--t-medio);
+  font-weight: 600;
+}
+
+.espera__telefono {
+  color: var(--tinta-suave);
+  font-size: var(--t-mini);
+}
+
+.espera__que {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 200px;
+}
+
+.espera__servicio {
+  font-weight: 600;
+}
+
+.espera__cuando,
+.espera__nota {
+  color: var(--tinta-suave);
+  font-size: var(--t-mini);
+}
+
+.espera__quitar {
+  min-height: var(--tacto);
 }
 
 /* ── Cierre del día ──────────────────────────────────────────────────────── */

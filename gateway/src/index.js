@@ -13,8 +13,8 @@ import process from 'node:process';
 import express from 'express';
 import { createClient } from 'redis';
 
-import { config, validarConfig } from './config.js';
-import { cargarTenants } from './tenants.js';
+import { config, validarConfig, faltantesDeConfig } from './config.js';
+import { cargarTenants, tenantsDeObjeto } from './tenants.js';
 import { crearSesiones } from './sesiones.js';
 import { crearAgente } from './agente.js';
 import { crearOutbox, enviarPorGraph } from './outbox.js';
@@ -28,7 +28,14 @@ export function crearApp({ config: cfg, tenants, redis, agente, outbox, diferir 
   const app = express();
   app.disable('x-powered-by');
 
-  app.get('/salud', (_req, res) => res.json({ ok: true, tenants: tenants.cantidad }));
+  // `degradado` lista las credenciales que faltan: un gateway "ok" que no
+  // puede contestar un mensaje real tiene que decirlo acá y no en el log de
+  // hace tres días.
+  app.get('/salud', (_req, res) => res.json({
+    ok: true,
+    tenants: tenants.cantidad,
+    degradado: cfg ? faltantesDeConfig(cfg) : [],
+  }));
 
   app.use(
     RUTA_WEBHOOK,
@@ -52,10 +59,41 @@ export function crearApp({ config: cfg, tenants, redis, agente, outbox, diferir 
   return app;
 }
 
-async function main() {
-  validarConfig(config);
+/**
+ * En desarrollo no hay app de Meta ni API key, y el sistema igual tiene que
+ * levantar entero (docker compose up + smoke). Se arranca degradado y se dice
+ * fuerte qué queda apagado. En cualquier otro entorno, falta una credencial y
+ * no se arranca.
+ */
+function chequearCredenciales() {
+  const faltan = faltantesDeConfig(config);
+  if (!faltan.length) return;
+  if (config.entorno !== 'development') {
+    validarConfig(config); // tira con los nombres adentro
+  }
+  console.warn(
+    '[gateway] DEGRADADO — faltan %s. El webhook responde (y rechaza con 401 ' +
+    'todo lo que llegue, porque sin META_APP_SECRET ninguna firma es válida) ' +
+    'pero NO se atiende ningún mensaje real. Mirá gateway/env.example.',
+    faltan.join(', '),
+  );
+}
 
-  const tenants = cargarTenants(config.tenantsPath);
+/** Un tenants.json ausente no puede tumbar el arranque en desarrollo. */
+function cargarTenantsTolerante() {
+  try {
+    return cargarTenants(config.tenantsPath);
+  } catch (err) {
+    if (config.entorno !== 'development') throw err;
+    console.warn('[gateway] sin tenants (%s) — arranco vacío', err.message);
+    return tenantsDeObjeto({});
+  }
+}
+
+async function main() {
+  chequearCredenciales();
+
+  const tenants = cargarTenantsTolerante();
   console.log('[gateway] %d tenant(s) cargados desde %s', tenants.cantidad, config.tenantsPath);
 
   const redis = createClient({ url: config.redisUrl });

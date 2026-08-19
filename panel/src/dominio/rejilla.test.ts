@@ -23,6 +23,8 @@ function agenda(): Agenda {
             cliente_telefono: '2615550000',
             total: '15000',
             nota: null,
+            cobrado: false,
+            comprobante_estado: null,
           },
           {
             compromiso_id: 'c2',
@@ -35,6 +37,8 @@ function agenda(): Agenda {
             cliente_telefono: '2615551111',
             total: '20000',
             nota: null,
+            cobrado: false,
+            comprobante_estado: null,
           },
         ],
       },

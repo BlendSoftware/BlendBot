@@ -50,18 +50,50 @@ func (s *listaEsperaService) Anotar(ctx context.Context, negocioID string, in dt
 	if err := s.repo.Create(ctx, negocioID, le); err != nil {
 		return nil, err
 	}
-	return dto.ListaEsperaDesdeModel(le), nil
+
+	// Se relee para devolver el anotado con el nombre del cliente y el del
+	// servicio, igual que los que salen del listado: un mismo shape para el
+	// alta y para la cola, o el panel termina con dos casos.
+	a, err := s.repo.PorID(ctx, negocioID, le.ID)
+	if err != nil {
+		return nil, err
+	}
+	if a == nil {
+		return nil, ErrNoEncontrado
+	}
+	return anotadoDesdeFila(a), nil
 }
 
 func (s *listaEsperaService) Listar(ctx context.Context, negocioID string, f dto.FiltroListaEspera) ([]dto.ListaEsperaResponse, error) {
-	les, err := s.repo.List(ctx, negocioID, repository.FiltroListaEspera{
+	filas, err := s.repo.ListConDatos(ctx, negocioID, repository.FiltroListaEspera{
 		ServicioID:     f.ServicioID,
 		SoloPendientes: f.SoloPendientes,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return dto.ListaEsperaDesdeModelos(les), nil
+	out := make([]dto.ListaEsperaResponse, 0, len(filas))
+	for i := range filas {
+		out = append(out, *anotadoDesdeFila(&filas[i]))
+	}
+	return out, nil
+}
+
+// anotadoDesdeFila mapea la fila joineada al shape que sale por HTTP.
+func anotadoDesdeFila(a *repository.AnotadoEnCola) *dto.ListaEsperaResponse {
+	return &dto.ListaEsperaResponse{
+		ID:                   a.ID,
+		NegocioID:            a.NegocioID,
+		ClienteID:            a.ClienteID,
+		ClienteNombre:        a.ClienteNombre,
+		ClienteTelefono:      a.ClienteTelefono,
+		ServicioID:           a.ServicioID,
+		ServicioNombre:       a.ServicioNombre,
+		Nota:                 a.Nota,
+		CreadoEn:             a.CreadoEn,
+		NotificadoEn:         a.NotificadoEn,
+		CompromisoOfrecidoID: a.CompromisoOfrecidoID,
+	}
 }
 
 func (s *listaEsperaService) Borrar(ctx context.Context, negocioID, id string) error {

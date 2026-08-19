@@ -72,18 +72,49 @@ Detalle archivo por archivo en [`docs/REPOS-BASE.md`](docs/REPOS-BASE.md).
 
 ## Estado
 
-**En desarrollo** (arrancó el 18/08/2026). El esqueleto del core Go corre:
-migración del motor aplicada, máquina de estados con tests, `/health` en verde.
-Ver `core/` y el [`Makefile`](Makefile) (`make infra && make core-run`).
+**Al 19/08/2026: el sistema entero está construido y corre de punta a punta en
+esta máquina.** Arrancó el 18/08/2026.
 
-**El bloqueante real sigue sin ser técnico: falta el primer cliente con nombre.**
+Qué existe, y anda con tests:
+
+| Pieza | Qué hace | Dónde |
+|---|---|---|
+| **Core** (Go + Postgres) | Motor de compromisos: catálogo con interruptor, precios por cobertura, disponibilidad real, holds con expiración, máquina de estados, agenda del día, clientes, multi-tenant por token | `core/` |
+| **Agente** (Python, MCP) | Las tools del vertical salud sobre la API del core. El agente jamás toca la base | `agente/` |
+| **Gateway** (Node) | WhatsApp Cloud API: webhook con firma, sesión por número, outbox con reintentos | `gateway/` |
+| **Panel** (React + Vite) | Agenda operativa, catálogo, equipo y horarios, clientes, lista de espera, cierre del día | `panel/` |
+| **Anti ausentismo** | Recordatorio 24hs antes, liberación del hueco al cancelar y oferta automática al primero de la lista de espera | `core/internal/worker/` |
+| **Cobro + ARCA** | Cobro del compromiso, Factura C por tenant con certificados cifrados y cola de reintentos, contra el sidecar de ARCA | `core/` + `arca-sidecar/` |
+
+Se levanta entero con Docker: `make up && make smoke` (ver el
+[`Makefile`](Makefile) y [`scripts/smoke.sh`](scripts/smoke.sh), que recorre el
+producto por la API real). Para desarrollar con el core en la máquina:
+`make infra && make core-run`.
+
+### Lo que NO está
+
+Nada de esto es código: es trámite, plata o un cliente. Y es lo que separa
+"corre en mi máquina" de "un consultorio lo usa":
+
+- **La app en Meta**: no está dada de alta. No hay número de WhatsApp productivo.
+- **Las plantillas aprobadas**: las 5 plantillas del recordatorio y las
+  confirmaciones no se mandaron a aprobar. Tardan.
+- **El piloto con nombre y apellido**: sigue sin haber un consultorio esperando
+  esto. **Es el único bloqueante real.**
+- **Los certificados de ARCA reales**: el circuito fiscal está entero, pero
+  corre contra homologación con certificados de prueba. Ningún CUIT real cargado.
+- **El deploy productivo**: dominio, TLS, backups y monitoreo. Hoy esto vive en
+  una notebook.
 
 Dos proyectos anteriores (BlendPOS V2, BlendPadel) murieron archivados a los
 tres meses. No por el diseño. Porque no había nadie esperándolos.
 
 - [ ] Conseguir el primer consultorio piloto (nombre y apellido)
-- [x] Definir el modelo de datos del motor (`core/migrations/000001_motor.up.sql`)
 - [ ] Alta de la app en Meta y primer número de prueba
+- [ ] Mandar las plantillas a aprobar
+- [ ] Certificados de ARCA del piloto (homologación primero, producción después)
+- [x] Motor de compromisos, agente, gateway, panel y anti ausentismo (19/08/2026)
+- [x] Cobro y Factura C contra el sidecar de ARCA, en homologación (19/08/2026)
 
 ---
 

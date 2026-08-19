@@ -125,6 +125,59 @@ describe('cobrar desde la tarjeta', () => {
     expect(await screen.findByText('Factura C emitida N° 0001-00000123')).toBeInTheDocument()
   })
 
+  it('si la agenda ya dijo que está cobrado, no se pregunta nada', async () => {
+    const fetchFalso = vi.fn()
+    vi.stubGlobal('fetch', fetchFalso)
+
+    render(
+      <BotonCobrar
+        compromisoID="c1"
+        total="18500"
+        estadoCobro={{ cobrado: true, comprobante_estado: 'emitido' }}
+      />,
+    )
+
+    expect(screen.getByText('Factura C emitida')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Cobrar' })).not.toBeInTheDocument()
+    // El punto de todo esto: cero requests por turno.
+    expect(fetchFalso).not.toHaveBeenCalled()
+  })
+
+  it('lo que la agenda dice que no está cobrado se cobra sin preguntar antes', async () => {
+    const fetchFalso = vi.fn().mockResolvedValue(json(201, cobro('pendiente')))
+    vi.stubGlobal('fetch', fetchFalso)
+
+    render(
+      <BotonCobrar
+        compromisoID="c1"
+        total="18500"
+        estadoCobro={{ cobrado: false, comprobante_estado: null }}
+      />,
+    )
+
+    expect(fetchFalso).not.toHaveBeenCalled()
+    await userEvent.click(screen.getByRole('button', { name: 'Cobrar' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Efectivo' }))
+
+    expect(await screen.findByText('Facturando…')).toBeInTheDocument()
+    expect(fetchFalso).toHaveBeenCalledTimes(1)
+    expect(String(fetchFalso.mock.calls[0]?.[0])).toBe('/api/cobros')
+  })
+
+  it('cobrado sin datos de ARCA se lee igual desde la agenda', () => {
+    vi.stubGlobal('fetch', vi.fn())
+
+    render(
+      <BotonCobrar
+        compromisoID="c1"
+        total="18500"
+        estadoCobro={{ cobrado: true, comprobante_estado: null }}
+      />,
+    )
+
+    expect(screen.getByText('Cobrado, sin factura')).toBeInTheDocument()
+  })
+
   it('un turno que ya estaba cobrado no vuelve a ofrecer el botón', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(json(200, cobro('emitido'))))
 

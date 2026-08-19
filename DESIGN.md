@@ -53,7 +53,12 @@ del turno, la franja de la agenda), no en puntitos ni bordes laterales.
 
 - La vista operativa (agenda/tablero) es **pantalla completa sin chrome**: una
   barra mínima arriba (día, negocio, avatar) y el resto es el tablero. Navegación
-  a las demás vistas por una barra inferior de 4 íconos grandes (tablet-first).
+  a las demás vistas por una barra inferior de íconos grandes (tablet-first):
+  **5 para el dueño** (agenda, catálogo, equipo, clientes y el cierre del día,
+  que entró con E8) y **4 para el operador**, que no ve el cierre porque la
+  plata del día no es suya (docs/PANEL.md → Roles). La lista de espera no está
+  en la barra: se entra desde el hueco libre de la agenda, que es cuando
+  importa.
 - Ritmo de espaciado: 4 / 8 / 16 / 24 / 40. Densidad alta dentro del tablero,
   aire generoso alrededor de las acciones.
 - Targets táctiles ≥48px. El interruptor de disponible es un switch GRANDE
@@ -73,7 +78,8 @@ del turno, la franja de la agenda), no en puntitos ni bordes laterales.
   acciones [OK] [✕] de 48px. Contador regresivo que pasa a --vencido.
 - **FilaServicio**: nombre + precio + switch disponible. Fila, no card.
 - **Agenda**: columnas por profesional, franjas por hora; hueco libre con fondo
-  --hueco-libre y acción de un toque ("ofrecer a lista de espera").
+  --hueco-libre y, cuando hay gente anotada, un toque que lleva a la lista de
+  espera ("3 esperando"). Sin nadie esperando el hueco no dice nada de más.
 - **SelectorDemora**: presets del config + campo libre SIEMPRE (D8).
 
 ## Prohibiciones (heredadas de impeccable + propias)

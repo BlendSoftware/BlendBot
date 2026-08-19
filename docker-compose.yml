@@ -1,7 +1,20 @@
-# Infraestructura de desarrollo. El core corre local con `make run`;
-# los servicios core/agente/gateway se suman acá cuando estén listos
-# para correr containerizados (deploy: Compose detrás de Traefik).
+# Copiloto Comercios — el sistema entero en un comando.
+#
+#   cp .env.compose.example .env   # y completá lo que sea tuyo
+#   make up                        # build + up de los 6 servicios
+#   make smoke                     # prueba el producto por la API real
+#
+# Los valores por defecto de abajo (`${VAR:-...}`) son de DESARROLLO y están
+# escritos para que `make up` funcione en frío, sin ceremonia. Cualquier cosa
+# que no sea tu máquina necesita un `.env` propio: mirá docs/DEPLOY.md.
+#
+# Gotcha heredado: `docker compose restart` NO relee el entorno. Después de
+# tocar el `.env` va `docker compose up -d --force-recreate`.
+
+name: copiloto-comercios
+
 services:
+  # ── Infraestructura ────────────────────────────────────────────────────────
   db:
     image: postgres:16-alpine
     environment:
@@ -18,6 +31,8 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+    networks: [copiloto]
+    restart: unless-stopped
 
   redis:
     image: redis:7-alpine
@@ -30,7 +45,120 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+    networks: [copiloto]
+    restart: unless-stopped
+
+  # ── Core: el motor de compromisos ──────────────────────────────────────────
+  core:
+    build:
+      context: ./core
+    environment:
+      PORT: "8080"
+      APP_ENV: ${APP_ENV:-development}
+      # Adentro de la red del compose el puerto es el 5432, no el 5433.
+      DATABASE_URL: postgres://copiloto:copiloto@db:5432/copiloto?sslmode=disable
+      REDIS_URL: redis://redis:6379/0
+      # 32+ caracteres o el core no arranca (config.validate).
+      JWT_SECRET: ${JWT_SECRET:-cambiame-secreto-de-desarrollo-copiloto-32+}
+      JWT_EXPIRATION_HOURS: ${JWT_EXPIRATION_HOURS:-8}
+      JWT_REFRESH_HOURS: ${JWT_REFRESH_HOURS:-24}
+      # El panel se sirve same-origin detrás de su nginx, así que CORS sólo hace
+      # falta para el `vite dev` de la máquina.
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:8081,http://localhost:5173}
+      # Bootstrap del admin de la plataforma: sólo se usa si no hay ninguno.
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-cambiame-admin-dev}
+      ARCA_SIDECAR_URL: http://arca-sidecar:8001
+      INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:-token-interno-de-desarrollo}
+      # Vacía = módulo fiscal apagado: se cobra pero no se factura. Es el modo
+      # correcto en desarrollo, donde no hay certificados de ARCA.
+      FISCAL_CIPHER_KEY: ${FISCAL_CIPHER_KEY:-}
+    ports:
+      - "${CORE_PORT:-8080}:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [copiloto]
+    restart: unless-stopped
+
+  # ── Sidecar ARCA: el único que habla SOAP con AFIP ─────────────────────────
+  arca-sidecar:
+    build:
+      context: ./arca-sidecar
+    environment:
+      ARCA_PORT: "8001"
+      INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:-token-interno-de-desarrollo}
+      ARCA_MODO_DEFAULT: ${ARCA_MODO_DEFAULT:-homologacion}
+      ARCA_CACHE_DIR: /var/cache/arca
+    ports:
+      - "${ARCA_PORT:-8001}:8001"
+    # Cache de certificados: tmpfs, o sea RAM. Acá se materializan las claves
+    # privadas de ARCA de cada negocio mientras dura una llamada. Que sea tmpfs
+    # es deliberado y NO se cambia por un volumen: muere con el contenedor, no
+    # toca el disco y por lo tanto **jamás entra a un backup**. Un backup con
+    # claves fiscales de terceros adentro es un incidente, no un archivo.
+    tmpfs:
+      - /var/cache/arca:uid=1001,gid=1001,mode=700
+    networks: [copiloto]
+    restart: unless-stopped
+
+  # ── Gateway de WhatsApp + agente MCP ───────────────────────────────────────
+  gateway:
+    build:
+      # El contexto es la raíz: la imagen necesita gateway/ y agente/ juntos.
+      context: .
+      dockerfile: gateway/Dockerfile
+    environment:
+      PORT: "8090"
+      # `development` habilita el arranque degradado sin credenciales de Meta.
+      # En un deploy real esto va en `production` y el gateway exige todo.
+      APP_ENV: ${APP_ENV:-development}
+      REDIS_URL: redis://redis:6379
+      CORE_URL: http://core:8080
+      TENANTS_PATH: /app/tenants.json
+      SESIONES_DIR: /app/data/sesiones
+      META_APP_SECRET: ${META_APP_SECRET:-}
+      META_VERIFY_TOKEN: ${META_VERIFY_TOKEN:-}
+      META_GRAPH_TOKEN: ${META_GRAPH_TOKEN:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      MODELO: ${MODELO:-claude-haiku-4-5-20251001}
+    ports:
+      - "${GATEWAY_PORT:-8090}:8090"
+    volumes:
+      # El mapa phone_number_id → negocio. Por defecto se monta el de ejemplo
+      # (tokens de mentira, sirve para ver que el gateway lee el archivo);
+      # apuntá GATEWAY_TENANTS_FILE al tuyo cuando tengas los tokens reales.
+      - ${GATEWAY_TENANTS_FILE:-./gateway/tenants.example.json}:/app/tenants.json:ro
+      # Los resume-id de sesión se persisten a disco: sin esto, un restart deja
+      # a todas las conversaciones en curso arrancando de cero.
+      - gwsesiones:/app/data/sesiones
+    depends_on:
+      redis:
+        condition: service_healthy
+      core:
+        condition: service_healthy
+    networks: [copiloto]
+    restart: unless-stopped
+
+  # ── Panel: bundle estático + proxy /api → core ─────────────────────────────
+  panel:
+    build:
+      context: ./panel
+    ports:
+      - "${PANEL_PORT:-8081}:80"
+    depends_on:
+      core:
+        condition: service_healthy
+    networks: [copiloto]
+    restart: unless-stopped
 
 volumes:
   pgdata:
   redisdata:
+  gwsesiones:
+
+networks:
+  copiloto:
+    driver: bridge

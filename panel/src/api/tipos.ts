@@ -224,6 +224,20 @@ export interface TurnoAgenda {
   cliente_telefono: string
   total: Plata
   nota: string | null
+  /**
+   * El estado del cobro viene con el turno: sin esto la agenda haría un
+   * GET /api/cobros/:id por cada turno completado, en cada refresco.
+   * comprobante_estado es null si no se cobró, o si se cobró sin factura
+   * (el negocio todavía no cargó sus datos de ARCA).
+   */
+  cobrado: boolean
+  comprobante_estado: EstadoComprobante | null
+}
+
+/** Lo que la agenda ya sabe del cobro de un turno. */
+export interface EstadoCobroTurno {
+  cobrado: boolean
+  comprobante_estado: EstadoComprobante | null
 }
 
 export interface AgendaRecurso {
@@ -238,6 +252,27 @@ export interface Agenda {
   timezone: string
   recursos: AgendaRecurso[]
   sin_recurso: TurnoAgenda[]
+}
+
+// ─── Lista de espera ─────────────────────────────────────────────────────────
+
+/**
+ * Un anotado en la cola del anti-ausentismo. El core resuelve el nombre del
+ * cliente y el del servicio: acá no se cruzan ids con nada.
+ * notificado_en marca que ya le ofrecieron un hueco liberado.
+ */
+export interface AnotadoEnEspera {
+  id: string
+  negocio_id: string
+  cliente_id: string
+  cliente_nombre: string | null
+  cliente_telefono: string
+  servicio_id: string
+  servicio_nombre: string
+  nota: string | null
+  creado_en: string
+  notificado_en: string | null
+  compromiso_ofrecido_id: string | null
 }
 
 // ─── Cobro y factura ─────────────────────────────────────────────────────────

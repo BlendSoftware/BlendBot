@@ -20,7 +20,7 @@ import { fechaCorta, horaDe, hoyISO, nombreVisible, plata, sumarDias, telefonoVi
 const DIAS_DE_HISTORIAL = 180
 
 export function Clientes() {
-  const { negocio } = useSesion()
+  const { negocio, vePlata } = useSesion()
   const [busqueda, setBusqueda] = useState('')
   const [delDia, setDelDia] = useState<TurnoAgenda[]>([])
   const [cliente, setCliente] = useState<Cliente | null>(null)
@@ -180,7 +180,9 @@ export function Clientes() {
                           {c.inicio ? ` · ${horaDe(c.inicio)}` : ''}
                         </span>
                         <span className="historial__estado">{etiquetaEstado(c.estado, c.tipo)}</span>
-                        <span className="plata">{plata(c.total)}</span>
+                        {/* Lo que gastó cada paciente es plata del negocio: la
+                            ve el dueño (docs/PANEL.md → Roles). */}
+                        {vePlata && <span className="plata">{plata(c.total)}</span>}
                       </li>
                     ))}
                 </ul>

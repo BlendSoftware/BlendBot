@@ -25,6 +25,11 @@ export function cargarConfig(env = process.env) {
     puerto: Number(env.PORT || 8090),
     redisUrl: env.REDIS_URL || 'redis://localhost:6379',
 
+    // `development` habilita el arranque degradado (ver `faltantesDeConfig`).
+    // El default NO es development a propósito: un deploy que se olvide de
+    // setear APP_ENV tiene que fallar ruidoso, no arrancar a medias.
+    entorno: String(env.APP_ENV || env.NODE_ENV || 'production').toLowerCase(),
+
     // Meta
     metaAppSecret: env.META_APP_SECRET || '',
     metaVerifyToken: env.META_VERIFY_TOKEN || '',
@@ -44,15 +49,30 @@ export function cargarConfig(env = process.env) {
 }
 
 /**
- * Falla temprano y con nombre propio. Un gateway sin META_APP_SECRET no puede
- * verificar firmas: arrancarlo sería aceptar webhooks de cualquiera.
+ * Qué credenciales faltan, por nombre de variable. Vacío = está todo.
+ *
+ * Existe separado de `validarConfig` porque en desarrollo el gateway tiene que
+ * poder levantar sin las credenciales de Meta ni la API key: el compose de dev
+ * no las tiene y el sistema igual se prueba de punta a punta. Lo que NO cambia
+ * es la seguridad — sin META_APP_SECRET `firmaValida()` devuelve false y el
+ * webhook contesta 401 a todo el mundo, que es exactamente lo que corresponde.
  */
-export function validarConfig(cfg) {
+export function faltantesDeConfig(cfg) {
   const faltan = [];
   if (!cfg.metaAppSecret) faltan.push('META_APP_SECRET');
   if (!cfg.metaVerifyToken) faltan.push('META_VERIFY_TOKEN');
   if (!cfg.metaGraphToken) faltan.push('META_GRAPH_TOKEN');
   if (!cfg.anthropicApiKey) faltan.push('ANTHROPIC_API_KEY');
+  return faltan;
+}
+
+/**
+ * Falla temprano y con nombre propio. Un gateway sin META_APP_SECRET no puede
+ * verificar firmas: arrancarlo en producción sería aceptar webhooks de
+ * cualquiera.
+ */
+export function validarConfig(cfg) {
+  const faltan = faltantesDeConfig(cfg);
   if (faltan.length) {
     throw new Error(
       'Faltan variables de entorno obligatorias: ' + faltan.join(', ') +

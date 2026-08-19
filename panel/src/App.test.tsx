@@ -53,6 +53,9 @@ vi.mock('./api/endpoints', () => ({
   crearCobertura: vi.fn(),
   cobrar: vi.fn(),
   traerCobro: vi.fn().mockRejectedValue(new Error('Eso ya no está.')),
+  listarListaEspera: vi.fn().mockResolvedValue([]),
+  anotarEnListaEspera: vi.fn(),
+  quitarDeListaEspera: vi.fn(),
   traerCierre: vi.fn().mockResolvedValue({
     fecha: '2026-08-21',
     timezone: 'America/Argentina/Mendoza',
@@ -61,11 +64,11 @@ vi.mock('./api/endpoints', () => ({
     cancelados: 0,
     ausentes: 0,
     cobros: 0,
-    facturado: '0',
+    total_cobrado: '0',
     ticket_promedio: '0',
-    por_medio: [],
-    por_origen: [],
-    comprobantes: { emitidos: 0, pendientes: 0, error: 0 },
+    por_medio_pago: {},
+    por_origen: {},
+    comprobantes: { emitidos: 0, pendientes: 0, con_error: 0 },
   }),
 }))
 
@@ -118,6 +121,44 @@ describe('guard de rutas', () => {
     entrarComo('admin', '')
     montar('/')
     expect(await screen.findByRole('heading', { name: 'Negocios' })).toBeInTheDocument()
+  })
+
+  it('el operador no entra al cierre del día: la plata es del dueño', async () => {
+    entrarComo('operador')
+    montar('/cierre')
+
+    // Vuelve a la agenda, sin cartel de reto: es una pantalla que no le toca.
+    expect(await screen.findByLabelText('Día siguiente')).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Cierre del día' })).not.toBeInTheDocument()
+  })
+
+  it('al operador tampoco le aparece el cierre en la barra de abajo', async () => {
+    entrarComo('operador')
+    montar('/')
+
+    const barra = await screen.findByRole('navigation', { name: 'Secciones del panel' })
+    expect(Array.from(barra.querySelectorAll('a')).map((a) => a.textContent)).toEqual([
+      'Agenda',
+      'Catálogo',
+      'Equipo',
+      'Clientes',
+    ])
+  })
+
+  it('el dueño sí entra al cierre y lo tiene en la barra', async () => {
+    entrarComo('dueno')
+    montar('/cierre')
+
+    expect(await screen.findByText('Este día no pasó nada todavía.')).toBeInTheDocument()
+
+    const barra = screen.getByRole('navigation', { name: 'Secciones del panel' })
+    expect(Array.from(barra.querySelectorAll('a')).map((a) => a.textContent)).toContain('Cierre')
+  })
+
+  it('la lista de espera es de los dos: el operador la abre igual', async () => {
+    entrarComo('operador')
+    montar('/lista-espera')
+    expect(await screen.findByRole('heading', { name: 'Lista de espera' })).toBeInTheDocument()
   })
 
   it('con contraseña provisoria no se pasa de la pantalla de cambio', async () => {

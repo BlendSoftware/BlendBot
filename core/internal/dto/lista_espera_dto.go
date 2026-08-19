@@ -1,10 +1,6 @@
 package dto
 
-import (
-	"time"
-
-	"copiloto/core/internal/model"
-)
+import "time"
 
 // AnotarEnListaEsperaInput anota a alguien para un servicio. El negocio no
 // viaja: sale del token.
@@ -20,40 +16,22 @@ type FiltroListaEspera struct {
 	SoloPendientes bool
 }
 
-// ListaEsperaResponse es un anotado de la cola.
+// ListaEsperaResponse es un anotado de la cola. El nombre del cliente y el del
+// servicio viajan resueltos: quien atiende lee "Juana Pérez · Consulta", no dos
+// UUID.
 type ListaEsperaResponse struct {
 	ID                   string     `json:"id"`
 	NegocioID            string     `json:"negocio_id"`
 	ClienteID            string     `json:"cliente_id"`
+	ClienteNombre        *string    `json:"cliente_nombre"`
+	ClienteTelefono      string     `json:"cliente_telefono"`
 	ServicioID           string     `json:"servicio_id"`
+	ServicioNombre       string     `json:"servicio_nombre"`
 	Nota                 *string    `json:"nota"`
 	CreadoEn             time.Time  `json:"creado_en"`
 	NotificadoEn         *time.Time `json:"notificado_en"`
 	CompromisoOfrecidoID *string    `json:"compromiso_ofrecido_id"`
 }
 
-// ListaEsperaDesdeModel arma la respuesta a partir del modelo.
-func ListaEsperaDesdeModel(le *model.ListaEspera) *ListaEsperaResponse {
-	if le == nil {
-		return nil
-	}
-	return &ListaEsperaResponse{
-		ID:                   le.ID,
-		NegocioID:            le.NegocioID,
-		ClienteID:            le.ClienteID,
-		ServicioID:           le.ServicioID,
-		Nota:                 le.Nota,
-		CreadoEn:             le.CreadoEn,
-		NotificadoEn:         le.NotificadoEn,
-		CompromisoOfrecidoID: le.CompromisoOfrecidoID,
-	}
-}
-
-// ListaEsperaDesdeModelos mapea la cola completa.
-func ListaEsperaDesdeModelos(les []model.ListaEspera) []ListaEsperaResponse {
-	out := make([]ListaEsperaResponse, 0, len(les))
-	for i := range les {
-		out = append(out, *ListaEsperaDesdeModel(&les[i]))
-	}
-	return out
-}
+// El armado desde la fila de la base vive en el service (igual que la agenda):
+// el paquete dto no conoce repository.

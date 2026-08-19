@@ -124,6 +124,22 @@ describe('TarjetaCompromiso', () => {
     expect(screen.queryByRole('button', { name: 'Cobrar' })).not.toBeInTheDocument()
   })
 
+  it('sin permiso para ver la plata, la tarjeta no la muestra', () => {
+    render(
+      <TarjetaCompromiso
+        datos={datos()}
+        demorasSugeridas={[15]}
+        alTransicionar={vi.fn()}
+        ahora={new Date('2026-08-21T09:10:00-03:00')}
+        mostrarTotal={false}
+      />,
+    )
+    expect(screen.queryByText(/18\.500/)).not.toBeInTheDocument()
+    // Lo demás sigue entero: el operador atiende igual.
+    expect(screen.getByText('Lucía Paz')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Confirmar' })).toBeInTheDocument()
+  })
+
   it('el estado se lee en criollo, nunca el valor del enum', () => {
     pintar({ estado: 'pendiente' })
     expect(screen.getByText('sin confirmar')).toBeInTheDocument()

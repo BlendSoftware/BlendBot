@@ -39,12 +39,23 @@ func TestListaEsperaPorHTTP(t *testing.T) {
 	if anotado.NotificadoEn != nil {
 		t.Error("un anotado nuevo no puede venir ya notificado")
 	}
+	// El panel muestra gente, no UUIDs: el alta ya vuelve con los nombres
+	// resueltos, igual que el listado (E9/W5-C).
+	igual(t, anotado.ServicioNombre, "Consulta", "nombre del servicio en el alta")
+	igual(t, anotado.ClienteTelefono, "5492611000050", "teléfono del cliente en el alta")
+	if anotado.ClienteNombre == nil || *anotado.ClienteNombre != "Juana Pérez" {
+		t.Errorf("nombre del cliente en el alta: esperaba Juana Pérez, obtuvo %v", anotado.ClienteNombre)
+	}
 
 	// Listar: sólo el propio.
 	var cola []dto.ListaEsperaResponse
 	hacer(t, http.MethodGet, "/api/lista-espera", nil, token).
 		exigir(http.StatusOK).en(&cola)
 	igual(t, len(cola), 1, "tamaño de la cola del negocio")
+	igual(t, cola[0].ServicioNombre, "Consulta", "nombre del servicio en la cola")
+	if cola[0].ClienteNombre == nil || *cola[0].ClienteNombre != "Juana Pérez" {
+		t.Errorf("nombre del cliente en la cola: esperaba Juana Pérez, obtuvo %v", cola[0].ClienteNombre)
+	}
 
 	var colaAjena []dto.ListaEsperaResponse
 	hacer(t, http.MethodGet, "/api/lista-espera", nil, tokenAjeno).

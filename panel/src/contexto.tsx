@@ -16,13 +16,25 @@ interface Sesion {
   claims: Claims | null
   negocio: NegocioDatos | null
   demorasSugeridas: number[]
+  /**
+   * La plata del negocio (cierre del día, totales de la agenda, historial) es
+   * del dueño. El operador cobra en el mostrador, pero no mira la caja
+   * (docs/PANEL.md → Roles).
+   */
+  vePlata: boolean
   recargarNegocio: () => void
+}
+
+/** Quién puede ver la plata: el dueño y el admin de la plataforma. */
+export function rolVePlata(rol: Claims['rol'] | undefined): boolean {
+  return rol === 'dueno' || rol === 'admin'
 }
 
 const Ctx = createContext<Sesion>({
   claims: null,
   negocio: null,
   demorasSugeridas: DEMORAS_POR_DEFECTO,
+  vePlata: false,
   recargarNegocio: () => {},
 })
 
@@ -58,6 +70,7 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
       demorasSugeridas: negocio?.config?.demoras_sugeridas?.length
         ? negocio.config.demoras_sugeridas
         : DEMORAS_POR_DEFECTO,
+      vePlata: rolVePlata(claims?.rol),
       recargarNegocio: () => setVersion((v) => v + 1),
     }),
     [claims, negocio],

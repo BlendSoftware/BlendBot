@@ -10,8 +10,8 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { cobrar, traerCobro } from '../api/endpoints'
-import type { Cobro, MedioPago } from '../api/tipos'
-import { MEDIOS_PAGO, estadoFactura, etiquetaMedio } from '../dominio/cobros'
+import type { Cobro, EstadoCobroTurno, MedioPago } from '../api/tipos'
+import { MEDIOS_PAGO, estadoFactura, estadoFacturaDe, etiquetaMedio } from '../dominio/cobros'
 import { plata } from '../dominio/formato'
 
 interface Props {
@@ -19,11 +19,16 @@ interface Props {
   total: string
   /**
    * Lo que ya se sabe de este cobro: null es "no está cobrado" y undefined es
-   * "no sé", que hace una consulta al montar. La agenda no trae el cobro en su
-   * payload, así que sin esta consulta un turno ya cobrado volvería a mostrar
-   * el botón después de un F5.
+   * "no sé", que hace una consulta al montar.
    */
   cobroInicial?: Cobro | null
+  /**
+   * Lo que dijo la agenda de este turno (`cobrado` / `comprobante_estado`).
+   * Cuando viene, acá no se consulta NADA: el estado se refresca solo con la
+   * agenda, que ya vuelve a pedirse cada quince segundos. Sin esto eran N
+   * requests por refresco, uno por turno completado.
+   */
+  estadoCobro?: EstadoCobroTurno
   /** Cada cuánto se vuelve a preguntar por la factura. Inyectable para tests. */
   refrescoMs?: number
 }
@@ -32,7 +37,13 @@ const REFRESCO_MS = 5000
 /** Tope del reintento: dos minutos. Si a esa altura no salió, salió mal. */
 const REINTENTOS_MAX = 24
 
-export function BotonCobrar({ compromisoID, total, cobroInicial, refrescoMs = REFRESCO_MS }: Props) {
+export function BotonCobrar({
+  compromisoID,
+  total,
+  cobroInicial,
+  estadoCobro,
+  refrescoMs = REFRESCO_MS,
+}: Props) {
   const [cobro, setCobro] = useState<Cobro | null>(cobroInicial ?? null)
   const [abierto, setAbierto] = useState(false)
   const [enVuelo, setEnVuelo] = useState<MedioPago | null>(null)
@@ -41,8 +52,10 @@ export function BotonCobrar({ compromisoID, total, cobroInicial, refrescoMs = RE
 
   // "No sé si está cobrado" se pregunta una vez. Un 404 acá es la respuesta
   // normal (todavía no se cobró) y no tiene por qué mostrarle nada a nadie.
+  // Si la agenda ya lo dijo, no se pregunta.
+  const loSabeLaAgenda = estadoCobro !== undefined
   useEffect(() => {
-    if (cobroInicial !== undefined) return
+    if (cobroInicial !== undefined || loSabeLaAgenda) return
     let vivo = true
     traerCobro(compromisoID)
       .then((c) => {
@@ -52,7 +65,7 @@ export function BotonCobrar({ compromisoID, total, cobroInicial, refrescoMs = RE
     return () => {
       vivo = false
     }
-  }, [compromisoID, cobroInicial])
+  }, [compromisoID, cobroInicial, loSabeLaAgenda])
 
   useEffect(() => {
     if (!abierto) return
@@ -120,6 +133,19 @@ export function BotonCobrar({ compromisoID, total, cobroInicial, refrescoMs = RE
         </p>
         <p className="cobro__factura">{factura.texto}</p>
         {factura.detalle && <p className="cobro__detalle">{factura.detalle}</p>}
+      </div>
+    )
+  }
+
+  // Cobrado en otro momento (o en otra pantalla): la agenda lo sabe y alcanza.
+  // El medio de pago no viaja con el turno; el monto es el total que la tarjeta
+  // ya tiene arriba, así que acá se muestra el estado y nada más.
+  if (estadoCobro?.cobrado) {
+    const yaEstaba = estadoFacturaDe(estadoCobro.comprobante_estado)
+    return (
+      <div className={`cobro cobro--${yaEstaba.tono}`}>
+        <p className="cobro__hecho">Cobrado</p>
+        <p className="cobro__factura">{yaEstaba.texto}</p>
       </div>
     )
   }

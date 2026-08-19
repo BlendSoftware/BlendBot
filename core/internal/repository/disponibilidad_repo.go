@@ -26,6 +26,11 @@ type CompromisoAgenda struct {
 	Nota            *string                `gorm:"column:nota"`
 	ClienteNombre   *string                `gorm:"column:cliente_nombre"`
 	ClienteTelefono string                 `gorm:"column:cliente_telefono"`
+	// CobroID no nil = el turno ya está cobrado. ComprobanteEstado es nil
+	// cuando no hay cobro o cuando el cobro salió sin factura (el negocio no
+	// tiene datos de ARCA cargados).
+	CobroID           *string                  `gorm:"column:cobro_id"`
+	ComprobanteEstado *model.EstadoComprobante `gorm:"column:comprobante_estado"`
 }
 
 // DisponibilidadRepository son las lecturas que alimentan el cálculo de huecos
@@ -216,8 +221,17 @@ func (r *disponibilidadRepo) AgendaEnRango(ctx context.Context, negocioID string
 		Select(`compromiso.id, compromiso.recurso_id, compromiso.cliente_id,
 			compromiso.tipo, compromiso.estado, compromiso.inicio, compromiso.fin,
 			compromiso.total, compromiso.nota,
-			cliente.nombre AS cliente_nombre, cliente.telefono AS cliente_telefono`).
+			cliente.nombre AS cliente_nombre, cliente.telefono AS cliente_telefono,
+			cobro.id AS cobro_id, comprobante.estado AS comprobante_estado`).
 		Joins("JOIN cliente ON cliente.id = compromiso.cliente_id AND cliente.negocio_id = compromiso.negocio_id").
+		// El estado del cobro viaja con el turno para que el panel no pregunte
+		// una vez por turno. Los dos LEFT JOIN son 1:1 (UNIQUE de cobro sobre
+		// compromiso_id y de comprobante sobre cobro_id): no multiplican filas.
+		// El negocio va repetido en la condición aunque cobro cuelgue del
+		// compromiso: un join que no nombra el tenant es un cruce esperando a
+		// pasar.
+		Joins("LEFT JOIN cobro ON cobro.compromiso_id = compromiso.id AND cobro.negocio_id = compromiso.negocio_id").
+		Joins("LEFT JOIN comprobante ON comprobante.cobro_id = cobro.id AND comprobante.negocio_id = compromiso.negocio_id").
 		Where("compromiso.negocio_id = ?", negocioID).
 		Where("compromiso.estado NOT IN ?", []model.EstadoCompromiso{model.EstadoCancelado, model.EstadoRechazado}).
 		Where("compromiso.inicio >= ? AND compromiso.inicio < ?", desde, hasta).

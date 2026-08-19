@@ -376,5 +376,13 @@ func TestFlujoCompletoConsultorio(t *testing.T) {
 		if !strings.HasSuffix(c.Inicio, offsetNegocio) {
 			t.Errorf("inicio en la agenda %q no está en %s", c.Inicio, tzNegocio)
 		}
+		// Atendido pero todavía sin cobrar: el panel dibuja el botón "Cobrar"
+		// con esto, sin preguntar por cada turno (E9/W5-C).
+		if c.Cobrado {
+			t.Error("el turno no se cobró: la agenda no puede decir que sí")
+		}
+		if c.ComprobanteEstado != nil {
+			t.Errorf("sin cobro no hay comprobante: %v", *c.ComprobanteEstado)
+		}
 	})
 }
