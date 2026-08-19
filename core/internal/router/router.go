@@ -8,6 +8,7 @@ import (
 	"copiloto/core/internal/config"
 	"copiloto/core/internal/handler"
 	"copiloto/core/internal/middleware"
+	"copiloto/core/internal/repository"
 	"copiloto/core/internal/service"
 
 	"github.com/gin-gonic/gin"
@@ -22,14 +23,17 @@ type Deps struct {
 	DB  *gorm.DB
 	RDB *redis.Client
 
-	AuthSvc     service.AuthService
-	NegocioSvc  service.NegocioService
-	CatalogoSvc service.CatalogoService
-	ClienteSvc  service.ClienteService
-	AuditSvc    service.AuditService
-	MotorSvc    service.MotorService
-	HoldSvc     service.HoldService
-	HorarioH    *handler.HorariosHandler
+	AuthSvc      service.AuthService
+	NegocioSvc   service.NegocioService
+	CatalogoSvc  service.CatalogoService
+	ClienteSvc   service.ClienteService
+	AuditSvc     service.AuditService
+	MotorSvc     service.MotorService
+	HoldSvc      service.HoldService
+	DispoSvc     service.DisponibilidadService
+	TokenSvc     service.NegocioTokenService
+	NegDatosRepo repository.NegocioDatosRepository
+	HorarioH     *handler.HorariosHandler
 }
 
 // New arma el engine con la cadena de middlewares y las rutas.
@@ -65,13 +69,14 @@ func New(d Deps) *gin.Engine {
 	api := r.Group("/api")
 	authH.Register(api.Group("/auth"))
 
-	// Todo lo demás exige token.
-	priv := api.Group("", middleware.JWTAuth(d.Cfg.JWTSecret, d.RDB))
+	// Todo lo demás exige token: JWT del panel o token de agente (cop_...).
+	priv := api.Group("", middleware.AutenticacionDual(d.Cfg.JWTSecret, d.RDB, d.NegDatosRepo.NegocioPorTokenHash))
 	authH.RegisterProtegidas(priv.Group("/auth"))
 
 	// Panel admin de la plataforma: alta/baja de negocios (D20).
 	admin := priv.Group("/admin/negocios", middleware.RequireRole(middleware.RolAdmin))
 	handler.NewAdminNegociosHandler(d.NegocioSvc, d.AuditSvc).Register(admin)
+	handler.NewAdminTokenHandler(d.TokenSvc, d.AuditSvc).Register(admin)
 
 	// Rutas del negocio: el tenant sale del token, jamás del request.
 	tenant := priv.Group("", middleware.RequireNegocio())
@@ -79,6 +84,8 @@ func New(d Deps) *gin.Engine {
 	handler.NewClientesHandler(d.ClienteSvc, d.AuditSvc).Register(tenant)
 	handler.NewCompromisosHandler(d.MotorSvc).Register(tenant)
 	handler.NewHoldsHandler(d.HoldSvc).Register(tenant)
+	handler.NewDisponibilidadHandler(d.DispoSvc).Register(tenant)
+	handler.NewNegocioDatosHandler(d.NegDatosRepo).Register(tenant)
 	d.HorarioH.Register(tenant)
 
 	return r

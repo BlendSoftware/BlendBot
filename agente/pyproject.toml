@@ -1,0 +1,27 @@
+[project]
+name = "copiloto-agente"
+version = "1.0.0"
+description = "Agente conversacional MCP del Copiloto de Comercios: tools tipadas contra el core"
+requires-python = ">=3.12"
+dependencies = [
+    "fastmcp>=2.0",
+    "httpx>=0.27",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.3",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "respx>=0.21",
+]
+
+# El agente no se instala como librería: se corre en el lugar (uv run server.py).
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+asyncio_mode = "auto"

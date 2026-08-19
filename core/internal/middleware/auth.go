@@ -21,6 +21,7 @@ const (
 	RolAdmin    = "admin"    // panel admin de la plataforma; sin negocio
 	RolDueno    = "dueno"    // ve todo su negocio, incluida la plata
 	RolOperador = "operador" // tablero, catálogo, clientes; sin facturación
+	RolAgente   = "agente"   // el agente MCP: entra con token de negocio, no con JWT
 )
 
 // JWTClaims are the custom claims embedded in every access token.
@@ -42,45 +43,64 @@ type JWTClaims struct {
 // added to the Redis revocation set (e.g. after an explicit logout).
 func JWTAuth(secret string, rdb *redis.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		header := c.GetHeader("Authorization")
-		if header == "" || !strings.HasPrefix(header, "Bearer ") {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, apierror.New("Autenticacion requerida"))
+		tokenStr, ok := tokenBearer(c)
+		if !ok {
 			return
 		}
-
-		tokenStr := strings.TrimPrefix(header, "Bearer ")
-		claims := &JWTClaims{}
-		token, err := jwt.ParseWithClaims(tokenStr, claims, func(t *jwt.Token) (interface{}, error) {
-			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, jwt.ErrSignatureInvalid
-			}
-			return []byte(secret), nil
-		})
-
-		if err != nil || !token.Valid {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, apierror.New("Token invalido o expirado"))
+		claims, ok := validarAccessJWT(c, tokenStr, secret, rdb)
+		if !ok {
 			return
 		}
-
-		// Reject refresh tokens used as access tokens.
-		if claims.Type != "access" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, apierror.New("Tipo de token invalido"))
-			return
-		}
-
-		// Revocation check: if the jti appears in Redis the token was explicitly
-		// invalidated (logout). Fail fast without touching the DB.
-		if rdb != nil && claims.ID != "" {
-			n, redisErr := rdb.Exists(c.Request.Context(), revokedKeyPrefix+claims.ID).Result()
-			if redisErr == nil && n > 0 {
-				c.AbortWithStatusJSON(http.StatusUnauthorized, apierror.New("Token revocado"))
-				return
-			}
-		}
-
 		c.Set(ClaimsKey, claims)
 		c.Next()
 	}
+}
+
+// tokenBearer extrae el token del header Authorization. Aborta con 401 y
+// devuelve false si no hay Bearer. Lo comparten JWTAuth y AutenticacionDual.
+func tokenBearer(c *gin.Context) (string, bool) {
+	header := c.GetHeader("Authorization")
+	if header == "" || !strings.HasPrefix(header, "Bearer ") {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, apierror.New("Autenticacion requerida"))
+		return "", false
+	}
+	return strings.TrimPrefix(header, "Bearer "), true
+}
+
+// validarAccessJWT es LA validación del token del panel: firma, tipo y
+// revocación. Aborta con 401 y devuelve false si algo no cierra. Existe como
+// función aparte para que AutenticacionDual no duplique la lógica.
+func validarAccessJWT(c *gin.Context, tokenStr, secret string, rdb *redis.Client) (*JWTClaims, bool) {
+	claims := &JWTClaims{}
+	token, err := jwt.ParseWithClaims(tokenStr, claims, func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, jwt.ErrSignatureInvalid
+		}
+		return []byte(secret), nil
+	})
+
+	if err != nil || !token.Valid {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, apierror.New("Token invalido o expirado"))
+		return nil, false
+	}
+
+	// Reject refresh tokens used as access tokens.
+	if claims.Type != "access" {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, apierror.New("Tipo de token invalido"))
+		return nil, false
+	}
+
+	// Revocation check: if the jti appears in Redis the token was explicitly
+	// invalidated (logout). Fail fast without touching the DB.
+	if rdb != nil && claims.ID != "" {
+		n, redisErr := rdb.Exists(c.Request.Context(), revokedKeyPrefix+claims.ID).Result()
+		if redisErr == nil && n > 0 {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, apierror.New("Token revocado"))
+			return nil, false
+		}
+	}
+
+	return claims, true
 }
 
 // RequireRole rejects requests whose JWT role is not in the allowed list.
