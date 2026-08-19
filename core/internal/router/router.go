@@ -6,7 +6,9 @@ import (
 	"time"
 
 	"copiloto/core/internal/config"
+	"copiloto/core/internal/handler"
 	"copiloto/core/internal/middleware"
+	"copiloto/core/internal/service"
 
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
@@ -19,6 +21,15 @@ type Deps struct {
 	Cfg *config.Config
 	DB  *gorm.DB
 	RDB *redis.Client
+
+	AuthSvc     service.AuthService
+	NegocioSvc  service.NegocioService
+	CatalogoSvc service.CatalogoService
+	ClienteSvc  service.ClienteService
+	AuditSvc    service.AuditService
+	MotorSvc    service.MotorService
+	HoldSvc     service.HoldService
+	HorarioH    *handler.HorariosHandler
 }
 
 // New arma el engine con la cadena de middlewares y las rutas.
@@ -48,11 +59,27 @@ func New(d Deps) *gin.Engine {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
 
-	// api := r.Group("/api", middleware.JWTAuth(d.Cfg.JWTSecret, d.RDB))
-	// Acá se cuelgan los handlers a medida que existen:
-	//   /api/compromisos · /api/servicios · /api/disponibilidad · /api/holds
-	//   /api/clientes · /api/cobros · /api/reportes
-	// y el grupo admin (RequireRole(middleware.RolAdmin)) para el alta de negocios.
+	authH := handler.NewAuthHandler(d.AuthSvc)
+
+	// Públicas: login y refresh.
+	api := r.Group("/api")
+	authH.Register(api.Group("/auth"))
+
+	// Todo lo demás exige token.
+	priv := api.Group("", middleware.JWTAuth(d.Cfg.JWTSecret, d.RDB))
+	authH.RegisterProtegidas(priv.Group("/auth"))
+
+	// Panel admin de la plataforma: alta/baja de negocios (D20).
+	admin := priv.Group("/admin/negocios", middleware.RequireRole(middleware.RolAdmin))
+	handler.NewAdminNegociosHandler(d.NegocioSvc, d.AuditSvc).Register(admin)
+
+	// Rutas del negocio: el tenant sale del token, jamás del request.
+	tenant := priv.Group("", middleware.RequireNegocio())
+	handler.NewCatalogoHandler(d.CatalogoSvc, d.AuditSvc).Register(tenant)
+	handler.NewClientesHandler(d.ClienteSvc, d.AuditSvc).Register(tenant)
+	handler.NewCompromisosHandler(d.MotorSvc).Register(tenant)
+	handler.NewHoldsHandler(d.HoldSvc).Register(tenant)
+	d.HorarioH.Register(tenant)
 
 	return r
 }

@@ -27,6 +27,11 @@ type Config struct {
 	// CORS — comma-separated list of allowed origins
 	AllowedOrigins string `mapstructure:"ALLOWED_ORIGINS"`
 
+	// Bootstrap: si no existe ningún usuario admin al arrancar y esta variable
+	// está seteada, se crea el admin inicial de la plataforma.
+	AdminUsername string `mapstructure:"ADMIN_USERNAME"`
+	AdminPassword string `mapstructure:"ADMIN_PASSWORD"`
+
 	// Sidecar ARCA
 	ARCASidecarURL string `mapstructure:"ARCA_SIDECAR_URL"`
 	// InternalAPIToken authenticates core → sidecar calls.
@@ -48,6 +53,8 @@ func Load() (*Config, error) {
 	viper.SetDefault("JWT_EXPIRATION_HOURS", 8)
 	viper.SetDefault("JWT_REFRESH_HOURS", 24)
 	viper.SetDefault("ALLOWED_ORIGINS", "http://localhost:5173")
+	viper.SetDefault("ADMIN_USERNAME", "admin")
+	_ = viper.BindEnv("ADMIN_PASSWORD")
 	viper.SetDefault("ARCA_SIDECAR_URL", "http://arca-sidecar:8001")
 	viper.SetDefault("INTERNAL_API_TOKEN", "")
 	viper.SetDefault("DATABASE_URL", "postgres://copiloto:copiloto@localhost:5433/copiloto?sslmode=disable")
