@@ -2,9 +2,10 @@
  * Navegación tablet-first: íconos grandes, siempre abajo y a mano del pulgar.
  * La pantalla operativa no tiene más chrome que esto. El cierre del día entró
  * como quinto destino (E8): es la otra pantalla que el dueño abre solo, y por
- * eso al operador no le aparece (docs/PANEL.md → Roles). La lista de espera no
- * está acá a propósito: se entra desde el hueco libre de la agenda, que es
- * cuando importa.
+ * eso al operador no le aparece (docs/PANEL.md → Roles). La lista de espera
+ * SÍ está acá: el acceso solo desde el hueco libre de la agenda dejaba sin
+ * forma de anotar a alguien justo cuando el día está completo, que es cuando
+ * más sirve la cola.
  */
 
 import { NavLink } from 'react-router-dom'
@@ -61,6 +62,15 @@ function IconoClientes() {
   )
 }
 
+function IconoEspera() {
+  return (
+    <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" {...trazo}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3.5 2" />
+    </svg>
+  )
+}
+
 function IconoCierre() {
   return (
     <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" {...trazo}>
@@ -85,6 +95,7 @@ export function BarraInferior({ rol }: Props) {
     { a: '/catalogo', texto: 'Catálogo', icono: <IconoCatalogo /> },
     { a: '/equipo', texto: 'Equipo', icono: <IconoEquipo /> },
     { a: '/clientes', texto: 'Clientes', icono: <IconoClientes /> },
+    { a: '/lista-espera', texto: 'Espera', icono: <IconoEspera /> },
   ]
   if (rolVePlata(rol)) {
     delNegocio.push({ a: '/cierre', texto: 'Cierre', icono: <IconoCierre /> })

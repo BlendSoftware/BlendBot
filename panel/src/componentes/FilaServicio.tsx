@@ -101,6 +101,17 @@ export function FilaServicio({
           </>
         )}
 
+        {!editando && (
+          <button
+            type="button"
+            className="boton boton--fantasma servicio__coberturas"
+            onClick={alExpandir}
+            aria-expanded={expandida}
+          >
+            {expandida ? 'Cerrar precios' : 'Precios por obra social'}
+          </button>
+        )}
+
         <Switch
           activo={servicio.disponible}
           etiquetaSi="disponible"
@@ -111,13 +122,7 @@ export function FilaServicio({
         />
       </div>
 
-      <div className="servicio__extra">
-        <button type="button" className="boton boton--fantasma servicio__coberturas" onClick={alExpandir}>
-          {expandida ? 'Cerrar precios por obra social' : 'Precios por obra social'}
-        </button>
-      </div>
-
-      {expandida && children}
+      {expandida && <div className="servicio__precios">{children}</div>}
     </li>
   )
 }

@@ -1,5 +1,7 @@
 /** Piezas chicas que se repiten en todas las vistas. */
 
+import { useEffect, useState } from 'react'
+
 interface VacioProps {
   /** Una línea cálida, no un cartel genérico. */
   titulo: string
@@ -48,5 +50,88 @@ export function Esqueleto({ alto = 72, cantidad = 3 }: { alto?: number; cantidad
         <div key={i} className="esqueleto" style={{ height: alto }} />
       ))}
     </div>
+  )
+}
+
+const AVISO_BIEN_MS = 2500
+
+/**
+ * Un "listo" que aparece solo y se borra solo: guardar/crear no puede quedar
+ * en silencio, pero tampoco exige que alguien lo cierre a mano (a diferencia
+ * de un error, que sí se queda hasta que lo leen).
+ */
+export function useAvisoBien(duracionMs = AVISO_BIEN_MS): [string, (texto: string) => void] {
+  const [texto, setTexto] = useState('')
+
+  useEffect(() => {
+    if (!texto) return
+    const id = window.setTimeout(() => setTexto(''), duracionMs)
+    return () => window.clearTimeout(id)
+  }, [texto, duracionMs])
+
+  return [texto, setTexto]
+}
+
+const CONFIRMAR_TIMEOUT_MS = 4000
+
+interface BotonConfirmarProps {
+  /** Lo que se ve en reposo, ej. "Sacar" o "✕". */
+  etiqueta: string
+  /** Lo que se ve en el botón que dispara la acción, ej. "Sí, sacar". */
+  etiquetaConfirmar: string
+  onConfirmar: () => void
+  className?: string
+  ariaLabel?: string
+}
+
+/**
+ * Botón que en el lugar (sin popover ni modal) pide un segundo toque antes de
+ * disparar una acción que no tiene vuelta atrás. Se resetea solo si nadie lo
+ * toca en unos segundos.
+ */
+export function BotonConfirmar({
+  etiqueta,
+  etiquetaConfirmar,
+  onConfirmar,
+  className,
+  ariaLabel,
+}: BotonConfirmarProps) {
+  const [confirmando, setConfirmando] = useState(false)
+
+  useEffect(() => {
+    if (!confirmando) return
+    const id = window.setTimeout(() => setConfirmando(false), CONFIRMAR_TIMEOUT_MS)
+    return () => window.clearTimeout(id)
+  }, [confirmando])
+
+  if (!confirmando) {
+    return (
+      <button
+        type="button"
+        className={className}
+        aria-label={ariaLabel}
+        onClick={() => setConfirmando(true)}
+      >
+        {etiqueta}
+      </button>
+    )
+  }
+
+  return (
+    <span className="confirmar-inline">
+      <button
+        type="button"
+        className="boton boton--peligro"
+        onClick={() => {
+          setConfirmando(false)
+          onConfirmar()
+        }}
+      >
+        {etiquetaConfirmar}
+      </button>
+      <button type="button" className="boton boton--fantasma" onClick={() => setConfirmando(false)}>
+        No
+      </button>
+    </span>
   )
 }

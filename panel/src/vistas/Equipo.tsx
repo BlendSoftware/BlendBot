@@ -17,7 +17,7 @@ import {
 } from '../api/endpoints'
 import type { Excepcion, Horario, Recurso } from '../api/tipos'
 import { Switch } from '../componentes/Switch'
-import { Aviso, Esqueleto, Vacio } from '../componentes/basicos'
+import { Aviso, BotonConfirmar, Esqueleto, Vacio, useAvisoBien } from '../componentes/basicos'
 import { DIAS_CORTOS } from '../dominio/formato'
 
 const DIAS_LARGOS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
@@ -28,6 +28,7 @@ export function Equipo() {
   const [cargando, setCargando] = useState(true)
   const [problema, setProblema] = useState('')
   const [nuevo, setNuevo] = useState('')
+  const [bien, mostrarBien] = useAvisoBien()
 
   const cargar = useCallback(async () => {
     setCargando(true)
@@ -73,6 +74,7 @@ export function Equipo() {
       </header>
 
       <Aviso texto={problema} alCerrar={() => setProblema('')} />
+      <Aviso texto={bien} tono="bien" />
 
       {cargando && <Esqueleto alto={64} cantidad={3} />}
 
@@ -85,49 +87,62 @@ export function Equipo() {
 
       {!cargando && (
         <div className="equipo__cuerpo">
-          <ul className="equipo__lista">
-            {recursos.map((r) => (
-              <li key={r.id} className={`persona ${elegido === r.id ? 'persona--elegida' : ''}`}>
-                <button type="button" className="persona__nombre" onClick={() => setElegido(r.id)}>
-                  {r.nombre}
-                </button>
-                <Switch
-                  activo={r.activo}
-                  etiquetaSi="atiende"
-                  etiquetaNo="no viene"
-                  describe={r.nombre}
-                  alCambiar={async (v) => {
-                    const guardado = await actualizarRecurso(r.id, { activo: v })
-                    setRecursos((l) => l.map((x) => (x.id === r.id ? guardado : x)))
-                  }}
-                  alFallar={setProblema}
-                />
-              </li>
-            ))}
-            <li className="equipo__alta">
-              <form onSubmit={agregar} className="equipo__forma">
-                <input
-                  className="entrada"
-                  placeholder="Sumar a alguien"
-                  value={nuevo}
-                  onChange={(e) => setNuevo(e.target.value)}
-                  aria-label="Nombre de la persona nueva"
-                />
-                <button type="submit" className="boton" disabled={!nuevo.trim()}>
-                  Sumar
-                </button>
-              </form>
-            </li>
-          </ul>
+          <div className="equipo__panel">
+            <span className="grupo__cuenta">
+              {recursos.length === 1 ? '1 persona' : `${recursos.length} personas`}
+            </span>
 
-          {actual && <Semana recurso={actual} alFallar={setProblema} />}
+            <ul className="equipo__lista">
+              {recursos.map((r) => (
+                <li key={r.id} className={`persona ${elegido === r.id ? 'persona--elegida' : ''}`}>
+                  <button type="button" className="persona__nombre" onClick={() => setElegido(r.id)}>
+                    {r.nombre}
+                  </button>
+                  <Switch
+                    activo={r.activo}
+                    etiquetaSi="atiende"
+                    etiquetaNo="no viene"
+                    describe={r.nombre}
+                    alCambiar={async (v) => {
+                      const guardado = await actualizarRecurso(r.id, { activo: v })
+                      setRecursos((l) => l.map((x) => (x.id === r.id ? guardado : x)))
+                    }}
+                    alFallar={setProblema}
+                  />
+                </li>
+              ))}
+            </ul>
+
+            <form onSubmit={agregar} className="equipo__forma">
+              <input
+                className="entrada"
+                placeholder="Sumar a alguien"
+                value={nuevo}
+                onChange={(e) => setNuevo(e.target.value)}
+                aria-label="Nombre de la persona nueva"
+              />
+              <button type="submit" className="boton" disabled={!nuevo.trim()}>
+                Sumar
+              </button>
+            </form>
+          </div>
+
+          {actual && <Semana recurso={actual} alFallar={setProblema} alExito={mostrarBien} />}
         </div>
       )}
     </section>
   )
 }
 
-function Semana({ recurso, alFallar }: { recurso: Recurso; alFallar: (m: string) => void }) {
+function Semana({
+  recurso,
+  alFallar,
+  alExito,
+}: {
+  recurso: Recurso
+  alFallar: (m: string) => void
+  alExito: (m: string) => void
+}) {
   const [horarios, setHorarios] = useState<Horario[] | null>(null)
   const [excepciones, setExcepciones] = useState<Excepcion[] | null>(null)
 
@@ -171,11 +186,12 @@ function Semana({ recurso, alFallar }: { recurso: Recurso; alFallar: (m: string)
                   {franjas.map((f) => (
                     <span key={f.id} className="franja tabular">
                       {f.desde.slice(0, 5)} a {f.hasta.slice(0, 5)}
-                      <button
-                        type="button"
+                      <BotonConfirmar
+                        etiqueta="✕"
+                        etiquetaConfirmar="Sí"
                         className="franja__sacar"
-                        aria-label={`Sacar ${f.desde.slice(0, 5)} a ${f.hasta.slice(0, 5)} de ${nombre}`}
-                        onClick={async () => {
+                        ariaLabel={`Sacar ${f.desde.slice(0, 5)} a ${f.hasta.slice(0, 5)} de ${nombre}`}
+                        onConfirmar={async () => {
                           try {
                             await borrarHorario(recurso.id, f.id)
                             setHorarios((l) => (l ?? []).filter((x) => x.id !== f.id))
@@ -183,9 +199,7 @@ function Semana({ recurso, alFallar }: { recurso: Recurso; alFallar: (m: string)
                             alFallar(e instanceof Error ? e.message : 'No se pudo sacar.')
                           }
                         }}
-                      >
-                        ✕
-                      </button>
+                      />
                     </span>
                   ))}
                 </div>
@@ -195,6 +209,7 @@ function Semana({ recurso, alFallar }: { recurso: Recurso; alFallar: (m: string)
                   alCrear={async (desde, hasta) => {
                     const h = await crearHorario(recurso.id, { dia_semana: dia, desde, hasta })
                     setHorarios((l) => [...(l ?? []), h])
+                    alExito(`Horario agregado el ${nombre.toLowerCase()}.`)
                   }}
                   alFallar={alFallar}
                 />
@@ -218,10 +233,11 @@ function Semana({ recurso, alFallar }: { recurso: Recurso; alFallar: (m: string)
                   {e.desde.slice(0, 10)} a {e.hasta.slice(0, 10)}
                 </span>
                 <span className="excepciones__motivo">{e.motivo ?? 'sin motivo'}</span>
-                <button
-                  type="button"
+                <BotonConfirmar
+                  etiqueta="Sacar"
+                  etiquetaConfirmar="Sí, sacar"
                   className="boton boton--fantasma"
-                  onClick={async () => {
+                  onConfirmar={async () => {
                     try {
                       await borrarExcepcion(recurso.id, e.id)
                       setExcepciones((l) => (l ?? []).filter((x) => x.id !== e.id))
@@ -229,9 +245,7 @@ function Semana({ recurso, alFallar }: { recurso: Recurso; alFallar: (m: string)
                       alFallar(err instanceof Error ? err.message : 'No se pudo sacar.')
                     }
                   }}
-                >
-                  Sacar
-                </button>
+                />
               </li>
             ))}
           </ul>
@@ -258,8 +272,22 @@ function AltaFranja({
   alCrear: (desde: string, hasta: string) => Promise<void>
   alFallar: (m: string) => void
 }) {
+  const [abierta, setAbierta] = useState(false)
   const [desde, setDesde] = useState('')
   const [hasta, setHasta] = useState('')
+
+  if (!abierta) {
+    return (
+      <button
+        type="button"
+        className="boton boton--fantasma dia__disparador"
+        onClick={() => setAbierta(true)}
+        aria-label={`Agregar horario, ${DIAS_LARGOS[dia]}`}
+      >
+        + horario
+      </button>
+    )
+  }
 
   return (
     <form
@@ -282,6 +310,7 @@ function AltaFranja({
         value={desde}
         onChange={(e) => setDesde(e.target.value)}
         aria-label={`Desde, ${DIAS_LARGOS[dia]}`}
+        autoFocus
       />
       <input
         type="time"
@@ -290,8 +319,11 @@ function AltaFranja({
         onChange={(e) => setHasta(e.target.value)}
         aria-label={`Hasta, ${DIAS_LARGOS[dia]}`}
       />
-      <button type="submit" className="boton" disabled={!desde || !hasta}>
+      <button type="submit" className="boton boton--primario" disabled={!desde || !hasta}>
         Agregar
+      </button>
+      <button type="button" className="boton boton--fantasma" onClick={() => setAbierta(false)}>
+        Cancelar
       </button>
     </form>
   )
@@ -304,9 +336,18 @@ function AltaExcepcion({
   alCrear: (desde: string, hasta: string, motivo: string | null) => Promise<void>
   alFallar: (m: string) => void
 }) {
+  const [abierta, setAbierta] = useState(false)
   const [desde, setDesde] = useState('')
   const [hasta, setHasta] = useState('')
   const [motivo, setMotivo] = useState('')
+
+  if (!abierta) {
+    return (
+      <button type="button" className="boton boton--fantasma disparador" onClick={() => setAbierta(true)}>
+        + Cargar ausencia
+      </button>
+    )
+  }
 
   return (
     <form
@@ -335,6 +376,7 @@ function AltaExcepcion({
           className="entrada tabular"
           value={desde}
           onChange={(e) => setDesde(e.target.value)}
+          autoFocus
         />
       </label>
       <label className="campo">
@@ -355,8 +397,11 @@ function AltaExcepcion({
           placeholder="congreso, vacaciones"
         />
       </label>
-      <button type="submit" className="boton" disabled={!desde || !hasta}>
+      <button type="submit" className="boton boton--primario" disabled={!desde || !hasta}>
         Cargar
+      </button>
+      <button type="button" className="boton boton--fantasma" onClick={() => setAbierta(false)}>
+        Cancelar
       </button>
     </form>
   )

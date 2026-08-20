@@ -12,7 +12,7 @@ import {
   traerAgenda,
 } from '../api/endpoints'
 import type { Cliente, Compromiso, TurnoAgenda } from '../api/tipos'
-import { Aviso, Esqueleto, Vacio } from '../componentes/basicos'
+import { Aviso, Esqueleto, Vacio, useAvisoBien } from '../componentes/basicos'
 import { useSesion } from '../contexto'
 import { etiquetaEstado } from '../dominio/estados'
 import { fechaCorta, horaDe, hoyISO, nombreVisible, plata, sumarDias, telefonoVisible } from '../dominio/formato'
@@ -27,6 +27,7 @@ export function Clientes() {
   const [historial, setHistorial] = useState<Compromiso[] | null>(null)
   const [buscando, setBuscando] = useState(false)
   const [problema, setProblema] = useState('')
+  const [bien, mostrarBien] = useAvisoBien()
 
   useEffect(() => {
     let vivo = true
@@ -116,10 +117,16 @@ export function Clientes() {
       </form>
 
       <Aviso texto={problema} alCerrar={() => setProblema('')} />
+      <Aviso texto={bien} tono="bien" />
 
       <div className="clientes__cuerpo">
         <section className="clientes__hoy">
-          <h2>Los de hoy</h2>
+          <div className="grupo__cabeza">
+            <h2>Los de hoy</h2>
+            <span className="grupo__cuenta">
+              {sugeridos.length === 1 ? '1 persona' : `${sugeridos.length} personas`}
+            </span>
+          </div>
           {sugeridos.length === 0 && (
             <Vacio
               titulo="Hoy no vino nadie todavía."
@@ -145,9 +152,7 @@ export function Clientes() {
         </section>
 
         <section className="ficha">
-          {!cliente && !buscando && (
-            <p className="ficha__nadie">Elegí a alguien de la lista o buscá por teléfono.</p>
-          )}
+          {!cliente && !buscando && <p className="ficha__nadie">Todavía no elegiste a nadie.</p>}
           {buscando && <Esqueleto alto={64} cantidad={3} />}
           {cliente && (
             <>
@@ -159,7 +164,10 @@ export function Clientes() {
               <FichaEditable
                 cliente={cliente}
                 coberturas={negocio?.coberturas ?? []}
-                alGuardar={setCliente}
+                alGuardar={(c) => {
+                  setCliente(c)
+                  mostrarBien('Ficha guardada.')
+                }}
                 alFallar={setProblema}
               />
 

@@ -40,6 +40,10 @@ function Protegida({
     return <Navigate to="/cambiar-password" replace />
   }
 
+  // Cambiar la contraseña es de cualquiera con sesión: ni el admin de la
+  // plataforma ni el negocio quedan afuera de esta, aunque no sea "la suya".
+  if (lugar.pathname === '/cambiar-password') return <>{children}</>
+
   const esAdmin = claims.rol === 'admin'
   if (soloAdmin && !esAdmin) return <Navigate to="/" replace />
   if (!soloAdmin && esAdmin) return <Navigate to="/admin" replace />

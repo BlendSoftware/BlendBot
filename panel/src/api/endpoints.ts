@@ -12,10 +12,12 @@ import type {
   Cobertura,
   Cobro,
   Compromiso,
+  ConfigFiscal,
   Estado,
   Excepcion,
   Horario,
   MedioPago,
+  ModoFiscal,
   Negocio,
   NegocioDatos,
   Plata,
@@ -312,4 +314,23 @@ export function actualizarNegocio(
 
 export function rotarTokenAgente(negocioID: string): Promise<TokenAgente> {
   return pedir<TokenAgente>(`/api/admin/negocios/${negocioID}/token-agente`, { metodo: 'POST' })
+}
+
+export function obtenerConfigFiscal(negocioID: string): Promise<ConfigFiscal> {
+  return pedir<ConfigFiscal>(`/api/admin/negocios/${negocioID}/fiscal`)
+}
+
+export function guardarConfigFiscal(
+  negocioID: string,
+  cuerpo: {
+    cuit: string
+    razon_social?: string | null
+    condicion?: string | null
+    punto_venta?: number | null
+    modo?: ModoFiscal
+    cert_pem?: string | null
+    key_pem?: string | null
+  },
+): Promise<ConfigFiscal> {
+  return pedir<ConfigFiscal>(`/api/admin/negocios/${negocioID}/fiscal`, { metodo: 'PUT', cuerpo })
 }

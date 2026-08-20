@@ -12,10 +12,12 @@
   font-weight: 600;
   font-size: var(--t-mini);
   color: var(--tinta-suave);
+  box-shadow: var(--sombra-baja);
   transition:
     background-color var(--transicion),
     border-color var(--transicion),
-    color var(--transicion);
+    color var(--transicion),
+    box-shadow var(--transicion);
 }
 
 .interruptor__pista {
@@ -74,8 +76,10 @@
   gap: var(--e1);
   height: 100%;
   padding: var(--e2) var(--e3) var(--e3);
+  border: 1px solid oklch(0.24 0.012 55 / 0.14);
   border-radius: var(--radio);
   position: relative;
+  box-shadow: var(--sombra-tarjeta);
   transition: background-color var(--transicion);
 }
 
@@ -331,6 +335,7 @@
   padding: var(--e2) var(--e2) calc(var(--e2) + env(safe-area-inset-bottom));
   border-top: 1px solid var(--borde);
   background: var(--panel);
+  box-shadow: 0 -4px 16px oklch(0.24 0.012 55 / 0.1);
 }
 
 .barra-inferior__ir {
@@ -352,8 +357,8 @@
 }
 
 .barra-inferior__ir:hover {
-  background: var(--superficie);
-  color: var(--tinta);
+  background: var(--acento-suave);
+  color: var(--acento);
 }
 
 .barra-inferior__ir.es-actual {
@@ -364,8 +369,18 @@
 /* ── Fila de servicio ────────────────────────────────────────────────────── */
 
 .servicio {
-  padding: var(--e2) 0;
-  border-bottom: 1px solid var(--borde);
+  padding: var(--e2);
+  margin-bottom: var(--e1);
+  border-radius: var(--radio-chico);
+  transition: background-color var(--transicion);
+}
+
+.servicio:hover {
+  background: var(--acento-suave);
+}
+
+.servicio--apagado {
+  background: var(--panel);
 }
 
 .servicio__linea {
@@ -429,14 +444,13 @@
   flex: 0 1 140px;
 }
 
-.servicio__extra {
-  display: flex;
+.servicio__coberturas {
+  padding: 0 var(--e2);
+  font-size: var(--t-mini);
 }
 
-.servicio__coberturas {
-  min-height: 36px;
-  padding: 0;
-  font-size: var(--t-mini);
+.servicio__precios {
+  padding-top: var(--e2);
 }
 
 /* ── Piezas chicas ───────────────────────────────────────────────────────── */
@@ -447,9 +461,9 @@
   align-items: flex-start;
   gap: var(--e2);
   padding: var(--e4);
-  border: 1px dashed var(--borde);
+  border: 1px dashed oklch(0.58 0.13 40 / 0.3);
   border-radius: var(--radio);
-  background: var(--superficie);
+  background: oklch(0.58 0.13 40 / 0.05);
 }
 
 .vacio__titulo {
@@ -478,4 +492,35 @@
 .aviso__cerrar {
   min-height: 36px;
   color: inherit;
+}
+
+/*
+ * Los "+" empiezan cerrados: una pantalla se lee de un vistazo, y un
+ * formulario abierto todo el tiempo era ruido que nadie pidió mirar salvo
+ * cuando va a cargar algo. Se usa en Catálogo y Equipo.
+ */
+.disparador {
+  width: 100%;
+  margin-top: var(--e3);
+  justify-content: flex-start;
+  color: var(--acento);
+  border-style: dashed;
+  border-color: oklch(0.58 0.13 40 / 0.35);
+}
+
+/*
+ * Confirmación en dos toques, en el lugar del botón original: nada de modal
+ * ni window.confirm (DESIGN.md). El primer toque cambia el botón por "¿Seguro?"
+ * + "No"; recién el segundo toque dispara la acción.
+ */
+.confirmar-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e1);
+}
+
+.confirmar-inline .boton {
+  min-height: 36px;
+  padding: 0 var(--e2);
+  font-size: var(--t-mini);
 }

@@ -65,6 +65,31 @@ button {
   outline-offset: 2px;
 }
 
+/* Scroll fino, del mismo tono que ya usa el borde en hover: el de fábrica se
+   ve genérico contra una paleta tan cuidada. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: oklch(0.8 0.012 60) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: oklch(0.8 0.012 60);
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: oklch(0.7 0.014 60);
+}
+
 .hora,
 .plata,
 .tabular {
@@ -81,14 +106,17 @@ button {
   background: var(--superficie);
   color: var(--tinta);
   font-weight: 600;
+  box-shadow: var(--sombra-baja);
   transition:
     background-color var(--transicion),
     border-color var(--transicion),
+    box-shadow var(--transicion),
     transform 120ms var(--curva);
 }
 
 .boton:hover:not(:disabled) {
-  background: var(--panel);
+  background: var(--acento-suave);
+  border-color: oklch(0.58 0.13 40 / 0.3);
 }
 
 .boton:active:not(:disabled) {
@@ -104,21 +132,40 @@ button {
   background: var(--acento);
   border-color: var(--acento);
   color: var(--acento-tinta);
+  font-weight: 800;
+  box-shadow: var(--sombra-baja);
 }
 
 .boton--primario:hover:not(:disabled) {
   background: oklch(0.53 0.13 40);
+  box-shadow: var(--sombra-tarjeta);
+  transform: translateY(-2px);
+}
+
+.boton--primario:active:not(:disabled) {
+  box-shadow: var(--sombra-baja);
 }
 
 .boton--fantasma {
   background: transparent;
   border-color: transparent;
   color: var(--tinta-suave);
+  box-shadow: none;
 }
 
 .boton--fantasma:hover:not(:disabled) {
-  background: var(--panel);
-  color: var(--tinta);
+  background: var(--acento-suave);
+  color: var(--acento);
+}
+
+.boton--peligro {
+  background: oklch(0.55 0.18 25 / 0.12);
+  border-color: oklch(0.55 0.18 25 / 0.35);
+  color: oklch(0.42 0.16 25);
+}
+
+.boton--peligro:hover:not(:disabled) {
+  background: oklch(0.55 0.18 25 / 0.2);
 }
 
 .campo {
@@ -139,12 +186,19 @@ button {
   border: 1px solid var(--borde);
   border-radius: var(--radio);
   background: var(--superficie);
-  transition: border-color var(--transicion);
+  transition:
+    border-color var(--transicion),
+    box-shadow var(--transicion);
   width: 100%;
 }
 
 .entrada:hover {
-  border-color: oklch(0.8 0.012 60);
+  border-color: oklch(0.75 0.04 50);
+}
+
+.entrada:focus {
+  border-color: var(--acento);
+  box-shadow: var(--halo-acento);
 }
 
 .entrada:disabled {

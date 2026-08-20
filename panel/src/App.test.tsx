@@ -142,6 +142,7 @@ describe('guard de rutas', () => {
       'Catálogo',
       'Equipo',
       'Clientes',
+      'Espera',
     ])
   })
 
@@ -165,6 +166,12 @@ describe('guard de rutas', () => {
     entrarComo('operador')
     window.localStorage.setItem('copiloto.cambio-pendiente', '1')
     montar('/')
+    expect(await screen.findByRole('heading', { name: 'Elegí una contraseña tuya' })).toBeInTheDocument()
+  })
+
+  it('el admin también puede entrar a cambiar su contraseña, no lo rebota a Negocios', async () => {
+    entrarComo('admin', '')
+    montar('/cambiar-password')
     expect(await screen.findByRole('heading', { name: 'Elegí una contraseña tuya' })).toBeInTheDocument()
   })
 })

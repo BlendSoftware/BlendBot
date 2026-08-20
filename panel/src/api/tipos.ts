@@ -96,6 +96,19 @@ export interface TokenAgente {
   aviso: string
 }
 
+export type ModoFiscal = 'homologacion' | 'produccion'
+
+export interface ConfigFiscal {
+  negocio_id: string
+  cuit: string
+  razon_social: string | null
+  condicion: string | null
+  punto_venta: number | null
+  modo: ModoFiscal
+  tiene_certificados: boolean
+  actualizado_en: string | null
+}
+
 // ─── Catálogo ────────────────────────────────────────────────────────────────
 
 export interface Categoria {

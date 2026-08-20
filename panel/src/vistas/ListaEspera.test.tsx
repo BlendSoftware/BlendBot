@@ -123,11 +123,14 @@ describe('lista de espera', () => {
     expect(screen.getByRole('button', { name: 'Anotar' })).toBeDisabled()
   })
 
-  it('sacar a alguien lo saca de la pantalla en el momento', async () => {
+  it('sacar pide confirmar antes de borrar, en el lugar', async () => {
     quitarDeListaEspera.mockResolvedValue(undefined)
     render(<ListaEspera />)
 
     await userEvent.click(await screen.findByRole('button', { name: 'Sacar' }))
+    expect(quitarDeListaEspera).not.toHaveBeenCalled()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Sí, sacar' }))
 
     expect(quitarDeListaEspera).toHaveBeenCalledWith('a1')
     await waitFor(() => expect(screen.queryByText('Juana Pérez')).not.toBeInTheDocument())
@@ -138,6 +141,7 @@ describe('lista de espera', () => {
     render(<ListaEspera />)
 
     await userEvent.click(await screen.findByRole('button', { name: 'Sacar' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Sí, sacar' }))
 
     expect(await screen.findByText('No hay conexión con el servidor.')).toBeInTheDocument()
     expect(screen.getByText('Juana Pérez')).toBeInTheDocument()

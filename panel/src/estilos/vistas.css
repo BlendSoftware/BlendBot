@@ -22,13 +22,21 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--e3);
+  padding-bottom: var(--e3);
   margin-bottom: var(--e4);
+  border-bottom: 3px solid var(--acento);
 }
 
 .encabezado__bajada {
   margin-top: var(--e1);
   color: var(--tinta-suave);
   max-width: 62ch;
+}
+
+.encabezado__acciones {
+  display: flex;
+  gap: var(--e2);
+  flex-shrink: 0;
 }
 
 /* ── Login y cambio de contraseña ────────────────────────────────────────── */
@@ -39,6 +47,7 @@
   justify-content: center;
   min-height: 100%;
   padding: var(--e4);
+  background: var(--panel);
 }
 
 .portada__forma {
@@ -46,6 +55,11 @@
   flex-direction: column;
   gap: var(--e3);
   width: min(420px, 100%);
+  padding: var(--e5);
+  border-top: 6px solid var(--acento);
+  border-radius: var(--radio);
+  background: var(--superficie);
+  box-shadow: var(--sombra-flotante);
 }
 
 .portada__marca {
@@ -83,8 +97,9 @@
   min-height: var(--alto-barra);
   margin: calc(var(--e3) * -1) calc(var(--e3) * -1) var(--e3);
   padding: var(--e2) var(--e3);
-  border-bottom: 1px solid var(--borde);
+  border-bottom: 3px solid var(--acento);
   background: var(--fondo);
+  box-shadow: 0 4px 16px oklch(0.24 0.012 55 / 0.1);
 }
 
 @media (min-width: 900px) {
@@ -160,11 +175,18 @@
   padding-bottom: var(--e2);
 }
 
+/*
+ * width: fit-content, no 100%: con poca gente el tablero no tiene por qué
+ * estirarse hasta el borde de una pantalla ancha. Pegado a la izquierda, como
+ * arranca el día en el canal de horas.
+ */
 .agenda__rejilla,
 .agenda__encabezados {
   display: grid;
   gap: var(--e1);
+  width: fit-content;
   min-width: min-content;
+  max-width: 100%;
   align-items: stretch;
 }
 
@@ -172,9 +194,8 @@
   position: sticky;
   top: 0;
   z-index: 12;
-  padding-bottom: var(--e1);
+  padding-bottom: var(--e3);
   background: var(--fondo);
-  box-shadow: 0 1px 0 var(--borde);
 }
 
 .agenda__esquina {
@@ -189,8 +210,9 @@
   align-items: baseline;
   justify-content: space-between;
   gap: var(--e2);
-  padding: var(--e2) var(--e2) var(--e2) 0;
+  padding: var(--e2) var(--e3) var(--e2) 0;
   font-size: var(--t-medio);
+  border-bottom: 3px solid var(--acento);
 }
 
 .agenda__libre-total {
@@ -220,16 +242,34 @@
   min-width: 0;
 }
 
+/*
+ * flex-start, no center: un hueco de varias horas es un solo bloque alto, y el
+ * texto centrado quedaba flotando lejos del borde de arriba, como perdido en
+ * medio de nada. Arriba se lee apenas se entra a la columna.
+ */
 .agenda__hueco {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--e2);
   padding: var(--e2) var(--e3);
+  border: 1px solid oklch(0.75 0.07 130);
   border-radius: var(--radio);
   background: var(--hueco-libre);
   color: var(--sobre-hueco);
   font-weight: 600;
   font-size: var(--t-mini);
+}
+
+.agenda__sin-horario {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--borde);
+  border-radius: var(--radio);
+  background: var(--panel);
+  color: var(--tinta-suave);
+  font-size: var(--t-mini);
+  font-weight: 600;
 }
 
 .agenda__hueco-hora {
@@ -246,6 +286,7 @@
 .agenda__hueco-espera {
   margin-left: auto;
   padding: var(--e1) var(--e2);
+  border: 1px solid transparent;
   border-radius: var(--radio-chico);
   background: var(--superficie);
   color: var(--sobre-hueco);
@@ -253,9 +294,13 @@
   font-weight: 700;
   text-decoration: none;
   white-space: nowrap;
+  transition:
+    border-color var(--transicion),
+    color var(--transicion);
 }
 
 .agenda__hueco-espera:hover {
+  border-color: var(--acento);
   color: var(--acento);
 }
 
@@ -266,6 +311,7 @@
   background: var(--hueco-libre);
   color: var(--sobre-hueco);
   font-weight: 600;
+  box-shadow: var(--sombra-baja);
 }
 
 /* ── Sin recurso ─────────────────────────────────────────────────────────── */
@@ -294,25 +340,51 @@
   display: flex;
   flex-direction: column;
   gap: var(--e2);
+  padding: var(--e2);
+  border-radius: var(--radio);
+  background: var(--panel);
 }
 
-.sin-recurso__asignar select {
-  min-height: var(--tacto);
-}
 
 /* ── Catálogo ────────────────────────────────────────────────────────────── */
 
+/*
+ * Cada categoría es su propia tarjeta: separa de un vistazo dónde empieza y
+ * termina "Hamburguesas" de "Bebidas" en una carta larga. Adentro sigue
+ * siendo una LISTA de filas (DESIGN.md), no una grilla de cards por servicio.
+ */
 .grupo {
-  margin-bottom: var(--e5);
+  margin-bottom: var(--e4);
+  padding: var(--e4);
+  border-radius: var(--radio);
+  background: var(--superficie);
+  box-shadow: var(--sombra-baja);
+}
+
+.grupo__cabeza {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e2);
+  margin-bottom: var(--e3);
 }
 
 .grupo__titulo {
-  margin-bottom: var(--e2);
+  display: inline-block;
+  padding: var(--e1) var(--e2);
   font-size: var(--t-mini);
   font-weight: 800;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
+  color: var(--acento);
+  background: var(--acento-suave);
+  border-radius: var(--radio-chico);
+}
+
+.grupo__cuenta {
   color: var(--tinta-suave);
+  font-size: var(--t-mini);
+  font-weight: 600;
 }
 
 .grupo__lista {
@@ -322,14 +394,12 @@
   border-top: 1px solid var(--borde);
 }
 
-.grupo__alta {
-  padding-top: var(--e3);
-}
-
 .alta-servicio {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: var(--e2);
+  margin-top: var(--e3);
 }
 
 .alta-servicio .entrada:first-child {
@@ -348,8 +418,11 @@
   display: flex;
   align-items: flex-end;
   gap: var(--e2);
-  padding-top: var(--e4);
-  border-top: 1px solid var(--borde);
+  width: 100%;
+  padding: var(--e4);
+  border-radius: var(--radio);
+  background: var(--superficie);
+  box-shadow: var(--sombra-baja);
 }
 
 .catalogo__nueva-categoria .campo {
@@ -362,6 +435,7 @@
   list-style: none;
   border-radius: var(--radio);
   background: var(--panel);
+  box-shadow: inset 0 1px 3px oklch(0.24 0.012 55 / 0.06);
 }
 
 .precios__fila {
@@ -396,13 +470,22 @@
 
 @media (min-width: 900px) {
   .equipo__cuerpo {
-    grid-template-columns: minmax(260px, 340px) 1fr;
+    grid-template-columns: minmax(280px, 360px) 1fr;
     align-items: start;
   }
 }
 
+/* Lista y detalle son dos tarjetas gemelas, mismo lenguaje que el catálogo. */
+.equipo__panel,
+.semana {
+  padding: var(--e4);
+  border-radius: var(--radio);
+  background: var(--superficie);
+  box-shadow: var(--sombra-baja);
+}
+
 .equipo__lista {
-  margin: 0;
+  margin: var(--e3) 0 0;
   padding: 0;
   list-style: none;
 }
@@ -412,8 +495,14 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--e2);
-  padding: var(--e2) 0;
-  border-bottom: 1px solid var(--borde);
+  padding: var(--e2);
+  margin-bottom: var(--e1);
+  border-radius: var(--radio-chico);
+  transition: background-color var(--transicion);
+}
+
+.persona:hover {
+  background: var(--acento-suave);
 }
 
 .persona__nombre {
@@ -428,21 +517,27 @@
   color: inherit;
 }
 
-.persona--elegida .persona__nombre {
-  color: var(--acento);
+.persona--elegida,
+.persona--elegida:hover {
+  background: oklch(0.58 0.13 40 / 0.12);
 }
 
-.equipo__alta {
-  padding-top: var(--e3);
+.persona--elegida .persona__nombre {
+  color: var(--acento);
 }
 
 .equipo__forma {
   display: flex;
   gap: var(--e2);
+  margin-top: var(--e3);
+  padding-top: var(--e3);
+  border-top: 1px solid var(--borde);
 }
 
 .semana__titulo {
+  padding-bottom: var(--e2);
   margin-bottom: var(--e3);
+  border-bottom: 1px solid var(--borde);
 }
 
 .semana__dias {
@@ -456,8 +551,14 @@
   align-items: center;
   flex-wrap: wrap;
   gap: var(--e3);
-  padding: var(--e2) 0;
-  border-bottom: 1px solid var(--borde);
+  padding: var(--e2);
+  margin-bottom: var(--e1);
+  border-radius: var(--radio-chico);
+  transition: background-color var(--transicion);
+}
+
+.dia:hover {
+  background: var(--acento-suave);
 }
 
 .dia__nombre {
@@ -499,6 +600,7 @@
   align-items: center;
   gap: var(--e1);
   padding: var(--e1) var(--e2);
+  border: 1px solid var(--borde);
   border-radius: var(--radio-chico);
   background: var(--panel);
   font-weight: 600;
@@ -518,13 +620,29 @@
   color: var(--vencido);
 }
 
+.dia__disparador {
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 0 var(--e2);
+  font-size: var(--t-mini);
+  color: var(--acento);
+}
+
 .dia__alta {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--e2);
 }
 
 .dia__alta .entrada {
-  width: 120px;
+  width: 150px;
+  padding: 0 var(--e2);
+}
+
+.excepciones {
+  margin-top: var(--e3);
+  padding-top: var(--e3);
+  border-top: 1px solid var(--borde);
 }
 
 .excepciones__lista {
@@ -537,8 +655,14 @@
   display: flex;
   align-items: center;
   gap: var(--e3);
-  padding: var(--e2) 0;
-  border-bottom: 1px solid var(--borde);
+  padding: var(--e2);
+  margin-bottom: var(--e1);
+  border-radius: var(--radio-chico);
+  transition: background-color var(--transicion);
+}
+
+.excepciones__item:hover {
+  background: var(--acento-suave);
 }
 
 .excepciones__motivo {
@@ -569,7 +693,11 @@
   display: flex;
   align-items: flex-end;
   gap: var(--e2);
-  margin-bottom: var(--e3);
+  margin-bottom: var(--e4);
+  padding: var(--e3);
+  border-radius: var(--radio);
+  background: var(--superficie);
+  box-shadow: var(--sombra-baja);
 }
 
 .clientes__campo {
@@ -590,6 +718,15 @@
   }
 }
 
+/* Los de hoy y la ficha son dos tarjetas gemelas, mismo lenguaje que Equipo. */
+.clientes__hoy,
+.ficha {
+  padding: var(--e4);
+  border-radius: var(--radio);
+  background: var(--superficie);
+  box-shadow: var(--sombra-baja);
+}
+
 .clientes__lista {
   margin: var(--e2) 0 0;
   padding: 0;
@@ -603,12 +740,18 @@
   gap: var(--e2);
   width: 100%;
   min-height: var(--tacto);
-  padding: var(--e2) 0;
+  padding: var(--e2);
+  margin-bottom: var(--e1);
   border: 0;
-  border-bottom: 1px solid var(--borde);
+  border-radius: var(--radio-chico);
   background: none;
   text-align: left;
   color: inherit;
+  transition: background-color var(--transicion);
+}
+
+.clientes__item:hover {
+  background: var(--acento-suave);
 }
 
 .clientes__item:hover .clientes__item-nombre {
@@ -628,8 +771,10 @@
 }
 
 .ficha__telefono {
-  color: var(--tinta-suave);
+  padding-bottom: var(--e3);
   margin-bottom: var(--e3);
+  color: var(--tinta-suave);
+  border-bottom: 1px solid var(--borde);
 }
 
 .ficha__forma {
@@ -663,8 +808,14 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--e3);
-  padding: var(--e2) 0;
-  border-bottom: 1px solid var(--borde);
+  padding: var(--e2);
+  margin-bottom: var(--e1);
+  border-radius: var(--radio-chico);
+  transition: background-color var(--transicion);
+}
+
+.historial__item:hover {
+  background: var(--acento-suave);
 }
 
 .historial__estado {
@@ -776,6 +927,7 @@
   border-bottom: 1px solid var(--borde);
 }
 
+
 .cierre__etiqueta {
   font-size: var(--t-mini);
   font-weight: 800;
@@ -809,17 +961,33 @@
 
 .cierre__detalle {
   display: grid;
-  gap: var(--e5);
+  gap: var(--e4);
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
 }
 
+/*
+ * Los cuatro bloques de detalle sí pueden ser tarjetas (no son los números
+ * grandes): agrupan una lista de cifras cada uno, mismo lenguaje que el resto
+ * de la app.
+ */
+.cierre__bloque {
+  padding: var(--e4);
+  border-radius: var(--radio);
+  background: var(--superficie);
+  box-shadow: var(--sombra-baja);
+}
+
 .cierre__titulo {
-  margin-bottom: var(--e2);
+  display: inline-block;
+  margin-bottom: var(--e3);
+  padding: var(--e1) var(--e2);
   font-size: var(--t-mini);
   font-weight: 800;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--tinta-suave);
+  color: var(--acento);
+  background: var(--acento-suave);
+  border-radius: var(--radio-chico);
 }
 
 .cierre__nada,
@@ -887,12 +1055,22 @@
 }
 
 .negocio {
+  margin-bottom: var(--e1);
+  border-radius: var(--radio-chico);
+}
+
+.negocio__fila {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: var(--e3);
-  padding: var(--e3) 0;
-  border-bottom: 1px solid var(--borde);
+  padding: var(--e3);
+  border-radius: var(--radio-chico);
+  transition: background-color var(--transicion);
+}
+
+.negocio__fila:hover {
+  background: var(--acento-suave);
 }
 
 .negocio__datos {
@@ -911,12 +1089,69 @@
   font-size: var(--t-mini);
 }
 
+.negocio__edicion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--e2);
+  width: 100%;
+  padding: var(--e3);
+}
+
+.negocio__edicion .campo {
+  flex: 1 1 200px;
+}
+
+/* Config fiscal: la letra chica de facturar. Nunca se editaba desde acá. */
+/* El disparador de fiscal vive dentro de la edición del negocio, con el mismo
+   margen que el panel que abre, para que quede alineado con el formulario de
+   arriba (que tiene su propio padding). */
+.negocio .disparador {
+  width: auto;
+  margin: 0 var(--e3) var(--e3);
+}
+
+.fiscal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e3);
+  margin: 0 var(--e3) var(--e3);
+  padding: var(--e4);
+  border-radius: var(--radio);
+  background: var(--panel);
+}
+
+.fiscal__campos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e2);
+}
+
+.fiscal__campos .campo {
+  flex: 1 1 180px;
+}
+
+.fiscal__certs-estado {
+  color: var(--tinta-suave);
+  font-size: var(--t-mini);
+  font-weight: 600;
+}
+
+.fiscal__pem {
+  min-height: 0;
+  padding: var(--e2) var(--e3);
+  font-size: var(--t-mini);
+  line-height: 1.4;
+  resize: vertical;
+}
+
 .secreto {
   margin-bottom: var(--e4);
   padding: var(--e4);
   border: 2px solid var(--acento);
   border-radius: var(--radio);
   background: var(--superficie);
+  box-shadow: var(--sombra-tarjeta);
 }
 
 .secreto__titulo {
@@ -949,4 +1184,17 @@
   font-size: var(--t-cuerpo);
   font-weight: 600;
   letter-spacing: 0.02em;
+}
+
+/* En el teléfono cada campo del alta va en su propia fila, y la fila del
+   negocio apila datos y acciones en vez de depender de que el wrap caiga bien. */
+@media (max-width: 560px) {
+  .alta-negocio .campo {
+    flex-basis: 100%;
+  }
+
+  .negocio__fila {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 }

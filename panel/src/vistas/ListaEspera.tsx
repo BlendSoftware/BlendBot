@@ -19,7 +19,7 @@ import {
 } from '../api/endpoints'
 import { ErrorApi } from '../api/cliente'
 import type { AnotadoEnEspera, Servicio } from '../api/tipos'
-import { Aviso, Esqueleto, Vacio } from '../componentes/basicos'
+import { Aviso, BotonConfirmar, Esqueleto, Vacio } from '../componentes/basicos'
 import { fechaCorta, nombreVisible, telefonoVisible } from '../dominio/formato'
 
 /** "hoy" / "hace 3 días": cuánto hace que espera, que es lo que decide a quién llamar. */
@@ -120,13 +120,12 @@ export function ListaEspera() {
                 {a.nota && <span className="espera__nota">{a.nota}</span>}
               </div>
 
-              <button
-                type="button"
+              <BotonConfirmar
+                etiqueta="Sacar"
+                etiquetaConfirmar="Sí, sacar"
                 className="boton boton--fantasma espera__quitar"
-                onClick={() => void quitar(a.id)}
-              >
-                Sacar
-              </button>
+                onConfirmar={() => void quitar(a.id)}
+              />
             </li>
           ))}
         </ul>

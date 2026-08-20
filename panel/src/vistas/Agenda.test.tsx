@@ -121,4 +121,30 @@ describe('la agenda', () => {
     expect(await screen.findByText(/libre ·/)).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /esperando/ })).not.toBeInTheDocument()
   })
+
+  it('con gente en el equipo pero sin horarios para hoy no dibuja la grilla vacía gigante', async () => {
+    traerAgenda.mockResolvedValue(
+      agenda({
+        recursos: [
+          { recurso_id: 'r1', recurso_nombre: 'Lautaro', horarios: [], turnos: [] },
+          { recurso_id: 'r2', recurso_nombre: 'Martín', horarios: [], turnos: [] },
+        ],
+      }),
+    )
+    montar('dueno')
+
+    expect(await screen.findByText('Nadie atiende hoy.')).toBeInTheDocument()
+    expect(screen.getByText('nadie atiende hoy')).toBeInTheDocument()
+    expect(screen.queryByText('Lautaro')).not.toBeInTheDocument()
+    expect(screen.queryByText(/sin huecos/)).not.toBeInTheDocument()
+  })
+
+  it('sin equipo cargado el resumen no dice "sin huecos": no hay nada que confirmar todavía', async () => {
+    traerAgenda.mockResolvedValue(agenda({ recursos: [] }))
+    montar('dueno')
+
+    expect(await screen.findByText('Todavía no hay nadie cargado en el equipo.')).toBeInTheDocument()
+    expect(screen.getByText('sin equipo cargado')).toBeInTheDocument()
+    expect(screen.queryByText(/sin huecos/)).not.toBeInTheDocument()
+  })
 })

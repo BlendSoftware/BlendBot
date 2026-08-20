@@ -18,7 +18,7 @@ import {
 } from '../api/endpoints'
 import type { Categoria, Cobertura, PrecioCobertura, Servicio } from '../api/tipos'
 import { FilaServicio } from '../componentes/FilaServicio'
-import { Aviso, Esqueleto, Vacio } from '../componentes/basicos'
+import { Aviso, Esqueleto, Vacio, useAvisoBien } from '../componentes/basicos'
 
 const SIN_CATEGORIA = 'sin-categoria'
 
@@ -30,6 +30,7 @@ export function Catalogo() {
   const [problema, setProblema] = useState('')
   const [abierta, setAbierta] = useState<string | null>(null)
   const [nuevaCategoria, setNuevaCategoria] = useState('')
+  const [bien, mostrarBien] = useAvisoBien()
 
   const cargar = useCallback(async () => {
     setCargando(true)
@@ -84,6 +85,7 @@ export function Catalogo() {
       const c = await crearCategoria(nombre, categorias.length)
       setCategorias((l) => [...l, c])
       setNuevaCategoria('')
+      mostrarBien(`${c.nombre} agregada.`)
     } catch (e) {
       setProblema(e instanceof Error ? e.message : 'No se pudo crear la categoría.')
     }
@@ -101,6 +103,7 @@ export function Catalogo() {
       </header>
 
       <Aviso texto={problema} alCerrar={() => setProblema('')} />
+      <Aviso texto={bien} tono="bien" />
 
       {cargando && <Esqueleto alto={72} cantidad={5} />}
 
@@ -114,7 +117,12 @@ export function Catalogo() {
       {!cargando &&
         grupos.map((g) => (
           <section key={g.id} className="grupo">
-            <h2 className="grupo__titulo">{g.nombre}</h2>
+            <div className="grupo__cabeza">
+              <h2 className="grupo__titulo">{g.nombre}</h2>
+              <span className="grupo__cuenta">
+                {g.servicios.length === 1 ? '1 servicio' : `${g.servicios.length} servicios`}
+              </span>
+            </div>
 
             <ul className="grupo__lista">
               {g.servicios.map((s) => (
@@ -134,44 +142,79 @@ export function Catalogo() {
                     servicioID={s.id}
                     coberturas={coberturas}
                     alFallar={setProblema}
+                    alExito={mostrarBien}
                   />
                 </FilaServicio>
               ))}
-
-              <li className="grupo__alta">
-                <AltaServicio
-                  categoriaID={g.id === SIN_CATEGORIA ? null : g.id}
-                  alCrear={(s) => setServicios((l) => [...l, s])}
-                  alFallar={setProblema}
-                />
-              </li>
             </ul>
+
+            <AltaServicio
+              categoriaID={g.id === SIN_CATEGORIA ? null : g.id}
+              alCrear={(s) => {
+                setServicios((l) => [...l, s])
+                mostrarBien(`${s.nombre} agregado.`)
+              }}
+              alFallar={setProblema}
+            />
           </section>
         ))}
 
       {!cargando && (
-        <form
-          className="catalogo__nueva-categoria"
-          onSubmit={(e) => {
-            e.preventDefault()
-            void agregarCategoria()
-          }}
-        >
-          <label className="campo">
-            <span>Categoría nueva</span>
-            <input
-              className="entrada"
-              value={nuevaCategoria}
-              onChange={(e) => setNuevaCategoria(e.target.value)}
-              placeholder="Estudios"
-            />
-          </label>
-          <button type="submit" className="boton" disabled={!nuevaCategoria.trim()}>
-            Agregar categoría
-          </button>
-        </form>
+        <NuevaCategoria
+          valor={nuevaCategoria}
+          alCambiar={setNuevaCategoria}
+          alAgregar={agregarCategoria}
+        />
       )}
     </section>
+  )
+}
+
+function NuevaCategoria({
+  valor,
+  alCambiar,
+  alAgregar,
+}: {
+  valor: string
+  alCambiar: (v: string) => void
+  alAgregar: () => void
+}) {
+  const [abierta, setAbierta] = useState(false)
+
+  if (!abierta) {
+    return (
+      <button type="button" className="boton disparador" onClick={() => setAbierta(true)}>
+        + Nueva categoría
+      </button>
+    )
+  }
+
+  return (
+    <form
+      className="catalogo__nueva-categoria"
+      onSubmit={(e) => {
+        e.preventDefault()
+        alAgregar()
+        setAbierta(false)
+      }}
+    >
+      <label className="campo">
+        <span>Categoría nueva</span>
+        <input
+          className="entrada"
+          value={valor}
+          onChange={(e) => alCambiar(e.target.value)}
+          placeholder="Estudios"
+          autoFocus
+        />
+      </label>
+      <button type="submit" className="boton boton--primario" disabled={!valor.trim()}>
+        Agregar categoría
+      </button>
+      <button type="button" className="boton boton--fantasma" onClick={() => setAbierta(false)}>
+        Cancelar
+      </button>
+    </form>
   )
 }
 
@@ -184,6 +227,7 @@ function AltaServicio({
   alCrear: (s: Servicio) => void
   alFallar: (m: string) => void
 }) {
+  const [abierta, setAbierta] = useState(false)
   const [nombre, setNombre] = useState('')
   const [precio, setPrecio] = useState('')
   const [duracion, setDuracion] = useState('')
@@ -211,14 +255,23 @@ function AltaServicio({
     }
   }
 
+  if (!abierta) {
+    return (
+      <button type="button" className="boton boton--fantasma disparador" onClick={() => setAbierta(true)}>
+        + Agregar servicio
+      </button>
+    )
+  }
+
   return (
     <form className="alta-servicio" onSubmit={crear}>
       <input
         className="entrada"
-        placeholder="Agregar algo nuevo"
+        placeholder="Nombre del servicio"
         value={nombre}
         onChange={(e) => setNombre(e.target.value)}
         aria-label="Nombre del servicio nuevo"
+        autoFocus
       />
       <input
         className="entrada tabular alta-servicio__precio"
@@ -236,8 +289,11 @@ function AltaServicio({
         onChange={(e) => setDuracion(e.target.value.replace(/\D/g, ''))}
         aria-label="Duración en minutos"
       />
-      <button type="submit" className="boton" disabled={!nombre.trim() || guardando}>
+      <button type="submit" className="boton boton--primario" disabled={!nombre.trim() || guardando}>
         {guardando ? 'Agregando' : 'Agregar'}
+      </button>
+      <button type="button" className="boton boton--fantasma" onClick={() => setAbierta(false)}>
+        Cancelar
       </button>
     </form>
   )
@@ -247,10 +303,12 @@ function PreciosPorCobertura({
   servicioID,
   coberturas,
   alFallar,
+  alExito,
 }: {
   servicioID: string
   coberturas: Cobertura[]
   alFallar: (m: string) => void
+  alExito: (m: string) => void
 }) {
   const [precios, setPrecios] = useState<PrecioCobertura[] | null>(null)
 
@@ -293,6 +351,7 @@ function PreciosPorCobertura({
                 ...(l ?? []).filter((p) => p.cobertura_id !== c.id),
                 guardado,
               ])
+              alExito(`Precio de ${c.nombre} actualizado.`)
             }}
             alFallar={alFallar}
           />

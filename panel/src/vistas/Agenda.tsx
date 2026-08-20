@@ -19,9 +19,13 @@ import { construirRejilla } from '../dominio/rejilla'
 
 const REFRESCO_MS = 15000
 
-/** Canal de horas + una columna por profesional, igual arriba y abajo. */
+/**
+ * Canal de horas + una columna por profesional, igual arriba y abajo. Ancho
+ * tope fijo, no 1fr: con poca gente en el equipo las columnas no tienen por
+ * qué estirarse a ocupar toda la pantalla ancha.
+ */
 function columnas(cantidad: number): string {
-  return `76px repeat(${cantidad}, minmax(230px, 1fr))`
+  return `76px repeat(${cantidad}, minmax(230px, 360px))`
 }
 
 /** El cobro ya viene en la agenda: la tarjeta no tiene que ir a preguntarlo. */
@@ -140,16 +144,18 @@ export function Agenda() {
         alCambiarFecha={setFecha}
         negocio={negocio?.nombre ?? ''}
         resumen={
-          rejilla
-            ? [
-                pendientes > 0
-                  ? `${pendientes} sin confirmar`
-                  : 'todo confirmado',
-                rejilla.minutosLibres > 0
-                  ? `${duracionCorta(rejilla.minutosLibres)} libres`
-                  : 'sin huecos',
-              ].join(' · ')
-            : ''
+          !rejilla
+            ? ''
+            : agenda && agenda.recursos.length === 0
+              ? 'sin equipo cargado'
+              : !rejilla.hayAlgo
+                ? 'nadie atiende hoy'
+                : [
+                    pendientes > 0 ? `${pendientes} sin confirmar` : 'todo confirmado',
+                    rejilla.minutosLibres > 0
+                      ? `${duracionCorta(rejilla.minutosLibres)} libres`
+                      : 'sin huecos',
+                  ].join(' · ')
         }
       />
 
@@ -165,7 +171,15 @@ export function Agenda() {
         />
       )}
 
-      {agenda && rejilla && agenda.recursos.length > 0 && (
+      {agenda && rejilla && agenda.recursos.length > 0 && !rejilla.hayAlgo && (
+        <Vacio
+          titulo="Nadie atiende hoy."
+          detalle="Ninguno del equipo tiene horario cargado para este día. Si alguien tenía que estar, revisá los horarios en Equipo."
+          accion={{ texto: 'Ir a Equipo', alTocar: () => ir('/equipo') }}
+        />
+      )}
+
+      {agenda && rejilla && agenda.recursos.length > 0 && rejilla.hayAlgo && (
         <div className="agenda__marco">
           <div className="agenda__encabezados" style={{ gridTemplateColumns: columnas(rejilla.columnas.length) }}>
             <div className="agenda__esquina" />
@@ -197,41 +211,51 @@ export function Agenda() {
             ))}
 
             {rejilla.columnas.map((c, i) =>
-              c.bloques.map((b) =>
-                b.clase === 'turno' ? (
-                  <div
-                    key={b.turno.compromiso_id}
-                    className="agenda__celda"
-                    style={{ gridColumn: i + 2, gridRow: `${b.fila + 1} / span ${b.filas}` }}
-                  >
-                    <TarjetaCompromiso
-                      datos={datosDe(b.turno)}
-                      demorasSugeridas={demorasSugeridas}
-                      cobrable
-                      estadoCobro={cobroDe(b.turno)}
-                      mostrarTotal={vePlata}
-                      alTransicionar={(estado, extra) =>
-                        mover(b.turno.compromiso_id, estado, extra)
-                      }
-                    />
-                  </div>
-                ) : (
-                  <div
-                    key={`hueco-${c.recursoID}-${b.fila}`}
-                    className="agenda__hueco"
-                    style={{ gridColumn: i + 2, gridRow: `${b.fila + 1} / span ${b.filas}` }}
-                  >
-                    <span className="agenda__hueco-hora hora">{hhmmDeMinutos(b.desdeMin)}</span>
-                    <span className="agenda__hueco-texto">
-                      libre · {duracionCorta(b.hastaMin - b.desdeMin)}
-                    </span>
-                    {esperando > 0 && (
-                      <Link className="agenda__hueco-espera" to="/lista-espera">
-                        {esperando} esperando
-                      </Link>
-                    )}
-                  </div>
-                ),
+              c.bloques.length === 0 ? (
+                <div
+                  key={`sin-horario-${c.recursoID}`}
+                  className="agenda__sin-horario"
+                  style={{ gridColumn: i + 2, gridRow: `1 / span ${rejilla.filas}` }}
+                >
+                  sin horario hoy
+                </div>
+              ) : (
+                c.bloques.map((b) =>
+                  b.clase === 'turno' ? (
+                    <div
+                      key={b.turno.compromiso_id}
+                      className="agenda__celda"
+                      style={{ gridColumn: i + 2, gridRow: `${b.fila + 1} / span ${b.filas}` }}
+                    >
+                      <TarjetaCompromiso
+                        datos={datosDe(b.turno)}
+                        demorasSugeridas={demorasSugeridas}
+                        cobrable
+                        estadoCobro={cobroDe(b.turno)}
+                        mostrarTotal={vePlata}
+                        alTransicionar={(estado, extra) =>
+                          mover(b.turno.compromiso_id, estado, extra)
+                        }
+                      />
+                    </div>
+                  ) : (
+                    <div
+                      key={`hueco-${c.recursoID}-${b.fila}`}
+                      className="agenda__hueco"
+                      style={{ gridColumn: i + 2, gridRow: `${b.fila + 1} / span ${b.filas}` }}
+                    >
+                      <span className="agenda__hueco-hora hora">{hhmmDeMinutos(b.desdeMin)}</span>
+                      <span className="agenda__hueco-texto">
+                        libre · {duracionCorta(b.hastaMin - b.desdeMin)}
+                      </span>
+                      {esperando > 0 && (
+                        <Link className="agenda__hueco-espera" to="/lista-espera">
+                          {esperando} esperando
+                        </Link>
+                      )}
+                    </div>
+                  ),
+                )
               ),
             )}
           </div>
@@ -283,6 +307,7 @@ export function Agenda() {
 
       {agenda &&
         rejilla &&
+        rejilla.hayAlgo &&
         agenda.recursos.length > 0 &&
         agenda.sin_recurso.length === 0 &&
         agenda.recursos.every((r) => r.turnos.length === 0) && (
