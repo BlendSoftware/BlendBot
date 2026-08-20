@@ -364,3 +364,92 @@ Revisar TODO el repo buscando bugs REALES, con foco en las costuras que ningún 
 4. README.md raíz: estado real (qué está construido, cómo correrlo, make + smoke), sección "Estado" actualizada; ROADMAP.md: tildar lo hecho de Fase 1/2 con fecha 19/08/2026, dejando claro qué queda (Meta app, plantillas, piloto, homologación ARCA real).
 5. `panel/`: `GET /api/lista-espera` ya existe — vista mínima Lista de espera (o sección en Agenda) para VER quién espera + alta manual; el hueco libre de la agenda muestra cuántos esperan ese servicio si aplica (si es barato; si no, sólo la vista).
 - Verificá: go + panel suites completas verdes.
+
+---
+
+## E10 — Fase 5: vertical gastronomía (20/08/2026)
+
+**Regla de oro (ROADMAP.md): el motor NO se toca.** Si hay que modificar la
+máquina de estados, el modelo `compromiso`, o el flujo genérico de crear/
+transicionar, el diseño estaba mal — parar y avisar al orquestador. Todo esto
+es ADITIVO: disponibilidad de cocina/mesa, prompt del agente, vistas del panel.
+Referencias: docs/ROADMAP.md (Fase 5), docs/PANEL.md (vista 1 board de cocina),
+docs/FLUJOS.md (conversación de restaurante), docs/ARQUITECTURA.md, docs/PRODUCTO.md.
+El esquema ya soporta todo: `tipo_recurso` cocina/mesa, `tipo_compromiso` pedido/
+reserva, `tipo_entrega`, `config.confirmacion` por tipo. Convenciones globales del
+inicio del archivo aplican.
+
+### W6-A: backend gastronomía (Go — único agente Go, cablea router/main si hace falta)
+
+Sin tocar `motor_service.go`, `model/compromiso.go`, `model/estado.go`.
+- **Disponibilidad de cocina y mesa** (nuevo, en `disponibilidad_service.go` o un
+  archivo nuevo `disponibilidad_gastro.go`): un `recurso` tipo `profesional`
+  atiende 1 compromiso por franja; un `recurso` tipo **cocina** tiene
+  `capacidad` = unidades/hora y admite varios pedidos en paralelo mientras no
+  se supere la capacidad de la franja; una **mesa** tiene `capacidad` = cubiertos
+  y una reserva la ocupa por su duración. `consultar_disponibilidad` y la agenda
+  deben respetar esto según el tipo de recurso. Elegí la extensión más limpia que
+  NO cambie el camino de `profesional`.
+- **Delivery/entrega**: el flujo de crear ya acepta `entrega` y `direccion`
+  (están en el DTO y el modelo). Sumá validación por `config`: `acepta_delivery`,
+  `radio_delivery_km`. Si el negocio no acepta delivery y llega `entrega=delivery`
+  → 422 con mensaje claro. (No calcules distancia real todavía: dejá el hook y
+  validá contra la config; anotá el TODO de geocoding.)
+- **Confirmación humana con demora**: `config.confirmacion.pedido="humana"` ya
+  existe. Verificá que el flujo pedido → confirmado con `demora_min` funcione y
+  agregá lo que falte para que el panel pueda confirmar un pedido poniendo la
+  demora (presets de `config.demoras_sugeridas` + valor libre). El estado
+  `LISTO` del board sale de la máquina que ya existe (en_curso → listo → completado).
+- **Reporte del board**: un endpoint o el `ListTablero` existente tiene que poder
+  devolver los pedidos del día agrupables por estado (PENDIENTES/EN COCINA=en_curso/
+  LISTOS=listo) para el kanban. Si `ListTablero` ya alcanza, no agregues nada.
+- Tests (tests/integration + e2e): cocina con capacidad 3 acepta 3 pedidos en la
+  misma franja y rechaza el 4º; mesa reservada no se re-reserva; delivery
+  rechazado si el negocio no lo acepta; confirmar pedido con demora; board agrupa
+  bien por estado; TODO tenant-scoped. Los tests de salud existentes NO se rompen.
+- Verificá: go build/vet/test ./... completo verde (incluido todo lo de salud).
+
+### W6-B: agente gastronomía (Python, agente/ — tuyo)
+
+- `agente/skills/gastronomia/SKILL.md` + `VERSION` (1.0.0): el prompt del vertical
+  gastronomía siguiendo docs/FLUJOS.md (conversación de restaurante validada) y las
+  reglas de docs/ARQUITECTURA.md. Diferencias vs salud: toma PEDIDOS (varios ítems),
+  pregunta retira/delivery/en local, pide dirección si es delivery, **NO confirma
+  solo** (la cocina se satura: la confirmación y la demora las pone el local desde
+  el panel — el agente arma el pedido, avisa que el local confirma y da la demora).
+  Nunca inventa demora ni precio. Sabe leer "se acabó" (disponible=false). Tono
+  cálido rioplatense, ágil, de local de comida.
+- Ajustá `server.py` sólo lo necesario para que las 7 tools sirvan a gastronomía:
+  `armar_compromiso` con tipo `pedido` y `entrega`, `confirmar` que deja el pedido
+  en `pendiente` cuando la política es "humana" (ya lo hace por config — verificá).
+  NO dupliques tools; el server elige el SKILL por env `VERTICAL` (ya existe).
+- Tests pytest: flujo de pedido (catálogo → armar con 2 ítems + entrega → confirmar
+  queda pendiente por política humana), delivery pide dirección, "se acabó" no se
+  ofrece. Mockeá el core con respx.
+- Verificá: cd agente && uv run pytest — verde (incluidos los de salud).
+
+### W6-C: panel gastronomía (React, panel/ — tuyo)
+
+PRODUCT.md/DESIGN.md mandan. El panel ya distingue `vertical` (`negocio.vertical`).
+- **Board de pedidos** (docs/PANEL.md vista 1, versión gastronomía): cuando
+  `vertical==="gastronomia"`, la vista principal NO es la grilla de agenda sino un
+  **tablero kanban por estado**: PENDIENTES (con botones OK/✕ y selector de demora
+  al confirmar) → EN COCINA (en_curso, con contador contra la demora que se pone
+  rojo al pasarse) → LISTOS (listo). Cada pedido: número, ítems, total, 🛵/🏃
+  (delivery/retira). Arrastrar o botón. Reusá TarjetaCompromiso donde puedas.
+  Salud sigue viendo la grilla de agenda de siempre — bifurcá por vertical.
+- **Comanda de cocina**: una vista/modo sin precios ni datos del cliente, sólo
+  ítems y modificadores, para una tablet en la cocina (rol cocina existe en
+  PANEL.md; si el rol no está en el panel, dejá la vista accesible al dueño y
+  anotá el TODO del rol).
+- **Catálogo adaptado**: los labels por vertical — "Carta" y las secciones en
+  gastronomía; el interruptor de disponible es el mismo. Modificadores por ítem
+  ("sin cebolla") si es barato; si no, el campo nota alcanza — no te compliques.
+- **Confirmar con demora**: el SelectorDemora (presets de config + libre) ya
+  existe; engancharlo al confirmar de un pedido.
+- **Delivery**: mostrar dirección y tipo de entrega en la tarjeta del pedido.
+- Copy rioplatense de local de comida, sin jerga. Estados vacíos a mano.
+- Tests vitest de lo nuevo (board agrupa por estado, confirmar con demora llama
+  bien, la bifurcación salud/gastro). tsc estricto, build y test verdes.
+- CUIDADO: Lautaro trabaja el panel en paralelo desde otra máquina; hacé cambios
+  acotados y no reformatees archivos enteros, para que el merge no sea un infierno.
