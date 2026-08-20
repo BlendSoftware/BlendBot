@@ -25,3 +25,6 @@ __pycache__/
 # Basura de testeo con navegador
 .playwright-mcp/
 *-login.png
+
+# Override local de puertos, por máquina
+docker-compose.override.yml
