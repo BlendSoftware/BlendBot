@@ -122,6 +122,51 @@ def _politica(negocio: dict[str, Any], tipo: str = "turno") -> str:
     return "humana"
 
 
+# El mismo objeto `compromiso` es turno, pedido o reserva según el vertical: en
+# gastronomía un compromiso con entrega es un `pedido`; una mesa bloqueada sin
+# entrega es una `reserva`. En salud, siempre `turno`. De acá sale también qué
+# política de confirmación aplica (`confirmacion.pedido` vs `confirmacion.turno`).
+def _tipo_compromiso(
+    negocio: dict[str, Any],
+    borrador: Borrador | None = None,
+    bloqueo: Bloqueo | None = None,
+) -> str:
+    if str(negocio.get("vertical") or "").lower() != "gastronomia":
+        return "turno"
+    if bloqueo is not None and not (borrador and borrador.entrega):
+        return "reserva"
+    return "pedido"
+
+
+_ENTREGAS = {
+    "retira": "retira",
+    "retiro": "retira",
+    "takeaway": "retira",
+    "take away": "retira",
+    "paso a buscar": "retira",
+    "lo paso a buscar": "retira",
+    "delivery": "delivery",
+    "envio": "delivery",
+    "envío": "delivery",
+    "a domicilio": "delivery",
+    "en_local": "en_local",
+    "en local": "en_local",
+    "en el local": "en_local",
+    "para comer aca": "en_local",
+    "para comer acá": "en_local",
+    "salon": "en_local",
+    "salón": "en_local",
+}
+
+
+def _normalizar_entrega(entrega: str | None) -> str | None:
+    """Lleva lo que diga el modelo al enum del core (retira/delivery/en_local)."""
+    if not entrega:
+        return None
+    clave = entrega.strip().lower()
+    return _ENTREGAS.get(clave, clave)
+
+
 def _sin_encontrar(que: str, r: Resolucion, campo: str = "nombre") -> dict[str, Any]:
     opciones = [str(c.get(campo, "")) for c in r.candidatos if c.get(campo)]
     if r.ambiguo:
@@ -186,13 +231,20 @@ async def datos_del_negocio() -> dict[str, Any]:
     negocio = await _negocio()
     coberturas = await _coberturas()
     config = negocio.get("config") if isinstance(negocio.get("config"), dict) else {}
+    config = config or {}
     return {
         "ok": True,
         "nombre": negocio.get("nombre"),
         "vertical": negocio.get("vertical"),
         "timezone": negocio.get("timezone"),
         "confirmacion_turno": _politica(negocio, "turno"),
-        "hold_minutos": (config or {}).get("hold_minutos", 10),
+        # Gastronomía: el pedido casi siempre lo confirma el local ("humana"), que
+        # además pone la demora desde el panel. El agente NUNCA inventa esa demora.
+        "confirmacion_pedido": _politica(negocio, "pedido"),
+        "confirmacion_reserva": _politica(negocio, "reserva"),
+        "acepta_delivery": bool(config.get("acepta_delivery", False)),
+        "radio_delivery_km": config.get("radio_delivery_km"),
+        "hold_minutos": config.get("hold_minutos", 10),
         "coberturas": [c.get("nombre") for c in coberturas if c.get("nombre")],
         "config": config,
     }
@@ -309,25 +361,35 @@ async def consultar_disponibilidad(
 async def armar_compromiso(
     lineas: list[LineaPedida],
     entrega: str | None = None,
+    direccion: str | None = None,
 ) -> dict[str, Any]:
-    """Arma el borrador de lo que el paciente pidió y devuelve el resumen con el total.
+    """Arma el borrador de lo que el cliente pidió y devuelve el resumen con el total.
 
     NO reserva NADA y NO escribe en el sistema: es una cuenta hecha con los precios del
-    catálogo para que se la leas al paciente. Para que exista de verdad tiene que pasar
-    por `bloquear` (el horario) y `confirmar` (el OK del paciente).
+    catálogo para que se la leas al cliente. Para que exista de verdad tiene que pasar
+    por `confirmar` (el OK del cliente), y en salud también por `bloquear` (el horario).
 
-    Llamala apenas tengas claro qué práctica quiere. Si después cambia de idea, volvé a
-    llamarla: reemplaza el borrador anterior.
+    - `lineas`: los ítems que pidió. En gastronomía suelen ser varios (una hamburguesa,
+      unas papas, una gaseosa); en salud casi siempre uno.
+    - `entrega`: sólo gastronomía. `retira` (lo pasa a buscar), `delivery` (se lo llevan)
+      o `en_local` (come en el salón). Si el cliente ya lo dijo, ponelo y NO se lo
+      vuelvas a preguntar.
+    - `direccion`: sólo si `entrega=delivery`. La dirección donde llevar el pedido.
+
+    Llamala apenas tengas claro qué pidió, aunque falten datos: en gastronomía el pedido
+    entra al panel apenas hay ítems, así la cocina lo ve venir. Si después agrega o cambia
+    algo, volvé a llamarla: reemplaza el borrador anterior.
     """
     servicios = await _catalogo()
     if not servicios:
         return {
             "ok": False,
             "codigo": "sin_catalogo",
-            "error": "El negocio no tiene prácticas disponibles. No armes nada.",
+            "error": "El negocio no tiene nada disponible. No armes nada.",
         }
 
-    borrador = Borrador(entrega=entrega)
+    entrega = _normalizar_entrega(entrega)
+    borrador = Borrador(entrega=entrega, direccion=direccion)
     for pedida in lineas:
         r = resolver(pedida.servicio, servicios)
         if not r.ok:
@@ -345,13 +407,22 @@ async def armar_compromiso(
         )
 
     sesion().borrador = borrador
-    return {
+    falta_direccion = borrador.entrega == "delivery" and not borrador.direccion
+    salida = {
         "ok": True,
         **borrador.como_dict(),
         "persistido": False,
-        "aviso": "Esto TODAVÍA NO está agendado ni reservado. Leele el resumen al paciente, "
-        "elegí el horario con `bloquear` y recién con su OK explícito llamá a `confirmar`.",
+        "falta_direccion": falta_direccion,
+        "aviso": "Esto TODAVÍA NO está confirmado. Leele el resumen con el total, y en "
+        "salud elegí el horario con `bloquear`. Recién con el OK explícito llamá a "
+        "`confirmar`.",
     }
+    if falta_direccion:
+        salida["aviso"] = (
+            "Es delivery: pedile la dirección (calle y número) antes de confirmar y volvé "
+            "a llamar a `armar_compromiso` con `direccion`. Mostrale igual el total ahora."
+        )
+    return salida
 
 
 @mcp.tool()
@@ -416,21 +487,23 @@ async def confirmar(
     cobertura: str | None = None,
     confirmado: bool = False,
 ) -> dict[str, Any]:
-    """Cierra el turno: crea/actualiza la ficha del paciente y escribe el compromiso.
+    """Cierra el compromiso: crea/actualiza la ficha del cliente y lo escribe en el panel.
 
-    ESCRITURA, y el turno se lo ve el consultorio en el panel. Llamala primero SIN
-    `confirmado`: te devuelve el resumen exacto (práctica, profesional, día, hora, total)
-    para que se lo leas al paciente. Recién cuando él dice que sí, repetí con
-    `confirmado=true`. Nunca confirmes sin ese OK explícito.
+    ESCRITURA, y el negocio lo ve en el panel. Llamala primero SIN `confirmado`: te
+    devuelve el resumen exacto (ítems o práctica, entrega, día/hora si tiene, total) para
+    que se lo leas al cliente. Recién cuando él dice que sí, repetí con `confirmado=true`.
+    Nunca confirmes sin ese OK explícito.
 
-    - `nombre`: nombre y apellido, como lo escribió el paciente.
-    - `cobertura`: obra social o prepaga, si la dijo. La resuelvo contra las que atiende
-      el negocio; si no está en la lista, te lo aviso para que preguntes.
+    - `nombre`: nombre (y apellido en salud), como lo escribió el cliente.
+    - `cobertura`: sólo salud. Obra social o prepaga, si la dijo. La resuelvo contra las
+      que atiende el negocio; si no está, te lo aviso para que preguntes.
     - `compromiso_borrador`: el `borrador_id` de `armar_compromiso`. Vacío = el actual.
 
-    Si la política del negocio es `"automatica"`, queda confirmado y se lo decís así. Si
-    es `"humana"`, queda PENDIENTE: avisale que el consultorio le confirma y no le
-    prometas el turno como cerrado.
+    La política sale de la config del negocio, por tipo. Si es `"automatica"` (típico de
+    turnos: la agenda ya sabe si el hueco está libre), queda confirmado y se lo decís así.
+    Si es `"humana"` (típico de pedidos: la cocina se satura), queda PENDIENTE: avisale
+    que el local le confirma —y en gastronomía le pone la demora— y NO se lo des por
+    cerrado ni inventes vos la demora.
     """
     s = sesion()
     borrador = s.borrador
@@ -457,7 +530,8 @@ async def confirmar(
         }
 
     negocio = await _negocio()
-    politica = _politica(negocio, "turno")
+    tipo = _tipo_compromiso(negocio, borrador, s.bloqueo)
+    politica = _politica(negocio, tipo)
 
     cobertura_id = None
     cobertura_nombre = None
@@ -484,6 +558,7 @@ async def confirmar(
 
     resumen = {
         "borrador_id": borrador.id,
+        "tipo": tipo,
         "paciente": nombre or (s.cliente or {}).get("nombre"),
         "telefono": _telefono(),
         "cobertura": cobertura_nombre,
@@ -511,11 +586,19 @@ async def confirmar(
         return {
             "ok": False,
             "codigo": "falta_nombre",
-            "error": "Falta el nombre del paciente para la ficha. Pediselo y volvé a llamar "
+            "error": "Falta el nombre del cliente para la ficha. Pediselo y volvé a llamar "
             "con `nombre`.",
         }
 
-    # 1) ficha del paciente: obtener o crear. El teléfono sale del entorno, no del modelo.
+    if borrador.entrega == "delivery" and not borrador.direccion:
+        return {
+            "ok": False,
+            "codigo": "falta_direccion",
+            "error": "Es un pedido con delivery y no hay dirección. Pedísela al cliente "
+            "(calle y número), volvé a armar el pedido con `direccion` y recién ahí confirmá.",
+        }
+
+    # 1) ficha del cliente: obtener o crear. El teléfono sale del entorno, no del modelo.
     telefono = _telefono()
     cliente = await core().cliente_por_telefono(telefono)
     if cliente is None:
@@ -529,7 +612,7 @@ async def confirmar(
     # 2) el compromiso. `sesion` va para que el hold propio no cuente como solape.
     cuerpo: dict[str, Any] = {
         "cliente_id": str(cliente.get("id")),
-        "tipo": "turno",
+        "tipo": tipo,
         "origen": "whatsapp",
         "sesion": telefono,
         "lineas": [
@@ -547,6 +630,8 @@ async def confirmar(
         )
     if borrador.entrega:
         cuerpo["entrega"] = borrador.entrega
+    if borrador.direccion:
+        cuerpo["direccion"] = borrador.direccion
 
     compromiso = await core().crear_compromiso(cuerpo)
     compromiso_id = str(compromiso.get("id"))
@@ -562,7 +647,19 @@ async def confirmar(
     total = a_decimal(compromiso.get("total") or borrador.total)
     s.limpiar_compromiso()
 
-    if estado == "confirmado":
+    if tipo == "pedido":
+        if estado == "confirmado":
+            mensaje = (
+                "Pedido CONFIRMADO. Confirmale que ya está en cocina. Si el local cargó una "
+                "demora (`demora_min`), decísela; si no, avisale que en un ratito le llega."
+            )
+        else:
+            mensaje = (
+                "Pedido PENDIENTE: en gastronomía lo confirma el local, que además pone la "
+                "demora desde el panel. Decile que ya le pasaste el pedido y que en un minuto "
+                "le confirman la demora. NUNCA inventes vos la demora ni lo des por confirmado."
+            )
+    elif estado == "confirmado":
         mensaje = (
             "Turno CONFIRMADO. Decíselo con día, hora y profesional, contale qué llevar "
             "(carnet y DNI si tiene cobertura) y que si no puede venir avise por acá."
@@ -578,9 +675,13 @@ async def confirmar(
         "ok": True,
         "ejecutado": True,
         "compromiso_id": compromiso_id,
+        "tipo": tipo,
         "estado": estado,
+        "cliente": resumen["paciente"],
         "paciente": resumen["paciente"],
         "cobertura": cobertura_nombre,
+        "entrega": borrador.entrega,
+        "direccion": borrador.direccion,
         "total": str(total),
         "total_texto": plata(total),
         "cuando": cuando or None,

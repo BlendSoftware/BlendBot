@@ -1,6 +1,7 @@
 package infra
 
 import (
+	"encoding/base64"
 	"errors"
 	"strings"
 	"testing"
@@ -47,14 +48,19 @@ func TestDescifrarDetectaAlteracion(t *testing.T) {
 	c, _ := NewCifrador(claveOK)
 	cifrado, _ := c.Cifrar("clave privada")
 
-	// Se cambia un carácter del base64: GCM autentica, así que tiene que fallar.
-	alterado := []byte(cifrado)
-	if alterado[len(alterado)-2] == 'A' {
-		alterado[len(alterado)-2] = 'B'
-	} else {
-		alterado[len(alterado)-2] = 'A'
+	// Se altera un byte REAL del ciphertext, no un carácter del base64: cerca
+	// del padding los bits bajos de base64 no siempre son significativos, y
+	// tocarlos ahí podía dejar los bytes decodificados idénticos (test flaky).
+	// Decodificar, voltear un byte del medio y re-codificar garantiza que GCM
+	// vea una alteración real y falle siempre.
+	crudo, err := base64.StdEncoding.DecodeString(cifrado)
+	if err != nil {
+		t.Fatalf("decodificar: %v", err)
 	}
-	if _, err := c.Descifrar(string(alterado)); err == nil {
+	crudo[len(crudo)/2] ^= 0xFF
+	alterado := base64.StdEncoding.EncodeToString(crudo)
+
+	if _, err := c.Descifrar(alterado); err == nil {
 		t.Fatal("un ciphertext alterado se descifró sin error")
 	}
 }

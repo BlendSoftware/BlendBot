@@ -136,6 +136,8 @@ func responderErrorMotor(c *gin.Context, err error) {
 		c.JSON(http.StatusConflict, apierror.New(err.Error()))
 	case errors.Is(err, service.ErrNoDisponible):
 		c.JSON(http.StatusUnprocessableEntity, apierror.New(err.Error()))
+	case errors.Is(err, service.ErrDeliveryNoAceptado):
+		c.JSON(http.StatusUnprocessableEntity, apierror.New(err.Error()))
 	case errors.Is(err, service.ErrYaCobrado), errors.Is(err, service.ErrNoCobrable):
 		c.JSON(http.StatusConflict, apierror.New(err.Error()))
 	case errors.Is(err, service.ErrMedioPagoInvalido),

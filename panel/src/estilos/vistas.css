@@ -1198,3 +1198,201 @@
     flex-direction: column;
   }
 }
+
+/* ── Tablero de cocina (gastronomía) ─────────────────────────────────────── */
+
+/*
+ * La barra mínima del tablero: mismo lenguaje que la barra del día (sticky,
+ * franja de acento arriba), pero sin navegar fechas porque el tablero es
+ * siempre "ahora".
+ */
+.tablero__barra {
+  position: sticky;
+  top: 0;
+  z-index: 25;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--e3);
+  min-height: var(--alto-barra);
+  margin: calc(var(--e3) * -1) calc(var(--e3) * -1) var(--e3);
+  padding: var(--e2) var(--e3);
+  border-bottom: 3px solid var(--acento);
+  background: var(--fondo);
+  box-shadow: 0 4px 16px oklch(0.24 0.012 55 / 0.1);
+}
+
+@media (min-width: 900px) {
+  .tablero__barra {
+    margin: calc(var(--e4) * -1) calc(var(--e5) * -1) var(--e4);
+    padding: var(--e3) var(--e5);
+  }
+}
+
+.tablero__negocio {
+  font-size: var(--t-grande);
+  line-height: 1.1;
+}
+
+.tablero__resumen {
+  font-size: var(--t-mini);
+  font-weight: 600;
+  color: var(--tinta-suave);
+}
+
+.tablero__acciones {
+  display: flex;
+  align-items: center;
+  gap: var(--e2);
+}
+
+/*
+ * Tres columnas iguales. En pantalla angosta se hacen scroll horizontal con
+ * ancho mínimo por columna: el tablero nunca colapsa a una sola fila ilegible.
+ */
+.tablero__columnas {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(280px, 1fr));
+  gap: var(--e3);
+  align-items: start;
+  overflow-x: auto;
+}
+
+.columna {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e3);
+  min-width: 0;
+}
+
+.columna__cabeza {
+  position: sticky;
+  top: var(--alto-barra);
+  z-index: 10;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--e2);
+  padding: var(--e2) var(--e2) var(--e1);
+  background: var(--fondo);
+}
+
+.columna__titulo {
+  font-size: var(--t-medio);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.columna__cuenta {
+  min-width: 2ch;
+  padding: 0 var(--e2);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--tinta-suave);
+  font-size: var(--t-mini);
+  font-weight: 800;
+  text-align: center;
+}
+
+/* La columna de pendientes reclama atención: su cuenta va en color de estado. */
+.columna--pendientes .columna__cuenta {
+  background: var(--pendiente);
+  color: var(--sobre-pendiente);
+}
+
+.columna__lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e3);
+}
+
+.columna__vacia {
+  padding: var(--e3);
+  border: 1px dashed var(--borde);
+  border-radius: var(--radio);
+  color: var(--tinta-suave);
+  font-size: var(--t-mini);
+}
+
+/* ── Tarjeta del pedido ──────────────────────────────────────────────────── */
+
+/* Reusa .turno (fondo por estado, sombra, acciones); acá van sus piezas propias. */
+.pedido__cabeza {
+  align-items: center;
+}
+
+.pedido__numero {
+  font-size: var(--t-grande);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.pedido__entrega {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e1);
+  font-size: var(--t-mini);
+  font-weight: 700;
+}
+
+.pedido__entrega-texto {
+  opacity: 0.9;
+}
+
+.pedido__items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e1);
+  margin: var(--e1) 0;
+}
+
+.pedido__item {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--e1) var(--e2);
+  font-size: var(--t-medio);
+  line-height: 1.2;
+}
+
+.pedido__cant {
+  font-weight: 800;
+}
+
+.pedido__nombre {
+  font-weight: 600;
+}
+
+/* El modificador ("sin cebolla") es lo que la cocina no puede saltearse. */
+.pedido__mod {
+  padding: 0 var(--e1);
+  border-radius: var(--radio-chico);
+  background: oklch(0.99 0.004 60 / 0.55);
+  font-size: var(--t-mini);
+  font-weight: 700;
+}
+
+.pedido__dir {
+  font-size: var(--t-mini);
+  font-weight: 600;
+  opacity: 0.95;
+}
+
+/* ── Comanda: tickets grandes para la tablet de la cocina ────────────────── */
+
+.comanda__grilla {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--e3);
+  align-items: start;
+}
+
+/* Sin plata en la comanda, los ítems mandan: un punto más grandes. */
+.comanda__grilla .pedido__item {
+  font-size: var(--t-grande);
+}
+
+.comanda__grilla .pedido__numero {
+  font-size: var(--t-titulo);
+}

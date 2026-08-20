@@ -9,7 +9,7 @@
  */
 
 import { NavLink } from 'react-router-dom'
-import { rolVePlata } from '../contexto'
+import { rolVePlata, useSesion } from '../contexto'
 import type { Rol } from '../api/tipos'
 
 interface Props {
@@ -90,9 +90,11 @@ function IconoAdmin() {
 }
 
 export function BarraInferior({ rol }: Props) {
+  const { negocio } = useSesion()
+  const gastro = negocio?.vertical === 'gastronomia'
   const delNegocio = [
-    { a: '/', texto: 'Agenda', icono: <IconoAgenda /> },
-    { a: '/catalogo', texto: 'Catálogo', icono: <IconoCatalogo /> },
+    { a: '/', texto: gastro ? 'Pedidos' : 'Agenda', icono: <IconoAgenda /> },
+    { a: '/catalogo', texto: gastro ? 'Carta' : 'Catálogo', icono: <IconoCatalogo /> },
     { a: '/equipo', texto: 'Equipo', icono: <IconoEquipo /> },
     { a: '/clientes', texto: 'Clientes', icono: <IconoClientes /> },
     { a: '/lista-espera', texto: 'Espera', icono: <IconoEspera /> },

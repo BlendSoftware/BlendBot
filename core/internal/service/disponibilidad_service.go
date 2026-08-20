@@ -159,7 +159,10 @@ func (s *disponibilidadService) Consultar(ctx context.Context, negocioID string,
 				}
 				for t := ini; !t.Add(duracion).After(fin); t = t.Add(duracion) {
 					corte := t.Add(duracion)
-					if pisaAlguno(ocupados[rec.ID], t, corte) {
+					// Bifurca por tipo de recurso: profesional/mesa son 1 por
+					// franja; cocina admite varios en paralelo hasta su capacidad.
+					disponible, cupo := cupoDeSlot(rec, ocupados[rec.ID], t, corte)
+					if !disponible {
 						continue
 					}
 					huecos = append(huecos, dto.Hueco{
@@ -167,6 +170,7 @@ func (s *disponibilidadService) Consultar(ctx context.Context, negocioID string,
 						RecursoNombre: rec.Nombre,
 						Inicio:        t.Format(time.RFC3339),
 						Fin:           corte.Format(time.RFC3339),
+						Cupo:          cupo,
 					})
 				}
 			}

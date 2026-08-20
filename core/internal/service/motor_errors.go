@@ -25,6 +25,11 @@ var (
 	// ErrNoEncontrado: no existe para este negocio. Nunca distinguir "no
 	// existe" de "es de otro tenant": desde afuera es lo mismo.
 	ErrNoEncontrado = errors.New("no encontrado")
+
+	// ErrDeliveryNoAceptado: llegó un pedido con entrega=delivery a un negocio
+	// que no ofrece delivery (config.acepta_delivery). Es un dato del pedido que
+	// el negocio no puede cumplir, no un bug: el handler lo mapea a 422.
+	ErrDeliveryNoAceptado = errors.New("el negocio no ofrece delivery")
 )
 
 // Errores del cobro y la facturación (E8). El mapeo a HTTP vive en

@@ -5,7 +5,8 @@ import { ProveedorSesion, rolVePlata, useSesion } from './contexto'
 import { cambioPendiente } from './api/sesion'
 import { Login } from './vistas/Login'
 import { CambiarPassword } from './vistas/CambiarPassword'
-import { Agenda } from './vistas/Agenda'
+import { Tablero } from './vistas/Tablero'
+import { Comanda } from './vistas/Comanda'
 import { Catalogo } from './vistas/Catalogo'
 import { Equipo } from './vistas/Equipo'
 import { Clientes } from './vistas/Clientes'
@@ -81,7 +82,15 @@ export function Rutas() {
           index
           element={
             <Protegida>
-              <Agenda />
+              <Tablero />
+            </Protegida>
+          }
+        />
+        <Route
+          path="/comanda"
+          element={
+            <Protegida>
+              <Comanda />
             </Protegida>
           }
         />

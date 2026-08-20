@@ -65,6 +65,7 @@ class Borrador:
     id: str = field(default_factory=lambda: f"bor_{uuid.uuid4().hex[:8]}")
     lineas: list[LineaBorrador] = field(default_factory=list)
     entrega: str | None = None
+    direccion: str | None = None
 
     @property
     def total(self) -> Decimal:
@@ -83,6 +84,7 @@ class Borrador:
             "total_texto": plata(self.total),
             "duracion_min": self.duracion_min,
             "entrega": self.entrega,
+            "direccion": self.direccion,
         }
 
 

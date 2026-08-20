@@ -162,7 +162,7 @@ func armarRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) *gin.Engine
 		CatalogoSvc:  service.NewCatalogoService(categoriaRepo, recursoRepo, servicioRepo, coberturaRepo),
 		ClienteSvc:   service.NewClienteService(clienteRepo, coberturaRepo),
 		AuditSvc:     service.NewAuditService(auditRepo),
-		MotorSvc:     service.NewMotorService(compromisoRepo, holdRepo, service.ConNotificador(huecoLiberado)),
+		MotorSvc:     service.NewMotorGastro(service.NewMotorService(compromisoRepo, holdRepo, service.ConNotificador(huecoLiberado)), negDatosRepo),
 		HoldSvc:      service.NewHoldService(holdRepo, compromisoRepo),
 		DispoSvc:     service.NewDisponibilidadService(dispoRepo),
 		TokenSvc:     service.NewNegocioTokenService(negDatosRepo),

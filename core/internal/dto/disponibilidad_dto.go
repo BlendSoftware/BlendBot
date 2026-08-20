@@ -25,6 +25,10 @@ type Hueco struct {
 	RecursoNombre string `json:"recurso_nombre"`
 	Inicio        string `json:"inicio"`
 	Fin           string `json:"fin"`
+	// Cupo es el cupo restante de la franja para un recurso con capacidad en
+	// paralelo (cocina: unidades/hora). Para profesional y mesa —que atienden 1
+	// por franja— va nil y se omite: la salida de esos verticales no cambia.
+	Cupo *int `json:"cupo,omitempty"`
 }
 
 // HuecosResponse es la respuesta de POST /api/disponibilidad/consultar.
