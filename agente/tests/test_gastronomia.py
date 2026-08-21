@@ -166,6 +166,27 @@ async def test_pedido_confirmado_queda_pendiente_por_politica_humana(respx_mock,
 
 
 @respx.mock(base_url=BASE, assert_all_called=False)
+async def test_nota_de_pedido_viaja_al_core(respx_mock, core):
+    # Una aclaración de todo el pedido ("tocar timbre 3B") va al campo nota del
+    # compromiso, distinta de las notas por línea.
+    _base(respx_mock)
+    creacion = _con_escritura(respx_mock)
+
+    await server.armar_compromiso(
+        [LineaPedida(servicio="doble cheddar")],
+        entrega="delivery",
+        direccion="Aristóbulo del Valle 1567",
+        nota="tocar timbre 3B",
+    )
+    r = await server.confirmar(nombre="Juani", confirmado=True)
+    assert r["ok"] and r["ejecutado"]
+
+    cuerpo = json.loads(creacion.calls[0].request.read())
+    assert cuerpo["nota"] == "tocar timbre 3B"
+    assert cuerpo["direccion"] == "Aristóbulo del Valle 1567"
+
+
+@respx.mock(base_url=BASE, assert_all_called=False)
 async def test_delivery_sin_direccion_no_confirma_y_la_pide(respx_mock, core):
     _base(respx_mock)
     escritura = _con_escritura(respx_mock)

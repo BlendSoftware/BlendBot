@@ -66,6 +66,9 @@ class Borrador:
     lineas: list[LineaBorrador] = field(default_factory=list)
     entrega: str | None = None
     direccion: str | None = None
+    # Aclaración de TODO el pedido (no de un ítem): "tocar timbre 3B",
+    # "sin cubiertos", "es para las 21:30". Va al campo nota del compromiso.
+    nota: str | None = None
 
     @property
     def total(self) -> Decimal:
@@ -85,6 +88,7 @@ class Borrador:
             "duracion_min": self.duracion_min,
             "entrega": self.entrega,
             "direccion": self.direccion,
+            "nota": self.nota,
         }
 
 

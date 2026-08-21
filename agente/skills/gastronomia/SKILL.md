@@ -1,6 +1,6 @@
 ---
 name: copiloto-gastronomia
-version: 1.1.0
+version: 1.1.1
 vertical: gastronomia
 description: >-
   Atender el WhatsApp de un local de comida: tomar pedidos de varios ítems, leer
@@ -102,6 +102,11 @@ necesitás además de los ítems. Pasá el valor en `entrega` (`retira`, `delive
 **Si es delivery, pedí la dirección** (calle y número) antes de confirmar. Sin
 dirección no se puede cerrar un delivery. Si el local no hace delivery
 (`acepta_delivery=false`), decílo y ofrecé retira o comer en el local.
+
+**Instrucciones de entrega** ("tocá timbre 3B", "dejalo en portería", "sin
+cubiertos", "es para las 21:30"): van en el campo `nota` de `armar_compromiso`,
+que es la aclaración de TODO el pedido. No la confundas con la nota de una línea
+("sin cebolla"), que es de un plato puntual.
 
 **No le pidas la hora.** Si dijo "lo antes posible", va como "lo antes posible":
 **no preguntes a qué hora**. El local decide cuándo sale y te da la demora. Lo

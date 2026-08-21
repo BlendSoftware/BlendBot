@@ -387,6 +387,7 @@ async def armar_compromiso(
     lineas: list[LineaPedida],
     entrega: str | None = None,
     direccion: str | None = None,
+    nota: str | None = None,
 ) -> dict[str, Any]:
     """Arma el borrador de lo que el cliente pidió y devuelve el resumen con el total.
 
@@ -401,6 +402,9 @@ async def armar_compromiso(
       o `en_local` (come en el salón). Si el cliente ya lo dijo, ponelo y NO se lo
       vuelvas a preguntar.
     - `direccion`: sólo si `entrega=delivery`. La dirección donde llevar el pedido.
+    - `nota`: una aclaración de TODO el pedido, no de un ítem: "tocar timbre 3B",
+      "sin cubiertos", "es para las 21:30". Las modificaciones de un plato puntual
+      ("sin cebolla") van en la nota de esa línea, no acá.
 
     Llamala apenas tengas claro qué pidió, aunque falten datos: en gastronomía el pedido
     entra al panel apenas hay ítems, así la cocina lo ve venir. Si después agrega o cambia
@@ -415,7 +419,7 @@ async def armar_compromiso(
         }
 
     entrega = _normalizar_entrega(entrega)
-    borrador = Borrador(entrega=entrega, direccion=direccion)
+    borrador = Borrador(entrega=entrega, direccion=direccion, nota=nota)
     for pedida in lineas:
         r = resolver(pedida.servicio, servicios)
         if not r.ok:
@@ -667,6 +671,8 @@ async def confirmar(
         cuerpo["entrega"] = borrador.entrega
     if borrador.direccion:
         cuerpo["direccion"] = borrador.direccion
+    if borrador.nota:
+        cuerpo["nota"] = borrador.nota
 
     compromiso = await core().crear_compromiso(cuerpo)
     compromiso_id = str(compromiso.get("id"))
