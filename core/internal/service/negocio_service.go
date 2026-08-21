@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"math/big"
+	"time"
 
 	"copiloto/core/internal/dto"
 	"copiloto/core/internal/middleware"
@@ -70,6 +71,13 @@ func (s *negocioService) Alta(ctx context.Context, req dto.AltaNegocioRequest) (
 	if negocio.Timezone == "" {
 		negocio.Timezone = "America/Argentina/Mendoza"
 	}
+	// La TZ se usa en cada query de agenda/disponibilidad/cierre vía
+	// time.LoadLocation. Un valor inválido ("Mendoza" en vez de
+	// "America/Argentina/Mendoza") rompería ese tenant para siempre; se rechaza
+	// acá con 422 en lugar de dejarlo entrar a la columna.
+	if _, err := time.LoadLocation(negocio.Timezone); err != nil {
+		return nil, ErrTimezoneInvalida
+	}
 	if len(req.Config) > 0 {
 		negocio.Config = datatypes.JSON(req.Config)
 	}
@@ -130,6 +138,9 @@ func (s *negocioService) Update(ctx context.Context, id string, req dto.Actualiz
 		n.Nombre = *req.Nombre
 	}
 	if req.Timezone != nil {
+		if _, err := time.LoadLocation(*req.Timezone); err != nil {
+			return nil, ErrTimezoneInvalida
+		}
 		n.Timezone = *req.Timezone
 	}
 	if req.WaPhoneID != nil {

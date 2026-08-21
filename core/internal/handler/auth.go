@@ -25,6 +25,8 @@ func errorDeServicio(c *gin.Context, err error) {
 		c.JSON(http.StatusUnauthorized, apierror.New(err.Error()))
 	case errors.Is(err, service.ErrClienteDuplicado), errors.Is(err, service.ErrUsuarioDuplicado):
 		c.JSON(http.StatusConflict, apierror.New(err.Error()))
+	case errors.Is(err, service.ErrTimezoneInvalida):
+		c.JSON(http.StatusUnprocessableEntity, apierror.New(err.Error()))
 	default:
 		log.Error().Err(err).Str("ruta", c.FullPath()).Msg("error no mapeado")
 		c.JSON(http.StatusInternalServerError, apierror.New("Error interno"))

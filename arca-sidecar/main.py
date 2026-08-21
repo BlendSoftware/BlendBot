@@ -44,19 +44,32 @@ logger = logging.getLogger("arca-sidecar")
 
 INTERNAL_API_TOKEN: str = os.getenv("INTERNAL_API_TOKEN", "")
 
-if os.getenv("ARCA_MODO_DEFAULT", "homologacion").lower() == "produccion" and not INTERNAL_API_TOKEN:
-    raise RuntimeError(
-        "FATAL: INTERNAL_API_TOKEN es obligatorio en producción. "
-        'Generá uno con: python -c "import secrets; print(secrets.token_hex(32))"'
+# El token se exige SIEMPRE, no sólo en "producción". El modo real de cada
+# factura (homologacion/produccion) viaja en el request, no en ARCA_MODO_DEFAULT:
+# atar la auth a esa env dejaba que un deploy con token vacío y negocios en
+# modo=produccion emitiera comprobantes REALES sin ninguna credencial. No se
+# aborta el proceso (romper el import deja /health caído), pero sin token
+# configurado /facturar responde 503 y no se emite nada.
+if not INTERNAL_API_TOKEN:
+    logger.error(
+        "INTERNAL_API_TOKEN no está configurado: /facturar responderá 503 hasta "
+        'que se defina. Generá uno con: python -c "import secrets; print(secrets.token_hex(32))"'
     )
 
 
 async def verificar_token_interno(
     x_internal_token: str = Header(None, alias="X-Internal-Token"),
 ) -> None:
-    """401 si el token no coincide. Si no hay token configurado (dev), pasa."""
+    """
+    503 si el sidecar no tiene token configurado (falla de config, no un modo
+    "dev" permisivo: el token es lo único que impide que un puerto expuesto emita
+    comprobantes reales). 401 si el token no coincide.
+    """
     if not INTERNAL_API_TOKEN:
-        return
+        raise HTTPException(
+            status_code=503,
+            detail="Sidecar mal configurado: falta INTERNAL_API_TOKEN",
+        )
     if x_internal_token != INTERNAL_API_TOKEN:
         raise HTTPException(status_code=401, detail="Token interno inválido")
 

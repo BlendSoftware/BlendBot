@@ -48,6 +48,7 @@ from schemas import (
     FACTURA_C,
     FacturarRequest,
     FacturarResponse,
+    enmascarar_doc,
     validar_cuit,
 )
 
@@ -339,7 +340,7 @@ class AFIPClient:
                 )
             if req.doc_tipo in (DOC_CUIT, DOC_CUIL) and not validar_cuit(req.doc_nro):
                 return FacturarResponse.falla(
-                    f"El CUIT/CUIL del receptor ({req.doc_nro}) es inválido (ARCA 10015)."
+                    f"El CUIT/CUIL del receptor ({enmascarar_doc(req.doc_nro)}) es inválido (ARCA 10015)."
                 )
 
             wsfe = self._get_wsfev1()

@@ -46,6 +46,18 @@ def validar_cuit(cuit: str) -> bool:
     return verificador == int(cuit[10])
 
 
+def enmascarar_doc(doc_nro: str) -> str:
+    """
+    Enmascara el documento del receptor para los logs (Ley 25.326): deja sólo
+    los últimos 3 dígitos, el resto con '•'. '0' (consumidor final) y valores
+    muy cortos no llevan dato personal, se dejan tal cual.
+    """
+    s = str(doc_nro or "").strip()
+    if len(s) <= 3:
+        return s
+    return "•" * (len(s) - 3) + s[-3:]
+
+
 def _a_fecha(v: Any) -> Any:
     """Acepta date, 'YYYY-MM-DD' y 'YYYYMMDD'. Deja pasar lo demás a Pydantic."""
     if isinstance(v, str):
@@ -226,7 +238,7 @@ class FacturarRequest(BaseModel):
         return (
             f"cuit={self.cuit_emisor} pv={self.punto_venta} modo={self.modo} "
             f"tipo_cbte={self.tipo_cbte} concepto={self.concepto} "
-            f"doc={self.doc_tipo}/{self.doc_nro} total={self.importe_total} "
+            f"doc={self.doc_tipo}/{enmascarar_doc(self.doc_nro)} total={self.importe_total} "
             f"fecha={self.fecha.isoformat()}"
         )
 
