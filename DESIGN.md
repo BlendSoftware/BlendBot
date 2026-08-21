@@ -1,5 +1,13 @@
 # DESIGN.md — Copiloto Comercios (panel)
 
+> **Vertical activo: gastronomía** (ver D21 en `docs/DECISIONES.md`). La
+> escena de abajo, que fijó el tema claro del sistema, viene del piloto de
+> consultorio (vertical hoy discontinuado); se conserva porque la decisión de
+> color que originó (alto contraste para luz de mostrador) sigue siendo válida
+> para las horas de preparación/día del local gastronómico. El "modo nocturno"
+> que menciona el párrafo original sigue pendiente y gana prioridad ahora que
+> gastronomía es el único vertical.
+
 ## Escena que fija el tema
 
 Una secretaria de 45 años mira la agenda en una tablet apoyada en el mostrador

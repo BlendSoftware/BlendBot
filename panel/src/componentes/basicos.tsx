@@ -12,6 +12,12 @@ interface VacioProps {
 export function Vacio({ titulo, detalle, accion }: VacioProps) {
   return (
     <div className="vacio">
+      <span className="vacio__icono" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M7.5 12h9M12 7.5v9" strokeDasharray="1 4.2" />
+        </svg>
+      </span>
       <p className="vacio__titulo">{titulo}</p>
       {detalle && <p className="vacio__detalle">{detalle}</p>}
       {accion && (

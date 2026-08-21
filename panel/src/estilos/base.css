@@ -14,7 +14,15 @@ body,
 
 body {
   margin: 0;
-  background: var(--fondo);
+  /* Fondo con un poquito de profundidad: dos manchas suaves del mismo tono
+     cálido de --fondo/--panel, fijas a la ventana (no al scroll) para que la
+     app no se sienta una plancha de color liso. Ninguna tinta nueva: son los
+     mismos oklch de siempre, sólo con más aire entre ellos. */
+  background:
+    radial-gradient(1100px 620px at 8% -8%, oklch(0.955 0.008 60 / 0.9), transparent 60%),
+    radial-gradient(900px 700px at 100% 0%, oklch(0.58 0.13 40 / 0.05), transparent 55%),
+    var(--fondo);
+  background-attachment: fixed;
   color: var(--tinta);
   font-family: Manrope, ui-sans-serif, system-ui, sans-serif;
   font-size: var(--t-cuerpo);
@@ -34,18 +42,21 @@ figure {
 h1 {
   font-size: var(--t-titulo);
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
+  line-height: 1.08;
 }
 
 h2 {
   font-size: var(--t-grande);
   font-weight: 800;
   letter-spacing: -0.015em;
+  line-height: 1.15;
 }
 
 h3 {
   font-size: var(--t-medio);
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: -0.005em;
 }
 
 button,
@@ -63,6 +74,7 @@ button {
 :focus-visible {
   outline: 3px solid var(--acento);
   outline-offset: 2px;
+  border-radius: var(--radio-chico);
 }
 
 /* Scroll fino, del mismo tono que ya usa el borde en hover: el de fábrica se
@@ -105,7 +117,7 @@ button {
   border-radius: var(--radio);
   background: var(--superficie);
   color: var(--tinta);
-  font-weight: 600;
+  font-weight: 700;
   box-shadow: var(--sombra-baja);
   transition:
     background-color var(--transicion),
@@ -117,15 +129,21 @@ button {
 .boton:hover:not(:disabled) {
   background: var(--acento-suave);
   border-color: oklch(0.58 0.13 40 / 0.3);
+  box-shadow: var(--sombra-tarjeta);
+  transform: translateY(-1px);
 }
 
 .boton:active:not(:disabled) {
   transform: translateY(1px);
+  box-shadow: var(--sombra-baja);
+  transition-duration: 60ms;
 }
 
 .boton:disabled {
   opacity: 0.5;
   cursor: default;
+  box-shadow: none;
+  transform: none;
 }
 
 .boton--primario {
@@ -144,6 +162,7 @@ button {
 
 .boton--primario:active:not(:disabled) {
   box-shadow: var(--sombra-baja);
+  transform: translateY(0);
 }
 
 .boton--fantasma {
@@ -156,16 +175,21 @@ button {
 .boton--fantasma:hover:not(:disabled) {
   background: var(--acento-suave);
   color: var(--acento);
+  box-shadow: none;
+  transform: none;
 }
 
 .boton--peligro {
   background: oklch(0.55 0.18 25 / 0.12);
   border-color: oklch(0.55 0.18 25 / 0.35);
   color: oklch(0.42 0.16 25);
+  box-shadow: none;
 }
 
 .boton--peligro:hover:not(:disabled) {
   background: oklch(0.55 0.18 25 / 0.2);
+  box-shadow: 0 4px 14px oklch(0.55 0.18 25 / 0.22);
+  transform: translateY(-1px);
 }
 
 .campo {
@@ -186,6 +210,7 @@ button {
   border: 1px solid var(--borde);
   border-radius: var(--radio);
   background: var(--superficie);
+  box-shadow: inset 0 1px 2px oklch(0.24 0.012 55 / 0.05);
   transition:
     border-color var(--transicion),
     box-shadow var(--transicion);
@@ -204,19 +229,26 @@ button {
 .entrada:disabled {
   background: var(--panel);
   color: var(--tinta-suave);
+  box-shadow: none;
 }
 
 .aviso {
   padding: var(--e2) var(--e3);
-  border-radius: var(--radio);
-  background: oklch(0.55 0.18 25 / 0.12);
+  border: 1px solid oklch(0.55 0.18 25 / 0.2);
+  border-left: 4px solid oklch(0.55 0.18 25 / 0.6);
+  border-radius: var(--radio-chico);
+  background: oklch(0.55 0.18 25 / 0.1);
   color: oklch(0.42 0.16 25);
   font-weight: 600;
   font-size: var(--t-mini);
+  box-shadow: var(--sombra-baja);
+  animation: aparecer 180ms var(--curva);
 }
 
 .aviso--bien {
-  background: oklch(0.62 0.1 155 / 0.16);
+  border-color: oklch(0.62 0.1 155 / 0.28);
+  border-left-color: oklch(0.62 0.1 155 / 0.7);
+  background: oklch(0.62 0.1 155 / 0.14);
   color: oklch(0.38 0.09 155);
 }
 
@@ -238,6 +270,30 @@ button {
   }
   to {
     background-position: -200% 0;
+  }
+}
+
+/* Entrada compartida para avisos, popovers y todo lo que aparece sobre el
+   contenido: un toque de movimiento, nunca un salto seco. */
+@keyframes aparecer {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes aparecer-arriba {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 

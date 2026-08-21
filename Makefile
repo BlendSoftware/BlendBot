@@ -12,11 +12,11 @@
 
 # ── Sistema completo (docker compose) ─────────────────────────────────────────
 
-## Buildea las cuatro imágenes (core, arca-sidecar, gateway, panel)
+## Buildea las cuatro imágenes (core, arca-sidecar, gateway, panel+landing)
 build:
 	docker compose build
 
-## Levanta todo: db, redis, core, sidecar, gateway y panel
+## Levanta todo: db, redis, core, sidecar, gateway y panel (con la landing adentro)
 up:
 	docker compose up -d --build
 
@@ -57,3 +57,14 @@ core-build:
 
 core-test:
 	cd core && go test ./...
+
+# ── Landing Page (Editorial & Experimental) ──────────────────────────────────
+
+## Levanta el servidor de desarrollo de la landing page (Vite)
+landing-dev:
+	cd landing && npm run dev
+
+## Compila la landing page para producción (HTML/CSS/JS optimizado en landing/dist)
+landing-build:
+	cd landing && npm run build
+

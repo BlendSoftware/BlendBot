@@ -6,7 +6,12 @@
 compromiso armado en un panel. Cuando se cobra, emite la factura.**
 
 Un motor de compromisos con un asistente conversacional adelante y un panel de
-control atrás, para dos verticales: **gastronomía** y **consultorios**.
+control atrás, para **gastronomía**: restaurantes, hamburgueserías, pizzerías,
+cafés y bares.
+
+> El motor se diseñó genérico (soporta más de un tipo de vertical a nivel de
+> datos), pero el producto que se vende y se opera hoy es exclusivamente
+> gastronomía. Ver D21 en [`docs/DECISIONES.md`](docs/DECISIONES.md).
 
 ---
 
@@ -14,8 +19,9 @@ control atrás, para dos verticales: **gastronomía** y **consultorios**.
 
 No es un chatbot más. Hay decenas.
 
-Lo que ninguno hace es **cerrar el círculo**: tomar el pedido o el turno,
-gestionarlo con estados reales, cobrarlo y **emitir el comprobante de ARCA**.
+Lo que ninguno hace es **cerrar el círculo**: tomar el pedido o la reserva de
+mesa, gestionarlo con estados reales, cobrarlo y **emitir el comprobante de
+ARCA**.
 Eso convierte al producto de "asistente" en "el sistema de gestión del negocio",
 y es lo que hace que no te den de baja a los tres meses.
 
@@ -30,15 +36,14 @@ Ver [`docs/ARCA.md`](docs/ARCA.md).
 
 ## La idea en una tabla
 
-Un pedido, una reserva de mesa y un turno médico son **el mismo objeto**:
+Un pedido y una reserva de mesa son **el mismo objeto**:
 
 | | Recurso que ocupa | Duración |
 |---|---|---|
 | **Pedido** | capacidad de cocina | una franja |
 | **Reserva** | una mesa | un rato |
-| **Turno** | un profesional | un rato |
 
-Un solo motor, tres enchufes. Ver [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md).
+Un solo motor. Ver [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md).
 
 ---
 
@@ -79,8 +84,8 @@ Qué existe, y anda con tests:
 
 | Pieza | Qué hace | Dónde |
 |---|---|---|
-| **Core** (Go + Postgres) | Motor de compromisos: catálogo con interruptor, precios por cobertura, disponibilidad real, holds con expiración, máquina de estados, agenda del día, clientes, multi-tenant por token | `core/` |
-| **Agente** (Python, MCP) | Las tools del vertical salud sobre la API del core. El agente jamás toca la base | `agente/` |
+| **Core** (Go + Postgres) | Motor de compromisos: catálogo con interruptor, precios, disponibilidad real, holds con expiración, máquina de estados, agenda del día, clientes, multi-tenant por token | `core/` |
+| **Agente** (Python, MCP) | Las tools del vertical gastronomía sobre la API del core. El agente jamás toca la base | `agente/` |
 | **Gateway** (Node) | WhatsApp Cloud API: webhook con firma, sesión por número, outbox con reintentos | `gateway/` |
 | **Panel** (React + Vite) | Agenda operativa, catálogo, equipo y horarios, clientes, lista de espera, cierre del día | `panel/` |
 | **Anti ausentismo** | Recordatorio 24hs antes, liberación del hueco al cancelar y oferta automática al primero de la lista de espera | `core/internal/worker/` |
@@ -94,13 +99,13 @@ producto por la API real). Para desarrollar con el core en la máquina:
 ### Lo que NO está
 
 Nada de esto es código: es trámite, plata o un cliente. Y es lo que separa
-"corre en mi máquina" de "un consultorio lo usa":
+"corre en mi máquina" de "un local lo usa":
 
 - **La app en Meta**: no está dada de alta. No hay número de WhatsApp productivo.
 - **Las plantillas aprobadas**: las 5 plantillas del recordatorio y las
   confirmaciones no se mandaron a aprobar. Tardan.
-- **El piloto con nombre y apellido**: sigue sin haber un consultorio esperando
-  esto. **Es el único bloqueante real.**
+- **El piloto con nombre y apellido**: sigue sin haber un local de gastronomía
+  esperando esto. **Es el único bloqueante real.**
 - **Los certificados de ARCA reales**: el circuito fiscal está entero, pero
   corre contra homologación con certificados de prueba. Ningún CUIT real cargado.
 - **El deploy productivo**: dominio, TLS, backups y monitoreo. Hoy esto vive en
@@ -109,7 +114,7 @@ Nada de esto es código: es trámite, plata o un cliente. Y es lo que separa
 Dos proyectos anteriores (BlendPOS V2, BlendPadel) murieron archivados a los
 tres meses. No por el diseño. Porque no había nadie esperándolos.
 
-- [ ] Conseguir el primer consultorio piloto (nombre y apellido)
+- [ ] Conseguir el primer local piloto de gastronomía (nombre y apellido)
 - [ ] Alta de la app en Meta y primer número de prueba
 - [ ] Mandar las plantillas a aprobar
 - [ ] Certificados de ARCA del piloto (homologación primero, producción después)

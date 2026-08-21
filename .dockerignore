@@ -1,5 +1,5 @@
-# Contexto de build de la raíz (lo usa gateway/Dockerfile, que necesita
-# gateway/ y agente/ juntos).
+# Contexto de build de la raíz. Lo usan gateway/Dockerfile (gateway/ +
+# agente/) y panel/Dockerfile (panel/ + landing/).
 .git
 .claude
 **/node_modules
@@ -19,7 +19,6 @@ gateway/data
 
 # Artefactos y cosas que no hacen falta para correr
 core/
-panel/
 docs/
 scripts/
 arca-sidecar/

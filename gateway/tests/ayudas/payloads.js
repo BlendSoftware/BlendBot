@@ -159,9 +159,9 @@ export function loteDeDos() {
 
 export const TENANTS = {
   [PHONE_ID]: {
-    negocio: 'Consultorio de prueba',
+    negocio: 'Rotisería de prueba',
     agente_token: 'cop_token_de_prueba',
-    vertical: 'salud',
+    vertical: 'gastronomia',
     wa_numero: `+${NUMERO_NEGOCIO}`,
   },
 };

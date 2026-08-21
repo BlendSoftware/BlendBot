@@ -1,4 +1,13 @@
-# EPICS — plan de construcción del MVP consultorios (Fase 1 + 2 del roadmap)
+# EPICS — plan de construcción del MVP (Fase 1 + 2 del roadmap)
+
+> **Pivote (21/08/2026):** el producto quedó enfocado exclusivamente en
+> **gastronomía**; el vertical salud/consultorios se discontinúa como oferta
+> comercial (ver D21 en `docs/DECISIONES.md`). Las epics E1–E9 documentan cómo
+> se construyó el motor genérico —probado primero contra el piloto de
+> consultorio, que ya no es el plan de negocio— y **E10 (gastronomía) es la
+> única línea de producto activa**. El core Go sigue siendo genérico (soporta
+> el vertical `salud` a nivel de datos) por decisión arquitectónica; esto no
+> cambia ese código ni sus tests.
 
 Documento de coordinación entre agentes. Cada epic define alcance, dueños de
 archivos y contratos. **Un agente sólo toca los archivos de su workstream.**

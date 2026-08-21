@@ -1,9 +1,9 @@
-"""Traducir lo que escribe un paciente a la entidad real del catálogo.
+"""Traducir lo que escribe un cliente a la entidad real del catálogo.
 
-El modelo nunca manda IDs: manda "limpiesa", "arreglo de caries" o "la dra
-gomez". Acá se resuelve contra lo que el core devolvió. Si hay empate real se
+El modelo nunca manda IDs: manda "hamburguesa doble", "papas grandes" o "el
+mozo juan". Acá se resuelve contra lo que el core devolvió. Si hay empate real se
 devuelven los candidatos para que el agente PREGUNTE en vez de adivinar: elegir
-mal una práctica es peor que repreguntar.
+mal un producto es peor que repreguntar.
 """
 
 from __future__ import annotations

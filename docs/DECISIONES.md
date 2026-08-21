@@ -252,12 +252,55 @@ onboarding autoservicio recién va en la fase 3 del roadmap.
 
 ---
 
+## D21 · Se discontinúa el vertical salud; el producto queda enfocado exclusivamente en gastronomía
+
+**Fecha: 21/08/2026.**
+
+**Decisión.** A partir de hoy el producto se vende, se pilotea y se opera
+**solo para gastronomía** (restaurantes, hamburgueserías, pizzerías, cafés,
+bares). El vertical salud/consultorios (D2) deja de ofrecerse comercialmente.
+
+**Por qué.** Foco. El plan de negocio original (D2: salud primero, gastronomía
+después de que el primero cobre) suponía correr los dos verticales en
+secuencia; se optó por concentrar todo el esfuerzo comercial y de producto en
+uno solo, que ya tiene el motor de gastronomía construido (Fase 5 /
+`docs/ROADMAP.md`, epic E10 en `EPICS.md`).
+
+**Qué NO cambia.** El motor genérico en `core/` (modelos, servicios,
+repositorios, handlers, migraciones y sus tests) no se toca: `Vertical` sigue
+teniendo los dos valores (`salud` y `gastronomia`) en el código Go, las
+migraciones SQL quedan igual, y los tests existentes del vertical salud
+(máquina de estados, anti-ausentismo, agenda de profesionales, etc.) se
+mantienen intactos y verdes. Es una decisión de negocio y de narrativa de
+producto, no de arquitectura: si el día de mañana aparece un cliente de salud,
+el motor ya lo soporta.
+
+**Qué SÍ cambia.** La documentación de producto (`docs/PRODUCTO.md`,
+`docs/ROADMAP.md`, `EPICS.md`, `README.md`, `PRODUCT.md`) deja de describir
+salud/consultorios como oferta activa. Las decisiones D2, D10, D19 y las
+menciones a "secretaria"/"paciente"/"consultorio" en otros documentos quedan
+como **registro histórico** de por qué el motor se diseñó como se diseñó; no
+se borran.
+
+**Cómo apareció.** Session de reposicionamiento del 21/08/2026: sin un piloto
+de salud confirmado y con el vertical gastronomía ya construido y validado en
+el flujo de conversación (`docs/FLUJOS.md`, Flujo A), concentrar el esfuerzo
+comercial en un solo vertical reduce el alcance y acelera llegar al primer
+peso facturado (la regla de oro de `docs/ROADMAP.md`).
+
+**Cuándo revisarla.** Si aparece un piloto de salud con nombre y apellido
+dispuesto a pagar, se puede reabrir sin reescribir el core: es la razón de ser
+de D1.
+
+---
+
 ## Suposiciones que hay que confirmar
 
 | Suposición | Cómo se confirma | Riesgo si es falsa |
 |---|---|---|
 | ~~Meta empieza a cobrar la ventana de servicio el 1/10/2026~~ **CONFIRMADA (18/08/2026)** en la [doc oficial de Meta](https://developers.facebook.com/documentation/business-messaging/whatsapp/pricing/non-template-messages). Tarifas antes del 1/9/2026. | — | Ya absorbido: el precio se fija con ese costo adentro |
-| Las prestaciones de salud exentas de IVA igual emiten comprobante | Contador | Alto: bloquea la fase 2 |
+| ~~Las prestaciones de salud exentas de IVA igual emiten comprobante~~ **SIN OBJETO (21/08/2026)**: vertical salud discontinuado, ver D21 | — | — |
 | El sidecar se adapta a Factura C sin reescribir | Probar en homologación | Medio: más trabajo del previsto |
-| Un consultorio paga entre $60.000 y $90.000 por mes | Preguntárselo al piloto | Alto: define el modelo |
-| La secretaria adopta en vez de sabotear | Primera reunión con ella presente | Alto: define la retención |
+| ~~Un consultorio paga entre $60.000 y $90.000 por mes~~ **SIN OBJETO (21/08/2026)**: vertical salud discontinuado, ver D21 | — | — |
+| ~~La secretaria adopta en vez de sabotear~~ **SIN OBJETO (21/08/2026)**: vertical salud discontinuado, ver D21 | — | — |
+| Un local de gastronomía paga en el orden de $60.000 a $90.000 por mes | Preguntárselo al piloto | Alto: define el modelo |

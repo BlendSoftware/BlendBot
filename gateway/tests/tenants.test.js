@@ -7,9 +7,9 @@ import { RAIZ_GATEWAY } from '../src/config.js';
 
 const BASE = {
   '106540352242922': {
-    negocio: 'Consultorio de prueba',
+    negocio: 'Rotisería de prueba',
     agente_token: 'cop_abc123',
-    vertical: 'salud',
+    vertical: 'gastronomia',
     wa_numero: '+5492611234567',
   },
 };
@@ -18,7 +18,7 @@ describe('tenants.json', () => {
   it('resuelve el negocio por phone_number_id', () => {
     const t = tenantsDeObjeto(BASE);
     expect(t.porPhoneId('106540352242922')).toMatchObject({
-      negocio: 'Consultorio de prueba', agente_token: 'cop_abc123', vertical: 'salud',
+      negocio: 'Rotisería de prueba', agente_token: 'cop_abc123', vertical: 'gastronomia',
     });
   });
 
@@ -36,12 +36,12 @@ describe('tenants.json', () => {
   });
 
   it('falla si falta un campo obligatorio', () => {
-    expect(() => tenantsDeObjeto({ '1': { negocio: 'x', vertical: 'salud' } }))
+    expect(() => tenantsDeObjeto({ '1': { negocio: 'x', vertical: 'gastronomia' } }))
       .toThrow(/agente_token/);
   });
 
   it('rechaza un JWT del panel donde va el token de agente', () => {
-    expect(() => tenantsDeObjeto({ '1': { negocio: 'x', vertical: 'salud', agente_token: 'eyJhbGciOi' } }))
+    expect(() => tenantsDeObjeto({ '1': { negocio: 'x', vertical: 'gastronomia', agente_token: 'eyJhbGciOi' } }))
       .toThrow(/cop_/);
   });
 
@@ -52,7 +52,7 @@ describe('tenants.json', () => {
   it('el tenants.example.json del repo es válido', () => {
     const t = cargarTenants(path.join(RAIZ_GATEWAY, 'tenants.example.json'));
     expect(t.cantidad).toBe(2);
-    expect(t.todos().map((x) => x.vertical)).toEqual(['salud', 'gastronomia']);
+    expect(t.todos().map((x) => x.vertical)).toEqual(['gastronomia', 'gastronomia']);
   });
 });
 

@@ -72,7 +72,7 @@ def traducir(status: int, detalle: str, contexto: str) -> ErrorDelCore:
     if status in (401, 403):
         return ErrorDelCore(
             "El token del negocio no es válido o no tiene permiso. Esto es un problema de "
-            "configuración del consultorio, no del paciente: pedí disculpas, no reintentes "
+            "configuración del negocio, no del cliente: pedí disculpas, no reintentes "
             "y decile que en un rato lo contactan.",
             codigo="auth",
             status=status,
@@ -88,8 +88,8 @@ def traducir(status: int, detalle: str, contexto: str) -> ErrorDelCore:
                 detalle=detalle,
             )
         return ErrorDelCore(
-            "Eso no existe en el sistema del consultorio. No lo des por hecho: verificá con "
-            "las tools antes de afirmarle nada al paciente.",
+            "Eso no existe en el sistema del negocio. No lo des por hecho: verificá con "
+            "las tools antes de afirmarle nada al cliente.",
             codigo="no_encontrado",
             status=status,
             detalle=detalle,
@@ -99,14 +99,14 @@ def traducir(status: int, detalle: str, contexto: str) -> ErrorDelCore:
         if contexto == "estado":
             return ErrorDelCore(
                 "El core rechazó ese cambio de estado porque no es una transición válida "
-                "desde el estado actual. No insistas: contale al paciente qué sí se puede "
-                "hacer o derivalo al consultorio.",
+                "desde el estado actual. No insistas: contale al cliente qué sí se puede "
+                "hacer o derivalo al negocio.",
                 codigo="transicion_invalida",
                 status=status,
                 detalle=detalle,
             )
         return ErrorDelCore(
-            "Ese hueco se acaba de ocupar. Pedile disculpas al paciente, volvé a consultar "
+            "Ese hueco se acaba de ocupar. Pedile disculpas al cliente, volvé a consultar "
             "disponibilidad y ofrecele otro horario. No lo des por reservado.",
             codigo="ocupado",
             status=status,
@@ -118,14 +118,14 @@ def traducir(status: int, detalle: str, contexto: str) -> ErrorDelCore:
             return ErrorDelCore(
                 "Esa práctica no tiene la duración cargada en el sistema, así que no puedo "
                 "calcular horarios. NO inventes una duración ni un horario: decile que para "
-                "esa práctica lo van a contactar del consultorio para agendar.",
+                "esa práctica lo van a contactar del negocio para agendar.",
                 codigo="sin_duracion",
                 status=status,
                 detalle=detalle,
             )
         return ErrorDelCore(
             "Esa práctica no está disponible ahora. No la ofrezcas: proponé otra del "
-            "catálogo o avisá que por esa tienen que llamar al consultorio.",
+            "catálogo o avisá que por esa tienen que llamar al negocio.",
             codigo="no_disponible",
             status=status,
             detalle=detalle,
@@ -133,8 +133,8 @@ def traducir(status: int, detalle: str, contexto: str) -> ErrorDelCore:
 
     if status >= 500:
         return ErrorDelCore(
-            "El sistema del consultorio no está respondiendo. No inventes datos ni des nada "
-            "por agendado: decile al paciente que hubo un problema y que en un rato lo "
+            "El sistema del negocio no está respondiendo. No inventes datos ni des nada "
+            "por agendado: decile al cliente que hubo un problema y que en un rato lo "
             "contactan.",
             codigo="core_caido",
             status=status,
@@ -143,7 +143,7 @@ def traducir(status: int, detalle: str, contexto: str) -> ErrorDelCore:
 
     return ErrorDelCore(
         f"El core rechazó el pedido ({contexto}): {detalle or 'sin detalle'}. Revisá los "
-        "datos antes de reintentar; si no los tenés, preguntale al paciente.",
+        "datos antes de reintentar; si no los tenés, preguntale al cliente.",
         codigo="pedido_invalido",
         status=status,
         detalle=detalle,
@@ -198,16 +198,16 @@ class CoreClient:
             resp = await self._http.request(metodo, path, json=json, params=params)
         except httpx.TimeoutException as e:
             raise ErrorDelCore(
-                "El sistema del consultorio tardó demasiado en responder. NO des la "
-                "operación por hecha: decile al paciente que hubo demora y reintentá una "
+                "El sistema del negocio tardó demasiado en responder. NO des la "
+                "operación por hecha: decile al cliente que hubo demora y reintentá una "
                 "sola vez si tiene sentido.",
                 codigo="timeout",
                 detalle=str(e),
             ) from e
         except httpx.HTTPError as e:
             raise ErrorDelCore(
-                "No pude comunicarme con el sistema del consultorio. No inventes datos: "
-                "avisale al paciente que en un rato lo contactan.",
+                "No pude comunicarme con el sistema del negocio. No inventes datos: "
+                "avisale al cliente que en un rato lo contactan.",
                 codigo="sin_conexion",
                 detalle=str(e),
             ) from e
@@ -270,7 +270,7 @@ class CoreClient:
     # ── clientes ──────────────────────────────────────────────────────────────
 
     async def cliente_por_telefono(self, telefono: str) -> dict[str, Any] | None:
-        """None si todavía no tiene ficha — no es un error, es un paciente nuevo."""
+        """None si todavía no tiene ficha — no es un error, es un cliente nuevo."""
         try:
             return await self._pedir(
                 "GET", f"/api/clientes/por-telefono/{telefono}", contexto="cliente"

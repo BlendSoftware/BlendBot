@@ -14,7 +14,7 @@ from server import LineaPedida
 
 HUECO = HUECOS["huecos"][0]
 
-CLIENTE = {"id": "cli-1", "telefono": TELEFONO, "nombre": "Juani Sarmiento", "cobertura_id": "cob-osep"}
+CLIENTE = {"id": "cli-1", "telefono": TELEFONO, "nombre": "Juani Sarmiento", "cobertura_id": "cob-oro"}
 
 COMPROMISO = {
     "id": "com-1",
@@ -50,9 +50,9 @@ def _base(respx_mock, *, politica="automatica"):
 
 
 async def _hasta_el_hold():
-    await server.consultar_disponibilidad("arreglo")
-    await server.armar_compromiso([LineaPedida(servicio="arreglo")])
-    return await server.bloquear("Dra. Gómez", HUECO["inicio"], HUECO["fin"])
+    await server.consultar_disponibilidad("coloracion")
+    await server.armar_compromiso([LineaPedida(servicio="coloracion")])
+    return await server.bloquear("Coty", HUECO["inicio"], HUECO["fin"])
 
 
 @respx.mock(base_url=BASE, assert_all_called=False)
@@ -61,14 +61,14 @@ async def test_catalogo_solo_lista_lo_disponible(respx_mock, core):
     r = await server.ver_catalogo()
 
     assert r["ok"]
-    assert [s["nombre"] for s in r["servicios"]][0] == "Consulta"
+    assert [s["nombre"] for s in r["servicios"]][0] == "Corte"
     assert r["servicios"][3]["precio_texto"] == "$25.000"
 
 
 @respx.mock(base_url=BASE, assert_all_called=False)
 async def test_disponibilidad_traduce_a_dia_y_hora_del_negocio(respx_mock, core):
     _base(respx_mock)
-    r = await server.consultar_disponibilidad("arreglo")
+    r = await server.consultar_disponibilidad("coloracion")
 
     assert r["ok"] and len(r["huecos"]) == 2
     assert r["huecos"][0]["hora"] == "11:30"
@@ -79,7 +79,7 @@ async def test_disponibilidad_traduce_a_dia_y_hora_del_negocio(respx_mock, core)
 @respx.mock(base_url=BASE, assert_all_called=False)
 async def test_practica_que_no_existe_no_se_inventa(respx_mock, core):
     _base(respx_mock)
-    r = await server.consultar_disponibilidad("ortodoncia invisible")
+    r = await server.consultar_disponibilidad("alisado brasileño")
 
     assert r["ok"] is False
     assert r["codigo"] == "no_encontrado"
@@ -92,7 +92,7 @@ async def test_armar_compromiso_no_persiste_y_calcula_el_total(respx_mock, core)
     escritura = respx_mock.post("/api/compromisos")
 
     r = await server.armar_compromiso(
-        [LineaPedida(servicio="limpiesa"), LineaPedida(servicio="arreglo")]
+        [LineaPedida(servicio="labado"), LineaPedida(servicio="coloracion")]
     )
 
     assert r["ok"] and r["persistido"] is False
@@ -106,7 +106,7 @@ async def test_armar_compromiso_no_persiste_y_calcula_el_total(respx_mock, core)
 async def test_confirmar_sin_hueco_bloqueado_no_escribe(respx_mock, core):
     _base(respx_mock)
     escritura = respx_mock.post("/api/compromisos")
-    await server.armar_compromiso([LineaPedida(servicio="arreglo")])
+    await server.armar_compromiso([LineaPedida(servicio="coloracion")])
 
     r = await server.confirmar(nombre="Juani", confirmado=True)
 
@@ -120,10 +120,10 @@ async def test_confirmado_false_devuelve_resumen_y_no_escribe(respx_mock, core):
     escritura = respx_mock.post("/api/compromisos")
     await _hasta_el_hold()
 
-    r = await server.confirmar(nombre="Juani Sarmiento", cobertura="osep")
+    r = await server.confirmar(nombre="Juani Sarmiento", cobertura="oro")
 
     assert r["ok"] and r["ejecutado"] is False
-    assert r["resumen"]["cobertura"] == "OSEP"
+    assert r["resumen"]["cobertura"] == "Club Oro"
     assert r["resumen"]["cuando"]["hora"] == "11:30"
     assert r["resumen"]["total_texto"] == "$25.000"
     assert not escritura.called
@@ -135,8 +135,15 @@ async def test_confirmado_true_crea_cliente_compromiso_y_confirma(respx_mock, co
     respx_mock.get(f"/api/clientes/por-telefono/{TELEFONO}").mock(
         return_value=httpx.Response(404, json={"detail": "no encontrado"})
     )
+    # La ficha se crea apenas arranca la conversación (`_cliente()`, dentro de
+    # `confirmar` acá porque el test no pasa por `datos_del_negocio`), sólo con
+    # el teléfono; nombre y cobertura se completan después con un PATCH.
+    cliente_recien_creado = {"id": "cli-1", "telefono": TELEFONO, "nombre": None, "cobertura_id": None}
     alta = respx_mock.post("/api/clientes").mock(
-        return_value=httpx.Response(201, json=CLIENTE)
+        return_value=httpx.Response(201, json=cliente_recien_creado)
+    )
+    completar = respx_mock.patch("/api/clientes/cli-1").mock(
+        return_value=httpx.Response(200, json=CLIENTE)
     )
     creacion = respx_mock.post("/api/compromisos").mock(
         return_value=httpx.Response(201, json=COMPROMISO)
@@ -146,15 +153,18 @@ async def test_confirmado_true_crea_cliente_compromiso_y_confirma(respx_mock, co
     )
 
     await _hasta_el_hold()
-    await server.confirmar(nombre="Juani Sarmiento", cobertura="osep")
-    r = await server.confirmar(nombre="Juani Sarmiento", cobertura="osep", confirmado=True)
+    await server.confirmar(nombre="Juani Sarmiento", cobertura="oro")
+    r = await server.confirmar(nombre="Juani Sarmiento", cobertura="oro", confirmado=True)
 
     assert r["ok"] and r["ejecutado"] and r["estado"] == "confirmado"
-    assert r["profesional"] == "Dra. Gómez"
+    assert r["recurso"] == "Coty"
     assert "CONFIRMADO" in r["aviso"]
 
     cuerpo_alta = alta.calls[0].request.read().decode()
-    assert TELEFONO in cuerpo_alta and "cob-osep" in cuerpo_alta
+    assert TELEFONO in cuerpo_alta
+
+    cuerpo_completar = completar.calls[0].request.read().decode()
+    assert "Juani Sarmiento" in cuerpo_completar and "cob-oro" in cuerpo_completar
 
     import json
 
@@ -164,7 +174,7 @@ async def test_confirmado_true_crea_cliente_compromiso_y_confirma(respx_mock, co
     assert cuerpo["sesion"] == TELEFONO
     assert cuerpo["recurso_id"] == HUECO["recurso_id"]
     assert cuerpo["inicio"] == HUECO["inicio"]
-    assert cuerpo["lineas"] == [{"servicio_id": "sv-arreglo", "cantidad": 1}]
+    assert cuerpo["lineas"] == [{"servicio_id": "sv-color", "cantidad": 1}]
     assert "negocio_id" not in cuerpo and "telefono" not in cuerpo
     assert transicion.called
 
@@ -193,8 +203,8 @@ async def test_hueco_ocupado_al_bloquear_pide_ofrecer_otro(respx_mock, core):
         return_value=httpx.Response(409, json={"detail": "solapado"})
     )
 
-    await server.consultar_disponibilidad("arreglo")
-    r = await server.bloquear("Dra. Gómez", HUECO["inicio"], HUECO["fin"])
+    await server.consultar_disponibilidad("coloracion")
+    r = await server.bloquear("Coty", HUECO["inicio"], HUECO["fin"])
 
     assert r["ok"] is False and r["codigo"] == "ocupado"
     assert "otro horario" in r["error"]
@@ -206,10 +216,10 @@ async def test_cobertura_que_el_negocio_no_atiende_se_pregunta(respx_mock, core)
     escritura = respx_mock.post("/api/compromisos")
     await _hasta_el_hold()
 
-    r = await server.confirmar(nombre="Juani", cobertura="Swiss Medical", confirmado=True)
+    r = await server.confirmar(nombre="Juani", cobertura="Club Platino", confirmado=True)
 
     assert r["ok"] is False
-    assert "OSEP" in r["opciones"]
+    assert "Club Oro" in r["opciones"]
     assert not escritura.called
 
 
@@ -251,6 +261,6 @@ async def test_cambiar_de_horario_libera_el_hold_anterior(respx_mock, core):
 
     await _hasta_el_hold()
     otro = HUECOS["huecos"][1]
-    r = await server.bloquear("Dra. Gómez", otro["inicio"], otro["fin"])
+    r = await server.bloquear("Coty", otro["inicio"], otro["fin"])
 
     assert r["ok"] and liberacion.called

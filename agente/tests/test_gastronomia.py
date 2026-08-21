@@ -1,8 +1,9 @@
 """El flujo del pedido de gastronomía, con el core mockeado.
 
-Diferencias con salud: el pedido tiene varios ítems, hay entrega (retira/delivery/
-en_local), no ocupa agenda (no hay hold) y —lo central— la política es "humana":
-el agente arma el pedido y queda PENDIENTE; lo confirma el local desde el panel.
+Diferencias con un compromiso con agenda (turno): el pedido tiene varios ítems, hay
+entrega (retira/delivery/en_local), no ocupa agenda (no hay hold) y —lo central— la
+política es "humana": el agente arma el pedido y queda PENDIENTE; lo confirma el
+local desde el panel.
 """
 
 from __future__ import annotations
@@ -74,6 +75,10 @@ def _con_escritura(respx_mock):
 @respx.mock(base_url=BASE, assert_all_called=False)
 async def test_datos_del_negocio_expone_politica_de_pedido_y_delivery(respx_mock, core):
     _base(respx_mock)
+    # `datos_del_negocio` ahora también registra al que escribe (`_cliente()`).
+    respx_mock.get(f"/api/clientes/por-telefono/{TELEFONO}").mock(
+        return_value=httpx.Response(200, json=CLIENTE)
+    )
     r = await server.datos_del_negocio()
 
     assert r["ok"] and r["vertical"] == "gastronomia"

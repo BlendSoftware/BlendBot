@@ -239,7 +239,7 @@ describe('tenants', () => {
     await ctx.esperar();
     const { tenant } = ctx.agente.responder.mock.calls[0][0];
     expect(tenant.agente_token).toBe('cop_token_de_prueba');
-    expect(tenant.vertical).toBe('salud');
+    expect(tenant.vertical).toBe('gastronomia');
   });
 });
 

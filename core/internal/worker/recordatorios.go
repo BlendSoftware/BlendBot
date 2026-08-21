@@ -92,7 +92,7 @@ func (w *Recordatorios) Start(ctx context.Context) {
 //
 // El orden importa y no es negociable: primero el UPDATE condicional, y sólo
 // si esa fila fue nuestra se encola. Al revés, dos réplicas mandarían el mismo
-// recordatorio dos veces y el paciente recibiría dos WhatsApp iguales.
+// recordatorio dos veces y el cliente recibiría dos WhatsApp iguales.
 func (w *Recordatorios) Tick(ctx context.Context) (int, error) {
 	ahora := w.ahora()
 
@@ -149,7 +149,7 @@ func (w *Recordatorios) Tick(ctx context.Context) (int, error) {
 
 // horasAntes lee negocio.config.recordatorio_horas_antes. Config rota, ausente
 // o disparatada cae al default: un JSON mal escrito no puede apagar la feature
-// que se le vendió al consultorio.
+// que se le vendió al negocio.
 func horasAntes(raw []byte) time.Duration {
 	def := time.Duration(RecordatorioHorasDefault) * time.Hour
 	if len(raw) == 0 {

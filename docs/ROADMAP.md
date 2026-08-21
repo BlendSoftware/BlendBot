@@ -1,13 +1,23 @@
 # Roadmap
 
+> **Pivote (21/08/2026):** el producto queda enfocado exclusivamente en
+> **gastronomía**. El vertical salud/consultorios se discontinúa como oferta
+> comercial (ver D21 en [`DECISIONES.md`](DECISIONES.md)). Las fases de acá
+> abajo documentan cómo se construyó el motor genérico — muchas se probaron
+> primero contra el piloto de consultorio, que ya no es el plan — y de acá en
+> más todo el trabajo nuevo es sobre gastronomía. El motor sigue siendo
+> genérico (soporta el tipo `profesional` a nivel de datos), pero no hay plan
+> de vender salud.
+
 ## La regla que no se negocia
 
-> **El núcleo se diseña para los dos verticales. El calendario libera uno solo.**
+> **El núcleo se diseña genérico. El calendario libera lo que hay que vender.**
 
-El motor de compromisos se diseña sabiendo que después entra gastronomía. Pero
-**no se escribe una línea de comanda de cocina hasta que el primer consultorio
-pague**. Nada de modificadores, nada de zonas de delivery, nada de tiempos de
-preparación. Eso vive en el diseño, no en el sprint.
+El motor de compromisos se diseñó sabiendo que iba a tener que servir a más de
+un tipo de recurso (profesional, mesa, cocina). Pero **no se escribe una línea
+de una feature nueva hasta que el negocio de al lado esté pagando por lo que ya
+existe**. Nada de modificadores, nada de zonas de delivery, nada de tiempos de
+preparación antes de tiempo. Eso vive en el diseño, no en el sprint.
 
 ### Por qué esta regla existe
 
@@ -33,12 +43,11 @@ necesite construirse entera antes del primer peso.
 
 **Duración: días, no semanas.**
 
-- [ ] **Conseguir el primer consultorio piloto.** Nombre y apellido.
+- [ ] **Conseguir el primer local piloto de gastronomía.** Nombre y apellido.
 - [x] Definir el modelo de datos del motor — implementado en `core/migrations/000001_motor.up.sql` (18/08/2026)
 - [ ] Crear la app en Meta y pedir el número de prueba
 - [ ] Mandar las 5 plantillas a aprobar (tardan)
 - [x] Confirmar en fuente oficial el cambio de Meta del 1/10/2026 — confirmado, ver [`WHATSAPP.md`](WHATSAPP.md) (18/08/2026)
-- [ ] Consultar con contador el IVA en prestaciones de salud
 - [ ] Hablar con Franco y Lautaro: qué pasa con Blend y con el reparto si esto
       sale de ahí
 
@@ -47,12 +56,18 @@ necesite construirse entera antes del primer peso.
 
 ---
 
-## Fase 1 · MVP consultorios
+## Fase 1 · MVP del motor genérico
 
-**Objetivo: un consultorio real usándolo todos los días.**
+**Objetivo original: un consultorio real usándolo todos los días.** Esa
+validación se hizo con el piloto de salud, vertical hoy discontinuado (ver la
+nota de pivote arriba). Lo que se construyó es el motor genérico — sigue en
+pie y hoy sirve a gastronomía.
 
-**Construida entera el 19/08/2026.** Lo que falta para el criterio de salida no
-es código: es el número de WhatsApp productivo y el consultorio.
+**Construida entera el 19/08/2026** contra el caso de uso de consultorios.
+Varios ítems abajo (agente con `SKILL.md` de salud, agenda de profesionales en
+el panel) son específicos de ese piloto y no son el foco de ahora; lo que
+importa hacia adelante es el motor, la disponibilidad, los holds y el catálogo,
+que son genéricos y ya sirven al vertical activo.
 
 ### Core
 - [x] Esqueleto Go a partir de BlendPos (auth, middleware, config, apierror, dto) — `core/` (19/08/2026)
@@ -89,9 +104,9 @@ es código: es el número de WhatsApp productivo y el consultorio.
 - [x] Liberación del hueco al cancelar (19/08/2026)
 - [x] Lista de espera y oferta automática del hueco liberado (19/08/2026)
 
-**Criterio de salida:** el consultorio pasa una semana entera sin tocar el
-WhatsApp a mano. **Todavía no se cumplió: no hay consultorio ni número
-productivo.**
+**Criterio de salida (reformulado para gastronomía):** el local pasa una semana
+entera sin tocar el WhatsApp a mano. **Todavía no se cumplió: no hay local
+piloto ni número productivo.**
 
 ---
 
@@ -112,7 +127,7 @@ prueba.** Ningún CUIT real cargado todavía.
 - [ ] PDF de la factura al cliente por WhatsApp — hoy sale el aviso con número y
       CAE en texto, no el PDF
 
-**Criterio de salida:** el consultorio no entra más al portal de ARCA.
+**Criterio de salida:** el local no entra más al portal de ARCA.
 
 ---
 
@@ -125,8 +140,6 @@ prueba.** Ningún CUIT real cargado todavía.
 - [ ] Onboarding autoservicio: alta, catálogo, horarios, número
 
 **Criterio de salida: el primer peso facturado.**
-
-> Hasta acá **no se escribió una línea de gastronomía**.
 
 ---
 
@@ -143,17 +156,20 @@ Va acá y no antes porque **antes no hay datos** y se ve vacío.
 
 ## Fase 5 · Vertical gastronomía
 
-**Recién con el vertical uno cobrando.**
+**Gastronomía es el único vertical del producto** (ver la nota de pivote al
+principio de este documento). Construida el 20/08/2026 según
+[`EPICS.md`](../EPICS.md) (epic E10):
 
-- [ ] `recurso` tipo cocina, con capacidad por franja
-- [ ] `recurso` tipo mesa, con capacidad por cubiertos
-- [ ] Política de confirmación humana con demora
-- [ ] Comanda: vista de cocina sin precios
-- [ ] Modificadores ("sin cebolla")
-- [ ] Delivery: dirección, zona, radio
-- [ ] `SKILL.md` del vertical gastronomía
+- [x] `recurso` tipo cocina, con capacidad por franja (20/08/2026)
+- [x] `recurso` tipo mesa, con capacidad por cubiertos (20/08/2026)
+- [x] Política de confirmación humana con demora (20/08/2026)
+- [x] Comanda: vista de cocina sin precios (20/08/2026)
+- [ ] Modificadores ("sin cebolla") — el campo nota alcanza por ahora
+- [x] Delivery: dirección, zona, radio (validación por config; falta geocoding real) (20/08/2026)
+- [x] `SKILL.md` del vertical gastronomía (20/08/2026)
 
-El motor no se toca. **Si hay que tocarlo, el diseño estaba mal.**
+El motor no se tocó para sumar esto. **Si hubiera que tocarlo, el diseño
+estaba mal.**
 
 ---
 

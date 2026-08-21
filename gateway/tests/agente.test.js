@@ -71,7 +71,7 @@ describe('la query que se arma', () => {
   it('el systemPrompt es el SKILL.md del vertical del tenant', async () => {
     const { agente, espia } = armar();
     await agente.responder({ tenant: TENANT, telefono: CLIENTE, texto: 'hola', clave: CLAVE });
-    expect(espia.mock.calls[0][0].options.systemPrompt).toBe('# SKILL de salud');
+    expect(espia.mock.calls[0][0].options.systemPrompt).toBe('# SKILL de gastronomia');
   });
 
   it('el MCP se levanta con el token del negocio y el teléfono del cliente', async () => {

@@ -114,7 +114,7 @@ func (s *cobroService) armarComprobante(ctx context.Context, negocioID string, c
 		return nil, nil
 	}
 
-	// El documento del paciente es texto libre: si no quedan dígitos usables,
+	// El documento del cliente es texto libre: si no quedan dígitos usables,
 	// la factura sale a consumidor final en vez de irse a un 422 permanente.
 	docTipo := model.DocTipoConsumidorFinal
 	var docNro *string
@@ -148,7 +148,7 @@ func (s *cobroService) PorCompromiso(ctx context.Context, negocioID, compromisoI
 //
 // fecha se trata como día calendario: se toman año, mes y día tal cual vienen
 // y se los planta en la timezone del negocio. Un cierre calculado en UTC le
-// mete al consultorio de Mendoza las tres primeras horas del día siguiente.
+// mete al negocio de Mendoza las tres primeras horas del día siguiente.
 func (s *cobroService) CierreDelDia(ctx context.Context, negocioID string, fecha time.Time) (*dto.CierreResponse, error) {
 	neg, err := s.negocios.Negocio(ctx, negocioID)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -207,7 +207,7 @@ func (s *cobroService) ConfigurarFiscal(ctx context.Context, negocioID string, i
 
 	// El dígito verificador se valida acá y no en el sidecar: un CUIT mal
 	// tipeado que pasa la validación se descubre recién cuando la primera
-	// factura queda en error, y para entonces el paciente ya se fue.
+	// factura queda en error, y para entonces el cliente ya se fue.
 	cuit := soloDigitos(in.CUIT)
 	if len(cuit) != 11 || !cuitValido(cuit) {
 		return nil, ErrCUITInvalido

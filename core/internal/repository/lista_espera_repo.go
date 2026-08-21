@@ -34,7 +34,7 @@ type AnotadoEnCola struct {
 }
 
 // ListaEsperaRepository es tenant-scoped: todo método recibe negocioID y filtra
-// por él. El anotado de otro consultorio no existe para este.
+// por él. El anotado de otro negocio no existe para este.
 type ListaEsperaRepository interface {
 	Create(ctx context.Context, negocioID string, le *model.ListaEspera) error
 	List(ctx context.Context, negocioID string, f FiltroListaEspera) ([]model.ListaEspera, error)

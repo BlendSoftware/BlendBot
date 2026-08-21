@@ -11,7 +11,7 @@ if (!raiz) throw new Error('Falta el nodo raiz en index.html')
 
 createRoot(raiz).render(
   <StrictMode>
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       <App />
     </BrowserRouter>
   </StrictMode>,

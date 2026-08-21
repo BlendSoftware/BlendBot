@@ -1,5 +1,12 @@
 # Hardening — hallazgos de la revisión adversarial (19/08/2026)
 
+> **Vertical activo: gastronomía** (ver D21 en `docs/DECISIONES.md`, 21/08/2026).
+> Esta revisión se hizo cuando el piloto de referencia era salud, así que
+> varios hallazgos usan "paciente"/"consultorio" como ejemplo concreto (p.ej.
+> H4, H9, H14). El bug de fondo en cada caso es genérico (aplica igual a un
+> cliente de gastronomía); no se reescriben los hallazgos para no alterar el
+> registro técnico de la revisión.
+
 Revisión de todo el repo buscando bugs en las costuras entre servicios. Ordenado
 por severidad. El estado se actualiza a medida que se corrigen.
 

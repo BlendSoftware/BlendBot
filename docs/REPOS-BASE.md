@@ -1,5 +1,12 @@
 # Los tres repos base
 
+> **Vertical activo: gastronomía.** Este documento describe cómo se armó el
+> motor genérico tomando piezas de tres repos base, y algunos ejemplos de abajo
+> usan el vertical salud (discontinuado como oferta comercial, ver D21 en
+> [`DECISIONES.md`](DECISIONES.md)) para ilustrar por qué una pieza de BlendPos
+> servía. La arquitectura sigue siendo válida; el producto que se vende hoy es
+> exclusivamente gastronomía.
+
 Este proyecto **no se escribe de cero**. Se arma sobre tres bases que ya
 existen, ya corren y ya sufrieron sus gotchas.
 

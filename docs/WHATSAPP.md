@@ -186,18 +186,17 @@ Meta ──POST──▶ /webhook/whatsapp
    `wa-claude/src/outbox.js`.
 5. **Historial propio.** No se depende del canal para saber qué se dijo.
 6. **La ventana de 24hs es real**: pasado ese plazo solo se puede escribir con
-   plantilla aprobada. El recordatorio de turno **es una plantilla**, hay que
-   tenerla aprobada de antemano.
+   plantilla aprobada. Un aviso fuera de la ventana (pedido listo, oferta de
+   mesa liberada) **es una plantilla**, hay que tenerla aprobada de antemano.
 
 ### Plantillas a aprobar antes del piloto
 
 | Plantilla | Categoría | Para qué |
 |---|---|---|
-| `recordatorio_turno` | utility | 24hs antes, con botones confirmar/cancelar |
-| `turno_confirmado` | utility | Comprobante del turno |
 | `pedido_listo` | utility | "Ya lo podés retirar" |
-| `hueco_liberado` | utility | Ofrecer una cancelación a la lista de espera |
+| `hueco_liberado` | utility | Ofrecer una mesa recién liberada a quien esperaba |
 | `reactivacion` | marketing | Clientes que dejaron de venir |
+| `recordatorio_turno` / `turno_confirmado` | utility | Del vertical salud (discontinuado, D21 en `DECISIONES.md`); implementadas en `core/internal/worker/cola.go` pero sin uso comercial hoy |
 
 La aprobación tarda. **Mandarlas apenas exista la app**, no la semana del piloto.
 

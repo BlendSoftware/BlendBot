@@ -58,7 +58,7 @@ func (p *publicadorRedis) Publicar(ctx context.Context, m MensajeSalida) error {
 	return p.rdb.LPush(ctx, ColaSalidas, raw).Err()
 }
 
-// diasES son los días en castellano: el mensaje lo lee un paciente, no un log.
+// diasES son los días en castellano: el mensaje lo lee un cliente, no un log.
 var diasES = [...]string{"domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"}
 
 // fechaHoraLocal formatea el momento en la zona del negocio. Una zona inválida

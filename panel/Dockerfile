@@ -1,23 +1,26 @@
-# Panel (Vite + React) — build estático servido por nginx.
+# Panel + landing en un solo servidor: la landing vive en la raíz y el panel
+# en /panel/, ambos bundles estáticos servidos por el mismo nginx (ver
+# nginx.conf). El contexto del build es la RAÍZ del repo (como gateway/Dockerfile):
+# esta imagen necesita panel/ y landing/ juntos.
 #
-# El bundle NO necesita VITE_API_URL: el cliente pega a rutas relativas
-# (`/api/...`) y nginx las proxya al core. Así la misma imagen sirve para
-# cualquier dominio y no hay que rebuildear para cambiar de backend.
+# El panel NO necesita VITE_API_URL: el cliente pega a rutas relativas
+# (`/api/...`) y nginx las proxya al core, sea cual sea el path desde el que
+# se sirvió el HTML. Así la misma imagen sirve para cualquier dominio.
 #
 # Cache-busting (gotcha heredado del Copiloto Moodle): Vite ya emite los assets
 # con hash en el nombre (`index-a1b2c3.js`), así que se pueden cachear para
-# siempre. Lo que NO se cachea nunca es `index.html`, que es quien apunta al
-# hash nuevo — si el navegador se queda con el index viejo, sirve el bundle
-# viejo aunque el deploy haya salido bien. Eso está en nginx.conf.
+# siempre. Lo que NO se cachea nunca es cada `index.html` — son quienes
+# apuntan al hash nuevo — si el navegador se queda con el viejo, sirve el
+# bundle viejo aunque el deploy haya salido bien. Eso está en nginx.conf.
 
-FROM node:22-alpine AS build
+FROM node:22-alpine AS panel-build
 
-WORKDIR /app
+WORKDIR /app/panel
 
-COPY package.json package-lock.json ./
+COPY panel/package.json panel/package-lock.json ./
 RUN npm ci
 
-COPY . .
+COPY panel/. .
 
 # `vite build` a secas y no `npm run build`: el script del package.json corre
 # antes `tsc --noEmit`, que es una verificación del desarrollador (y del CI),
@@ -26,10 +29,24 @@ RUN npx vite build
 
 # ──────────────────────────────────────────────────────────────────────────────
 
+FROM node:22-alpine AS landing-build
+
+WORKDIR /app/landing
+
+COPY landing/package.json landing/package-lock.json ./
+RUN npm ci
+
+COPY landing/. .
+
+RUN npx tsc --noEmit && npx vite build
+
+# ──────────────────────────────────────────────────────────────────────────────
+
 FROM nginx:1.27-alpine
 
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-COPY --from=build /app/dist /usr/share/nginx/html
+COPY panel/nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=landing-build /app/landing/dist /usr/share/nginx/html
+COPY --from=panel-build /app/panel/dist /usr/share/nginx/html/panel
 
 EXPOSE 80
 

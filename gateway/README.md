@@ -63,9 +63,9 @@ respondiendo en `CORE_URL`.
 ```json
 {
   "106540352242922": {
-    "negocio": "Consultorio Sarmiento",
+    "negocio": "Pizzería Sarmiento",
     "agente_token": "cop_...",
-    "vertical": "salud",
+    "vertical": "gastronomia",
     "wa_numero": "+5492611234567"
   }
 }
@@ -113,7 +113,7 @@ Payload que espera `salidas_whatsapp`:
   "telefono": "5492619876543",
   "tipo": "plantilla",
   "plantilla": "recordatorio_turno",
-  "variables": { "nombre": "Carla", "fecha_hora_local": "jueves 10:30", "negocio": "Consultorio" },
+  "variables": { "nombre": "Carla", "fecha_hora_local": "jueves 10:30", "negocio": "Pizzería" },
   "compromiso_id": "uuid"
 }
 ```

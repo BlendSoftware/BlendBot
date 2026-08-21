@@ -4,6 +4,13 @@
 > admin de la plataforma** (nuestro), donde se da de alta cada negocio con su
 > vertical, número de WhatsApp, token y config. Es interno y mínimo en el v1:
 > alta, edición y baja de tenants. Ver D20 en [`DECISIONES.md`](DECISIONES.md).
+>
+> **Vertical activo: gastronomía.** El panel es genérico y sabe adaptarse por
+> `negocio.vertical`, y las secciones "En consultorio" / "En salud" de acá
+> abajo documentan esa capacidad del motor. El vertical salud está
+> discontinuado como oferta comercial (ver D21 en
+> [`DECISIONES.md`](DECISIONES.md)); la vista operativa real hoy es siempre la
+> de gastronomía.
 
 ## El principio que manda sobre todo lo demás
 

@@ -108,7 +108,7 @@ export function FilaServicio({
             onClick={alExpandir}
             aria-expanded={expandida}
           >
-            {expandida ? 'Cerrar precios' : 'Precios por obra social'}
+            {expandida ? 'Cerrar precios' : 'Precios por club'}
           </button>
         )}
 

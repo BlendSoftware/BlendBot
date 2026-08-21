@@ -19,13 +19,10 @@ import {
 import type { Categoria, Cobertura, PrecioCobertura, Servicio } from '../api/tipos'
 import { FilaServicio } from '../componentes/FilaServicio'
 import { Aviso, Esqueleto, Vacio, useAvisoBien } from '../componentes/basicos'
-import { useSesion } from '../contexto'
 
 const SIN_CATEGORIA = 'sin-categoria'
 
 export function Catalogo() {
-  const { negocio } = useSesion()
-  const gastro = negocio?.vertical === 'gastronomia'
   const [servicios, setServicios] = useState<Servicio[]>([])
   const [categorias, setCategorias] = useState<Categoria[]>([])
   const [coberturas, setCoberturas] = useState<Cobertura[]>([])
@@ -67,10 +64,10 @@ export function Catalogo() {
     }))
     const sueltos = servicios.filter((s) => !s.categoria_id || !categorias.some((c) => c.id === s.categoria_id))
     if (sueltos.length > 0) {
-      lista.push({ id: SIN_CATEGORIA, nombre: gastro ? 'Sin sección' : 'Sin categoría', servicios: sueltos })
+      lista.push({ id: SIN_CATEGORIA, nombre: 'Sin sección', servicios: sueltos })
     }
     return lista
-  }, [categorias, servicios, gastro])
+  }, [categorias, servicios])
 
   function reemplazar(s: Servicio) {
     setServicios((lista) => lista.map((x) => (x.id === s.id ? s : x)))
@@ -98,7 +95,7 @@ export function Catalogo() {
     <section className="catalogo">
       <header className="encabezado">
         <div>
-          <h1>{gastro ? 'Carta' : 'Catálogo'}</h1>
+          <h1>Carta</h1>
           <p className="encabezado__bajada">
             Lo que está apagado, el asistente no lo ofrece. Ese es todo el truco.
           </p>
@@ -112,12 +109,8 @@ export function Catalogo() {
 
       {!cargando && servicios.length === 0 && categorias.length === 0 && (
         <Vacio
-          titulo={gastro ? 'La carta está vacía todavía.' : 'El catálogo está vacío todavía.'}
-          detalle={
-            gastro
-              ? 'Empezá por una sección (Entradas, Principales, Postres) y después cargá los platos de cada una.'
-              : 'Empezá por una categoría (Consultas, Estudios, Prácticas) y después cargá lo que se hace en cada una.'
-          }
+          titulo="La carta está vacía todavía."
+          detalle="Empezá por una sección (Entradas, Principales, Postres) y después cargá los platos de cada una."
         />
       )}
 
@@ -127,13 +120,7 @@ export function Catalogo() {
             <div className="grupo__cabeza">
               <h2 className="grupo__titulo">{g.nombre}</h2>
               <span className="grupo__cuenta">
-                {gastro
-                  ? g.servicios.length === 1
-                    ? '1 plato'
-                    : `${g.servicios.length} platos`
-                  : g.servicios.length === 1
-                    ? '1 servicio'
-                    : `${g.servicios.length} servicios`}
+                {g.servicios.length === 1 ? '1 plato' : `${g.servicios.length} platos`}
               </span>
             </div>
 
@@ -162,7 +149,6 @@ export function Catalogo() {
             </ul>
 
             <AltaServicio
-              gastro={gastro}
               categoriaID={g.id === SIN_CATEGORIA ? null : g.id}
               alCrear={(s) => {
                 setServicios((l) => [...l, s])
@@ -175,7 +161,6 @@ export function Catalogo() {
 
       {!cargando && (
         <NuevaCategoria
-          gastro={gastro}
           valor={nuevaCategoria}
           alCambiar={setNuevaCategoria}
           alAgregar={agregarCategoria}
@@ -186,12 +171,10 @@ export function Catalogo() {
 }
 
 function NuevaCategoria({
-  gastro,
   valor,
   alCambiar,
   alAgregar,
 }: {
-  gastro: boolean
   valor: string
   alCambiar: (v: string) => void
   alAgregar: () => void
@@ -201,7 +184,7 @@ function NuevaCategoria({
   if (!abierta) {
     return (
       <button type="button" className="boton disparador" onClick={() => setAbierta(true)}>
-        {gastro ? '+ Nueva sección' : '+ Nueva categoría'}
+        + Nueva sección
       </button>
     )
   }
@@ -216,17 +199,17 @@ function NuevaCategoria({
       }}
     >
       <label className="campo">
-        <span>{gastro ? 'Sección nueva' : 'Categoría nueva'}</span>
+        <span>Sección nueva</span>
         <input
           className="entrada"
           value={valor}
           onChange={(e) => alCambiar(e.target.value)}
-          placeholder={gastro ? 'Entradas' : 'Estudios'}
+          placeholder="Entradas"
           autoFocus
         />
       </label>
       <button type="submit" className="boton boton--primario" disabled={!valor.trim()}>
-        {gastro ? 'Agregar sección' : 'Agregar categoría'}
+        Agregar sección
       </button>
       <button type="button" className="boton boton--fantasma" onClick={() => setAbierta(false)}>
         Cancelar
@@ -236,12 +219,10 @@ function NuevaCategoria({
 }
 
 function AltaServicio({
-  gastro,
   categoriaID,
   alCrear,
   alFallar,
 }: {
-  gastro: boolean
   categoriaID: string | null
   alCrear: (s: Servicio) => void
   alFallar: (m: string) => void
@@ -249,7 +230,6 @@ function AltaServicio({
   const [abierta, setAbierta] = useState(false)
   const [nombre, setNombre] = useState('')
   const [precio, setPrecio] = useState('')
-  const [duracion, setDuracion] = useState('')
   const [guardando, setGuardando] = useState(false)
 
   async function crear(e: React.FormEvent) {
@@ -261,12 +241,11 @@ function AltaServicio({
         nombre: nombre.trim(),
         categoria_id: categoriaID,
         precio_base: precio || '0',
-        duracion_min: duracion ? Number(duracion) : null,
+        duracion_min: null,
       })
       alCrear(s)
       setNombre('')
       setPrecio('')
-      setDuracion('')
     } catch (err) {
       alFallar(err instanceof Error ? err.message : 'No se pudo agregar.')
     } finally {
@@ -277,7 +256,7 @@ function AltaServicio({
   if (!abierta) {
     return (
       <button type="button" className="boton boton--fantasma disparador" onClick={() => setAbierta(true)}>
-        {gastro ? '+ Agregar plato' : '+ Agregar servicio'}
+        + Agregar plato
       </button>
     )
   }
@@ -286,10 +265,10 @@ function AltaServicio({
     <form className="alta-servicio" onSubmit={crear}>
       <input
         className="entrada"
-        placeholder={gastro ? 'Nombre del plato' : 'Nombre del servicio'}
+        placeholder="Nombre del plato"
         value={nombre}
         onChange={(e) => setNombre(e.target.value)}
-        aria-label={gastro ? 'Nombre del plato nuevo' : 'Nombre del servicio nuevo'}
+        aria-label="Nombre del plato nuevo"
         autoFocus
       />
       <input
@@ -300,17 +279,6 @@ function AltaServicio({
         onChange={(e) => setPrecio(e.target.value.replace(/[^\d.,]/g, '').replace(',', '.'))}
         aria-label="Precio"
       />
-      {/* La duración es de un turno; un plato no la tiene. */}
-      {!gastro && (
-        <input
-          className="entrada tabular alta-servicio__duracion"
-          placeholder="min"
-          inputMode="numeric"
-          value={duracion}
-          onChange={(e) => setDuracion(e.target.value.replace(/\D/g, ''))}
-          aria-label="Duración en minutos"
-        />
-      )}
       <button type="submit" className="boton boton--primario" disabled={!nombre.trim() || guardando}>
         {guardando ? 'Agregando' : 'Agregar'}
       </button>
@@ -351,7 +319,7 @@ function PreciosPorCobertura({
   if (coberturas.length === 0) {
     return (
       <p className="precios__vacio">
-        Todavía no hay obras sociales cargadas. Mientras tanto vale el precio de lista.
+        Todavía no hay clubes cargados. Mientras tanto vale el precio de lista.
       </p>
     )
   }

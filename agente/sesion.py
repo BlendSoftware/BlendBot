@@ -60,7 +60,7 @@ class LineaBorrador:
 
 @dataclass
 class Borrador:
-    """Lo que el paciente pidió, todavía sin escribir en el core."""
+    """Lo que el cliente pidió, todavía sin escribir en el core."""
 
     id: str = field(default_factory=lambda: f"bor_{uuid.uuid4().hex[:8]}")
     lineas: list[LineaBorrador] = field(default_factory=list)
@@ -90,7 +90,7 @@ class Borrador:
 
 @dataclass
 class Bloqueo:
-    """El hold vigente: el hueco que el paciente eligió mientras completa datos."""
+    """El hold vigente: el hueco que el cliente eligió mientras completa datos."""
 
     hold_id: str
     recurso_id: str

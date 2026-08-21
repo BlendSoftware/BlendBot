@@ -64,7 +64,7 @@ const (
 const TipoCbteFacturaC = 11
 
 // DocTipoConsumidorFinal es el código de "sin identificar" de ARCA: se usa
-// cuando el paciente no dejó DNI.
+// cuando el cliente no dejó DNI.
 const DocTipoConsumidorFinal = 99
 
 // DocTipoDNI identifica al receptor cuando el cliente sí dejó su documento.
@@ -85,7 +85,7 @@ type Comprobante struct {
 	RetryCount  int               `gorm:"not null;default:0" json:"retry_count"`
 	NextRetryAt *time.Time        `json:"next_retry_at"`
 	LastError   *string           `json:"last_error"`
-	// ReceptorDocTipo/Nro: 99 y vacío si el paciente no dejó documento.
+	// ReceptorDocTipo/Nro: 99 y vacío si el cliente no dejó documento.
 	ReceptorDocTipo int             `gorm:"not null;default:99" json:"receptor_doc_tipo"`
 	ReceptorDocNro  *string         `json:"receptor_doc_nro"`
 	Importe         decimal.Decimal `gorm:"type:numeric(12,2);not null" json:"importe"`

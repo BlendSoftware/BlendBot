@@ -188,7 +188,7 @@ export function Clientes() {
                           {c.inicio ? ` · ${horaDe(c.inicio)}` : ''}
                         </span>
                         <span className="historial__estado">{etiquetaEstado(c.estado, c.tipo)}</span>
-                        {/* Lo que gastó cada paciente es plata del negocio: la
+                        {/* Lo que gastó cada cliente es plata del negocio: la
                             ve el dueño (docs/PANEL.md → Roles). */}
                         {vePlata && <span className="plata">{plata(c.total)}</span>}
                       </li>
@@ -250,13 +250,13 @@ function FichaEditable({
       </label>
 
       <label className="campo">
-        <span>Obra social</span>
+        <span>Club</span>
         <select
           className="entrada"
           value={cobertura}
           onChange={(e) => setCobertura(e.target.value)}
         >
-          <option value="">Particular</option>
+          <option value="">Sin club</option>
           {coberturas.map((c) => (
             <option key={c.id} value={c.id}>
               {c.nombre}

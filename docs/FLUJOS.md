@@ -1,5 +1,12 @@
 # Flujos
 
+> **Vertical activo: gastronomía.** El Flujo A (pedido) y el Flujo D (reserva
+> de mesa) son los flujos vigentes del producto. Los Flujos B y C (turno de
+> consultorio, recordatorio anti-ausentismo) documentan el vertical salud,
+> discontinuado como oferta comercial (ver D21 en
+> [`DECISIONES.md`](DECISIONES.md)); se conservan como referencia de diseño
+> del motor genérico, no como flujos activos.
+
 Estos flujos **no son teoría**: salieron de prototipar la conversación a mano el
 18/08/2026, con Juani haciendo de cliente y corrigiendo en vivo. Cada corrección
 quedó anotada como decisión.

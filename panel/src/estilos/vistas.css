@@ -8,6 +8,9 @@
 
 .marco__cuerpo {
   flex: 1;
+  width: 100%;
+  max-width: 1440px;
+  margin-inline: auto;
   padding: var(--e3) var(--e3) var(--e4);
 }
 
@@ -25,6 +28,18 @@
   padding-bottom: var(--e3);
   margin-bottom: var(--e4);
   border-bottom: 3px solid var(--acento);
+  position: relative;
+}
+
+.encabezado::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -3px;
+  width: 64px;
+  height: 3px;
+  background: var(--tinta);
+  border-radius: 999px;
 }
 
 .encabezado__bajada {
@@ -47,7 +62,36 @@
   justify-content: center;
   min-height: 100%;
   padding: var(--e4);
+  position: relative;
+  overflow: hidden;
   background: var(--panel);
+}
+
+/* Dos manchas de acento bien difusas: la portada es la primera impresión y
+   se lo puede permitir sin pisar la paleta (mismo --acento, sólo alfa). */
+.portada::before,
+.portada::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(2px);
+  pointer-events: none;
+}
+
+.portada::before {
+  width: 520px;
+  height: 520px;
+  top: -220px;
+  left: -180px;
+  background: radial-gradient(circle, oklch(0.58 0.13 40 / 0.16), transparent 70%);
+}
+
+.portada::after {
+  width: 420px;
+  height: 420px;
+  bottom: -200px;
+  right: -160px;
+  background: radial-gradient(circle, oklch(0.58 0.13 40 / 0.12), transparent 70%);
 }
 
 .portada__forma {
@@ -60,14 +104,32 @@
   border-radius: var(--radio);
   background: var(--superficie);
   box-shadow: var(--sombra-flotante);
+  position: relative;
+  z-index: 1;
+  animation: aparecer-arriba 260ms var(--curva);
 }
 
 .portada__marca {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e2);
   font-size: var(--t-mini);
   font-weight: 800;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--acento);
+}
+
+.portada__logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radio-chico);
+  background: var(--acento);
+  color: var(--acento-tinta);
+  flex-shrink: 0;
 }
 
 .portada__titulo {
@@ -81,6 +143,19 @@
 
 .portada__entrar {
   margin-top: var(--e2);
+}
+
+.portada__volver {
+  align-self: center;
+  color: var(--tinta-suave);
+  font-size: var(--t-mini);
+  font-weight: 600;
+  text-decoration: none;
+  transition: color var(--transicion);
+}
+
+.portada__volver:hover {
+  color: var(--acento);
 }
 
 /* ── Barra del día ───────────────────────────────────────────────────────── */
@@ -99,6 +174,9 @@
   padding: var(--e2) var(--e3);
   border-bottom: 3px solid var(--acento);
   background: var(--fondo);
+  background: color-mix(in oklch, var(--fondo) 88%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   box-shadow: 0 4px 16px oklch(0.24 0.012 55 / 0.1);
 }
 
@@ -140,13 +218,16 @@
 }
 
 .barra-dia__resumen {
+  padding: var(--e1) var(--e2);
+  border-radius: 999px;
+  background: var(--panel);
   font-size: var(--t-mini);
-  font-weight: 600;
+  font-weight: 700;
   color: var(--tinta-suave);
 }
 
 .barra-dia__negocio {
-  font-weight: 600;
+  font-weight: 700;
 }
 
 /* En el teléfono manda el día: el nombre del negocio ya lo sabe quien mira. */
@@ -258,6 +339,11 @@
   color: var(--sobre-hueco);
   font-weight: 600;
   font-size: var(--t-mini);
+  transition: box-shadow var(--transicion);
+}
+
+.agenda__hueco:hover {
+  box-shadow: var(--sombra-baja);
 }
 
 .agenda__sin-horario {
@@ -359,6 +445,12 @@
   border-radius: var(--radio);
   background: var(--superficie);
   box-shadow: var(--sombra-baja);
+  border: 1px solid oklch(0.24 0.012 55 / 0.06);
+  transition: box-shadow var(--transicion);
+}
+
+.grupo:hover {
+  box-shadow: var(--sombra-tarjeta);
 }
 
 .grupo__cabeza {
@@ -482,6 +574,7 @@
   border-radius: var(--radio);
   background: var(--superficie);
   box-shadow: var(--sombra-baja);
+  border: 1px solid oklch(0.24 0.012 55 / 0.06);
 }
 
 .equipo__lista {
@@ -498,11 +591,14 @@
   padding: var(--e2);
   margin-bottom: var(--e1);
   border-radius: var(--radio-chico);
-  transition: background-color var(--transicion);
+  transition:
+    background-color var(--transicion),
+    transform var(--transicion);
 }
 
 .persona:hover {
   background: var(--acento-suave);
+  transform: translateX(3px);
 }
 
 .persona__nombre {
@@ -520,10 +616,12 @@
 .persona--elegida,
 .persona--elegida:hover {
   background: oklch(0.58 0.13 40 / 0.12);
+  box-shadow: inset 3px 0 0 var(--acento);
 }
 
 .persona--elegida .persona__nombre {
   color: var(--acento);
+  font-weight: 700;
 }
 
 .equipo__forma {
@@ -554,11 +652,14 @@
   padding: var(--e2);
   margin-bottom: var(--e1);
   border-radius: var(--radio-chico);
-  transition: background-color var(--transicion);
+  transition:
+    background-color var(--transicion),
+    transform var(--transicion);
 }
 
 .dia:hover {
   background: var(--acento-suave);
+  transform: translateX(3px);
 }
 
 .dia__nombre {
@@ -603,8 +704,13 @@
   border: 1px solid var(--borde);
   border-radius: var(--radio-chico);
   background: var(--panel);
-  font-weight: 600;
+  font-weight: 700;
   font-size: var(--t-mini);
+  transition: box-shadow var(--transicion);
+}
+
+.franja:hover {
+  box-shadow: var(--sombra-baja);
 }
 
 .franja__sacar {
@@ -614,10 +720,14 @@
   border-radius: var(--radio-chico);
   background: none;
   color: var(--tinta-suave);
+  transition:
+    color var(--transicion),
+    background-color var(--transicion);
 }
 
 .franja__sacar:hover {
   color: var(--vencido);
+  background: oklch(0.55 0.18 25 / 0.12);
 }
 
 .dia__disparador {
@@ -698,6 +808,7 @@
   border-radius: var(--radio);
   background: var(--superficie);
   box-shadow: var(--sombra-baja);
+  border: 1px solid oklch(0.24 0.012 55 / 0.06);
 }
 
 .clientes__campo {
@@ -725,6 +836,8 @@
   border-radius: var(--radio);
   background: var(--superficie);
   box-shadow: var(--sombra-baja);
+  border: 1px solid oklch(0.24 0.012 55 / 0.06);
+  animation: aparecer 200ms var(--curva);
 }
 
 .clientes__lista {
@@ -747,11 +860,14 @@
   background: none;
   text-align: left;
   color: inherit;
-  transition: background-color var(--transicion);
+  transition:
+    background-color var(--transicion),
+    transform var(--transicion);
 }
 
 .clientes__item:hover {
   background: var(--acento-suave);
+  transform: translateX(3px);
 }
 
 .clientes__item:hover .clientes__item-nombre {
@@ -811,11 +927,14 @@
   padding: var(--e2);
   margin-bottom: var(--e1);
   border-radius: var(--radio-chico);
-  transition: background-color var(--transicion);
+  transition:
+    background-color var(--transicion),
+    transform var(--transicion);
 }
 
 .historial__item:hover {
   background: var(--acento-suave);
+  transform: translateX(3px);
 }
 
 .historial__estado {
@@ -871,8 +990,15 @@
   align-items: center;
   flex-wrap: wrap;
   gap: var(--e3);
-  padding: var(--e2) 0;
+  padding: var(--e2);
+  margin: 0 calc(var(--e2) * -1);
+  border-radius: var(--radio-chico);
   border-bottom: 1px solid var(--borde);
+  transition: background-color var(--transicion);
+}
+
+.espera__fila:hover {
+  background: var(--acento-suave);
 }
 
 .espera__quien {
@@ -929,11 +1055,27 @@
 
 
 .cierre__etiqueta {
+  position: relative;
+  padding-top: var(--e2);
   font-size: var(--t-mini);
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--tinta-suave);
+}
+
+/* Un trazo de acento arriba de cada cifra, no una card: separa sin encajonar
+   (DESIGN.md prohíbe el grid de cards acá). */
+.cierre__etiqueta::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 28px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--acento);
+  opacity: 0.55;
 }
 
 .cierre__valor {
@@ -975,6 +1117,12 @@
   border-radius: var(--radio);
   background: var(--superficie);
   box-shadow: var(--sombra-baja);
+  border: 1px solid oklch(0.24 0.012 55 / 0.06);
+  transition: box-shadow var(--transicion);
+}
+
+.cierre__bloque:hover {
+  box-shadow: var(--sombra-tarjeta);
 }
 
 .cierre__titulo {
@@ -1066,11 +1214,14 @@
   gap: var(--e3);
   padding: var(--e3);
   border-radius: var(--radio-chico);
-  transition: background-color var(--transicion);
+  transition:
+    background-color var(--transicion),
+    transform var(--transicion);
 }
 
 .negocio__fila:hover {
   background: var(--acento-suave);
+  transform: translateX(3px);
 }
 
 .negocio__datos {
@@ -1081,7 +1232,7 @@
 
 .negocio__nombre {
   font-size: var(--t-medio);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .negocio__meta {
@@ -1220,6 +1371,9 @@
   padding: var(--e2) var(--e3);
   border-bottom: 3px solid var(--acento);
   background: var(--fondo);
+  background: color-mix(in oklch, var(--fondo) 88%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   box-shadow: 0 4px 16px oklch(0.24 0.012 55 / 0.1);
 }
 
@@ -1230,14 +1384,23 @@
   }
 }
 
+.tablero__marca {
+  display: flex;
+  align-items: baseline;
+  gap: var(--e2);
+}
+
 .tablero__negocio {
   font-size: var(--t-grande);
   line-height: 1.1;
 }
 
 .tablero__resumen {
+  padding: var(--e1) var(--e2);
+  border-radius: 999px;
+  background: var(--panel);
   font-size: var(--t-mini);
-  font-weight: 600;
+  font-weight: 700;
   color: var(--tinta-suave);
 }
 
@@ -1248,8 +1411,10 @@
 }
 
 /*
- * Tres columnas iguales. En pantalla angosta se hacen scroll horizontal con
- * ancho mínimo por columna: el tablero nunca colapsa a una sola fila ilegible.
+ * Tres columnas iguales, todas en la misma superficie clara: lo que las
+ * distingue es el ícono y el acento de color en la cabecera, no un bloque
+ * pintado. En pantalla angosta se hacen scroll horizontal con ancho mínimo
+ * por columna: el tablero nunca colapsa a una sola fila ilegible.
  */
 .tablero__columnas {
   display: grid;
@@ -1257,81 +1422,140 @@
   gap: var(--e3);
   align-items: start;
   overflow-x: auto;
+  padding-bottom: var(--e2);
 }
 
 .columna {
   display: flex;
   flex-direction: column;
-  gap: var(--e3);
   min-width: 0;
+  border-radius: var(--radio);
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  box-shadow: var(--sombra-baja);
+  animation: aparecer-arriba 220ms var(--curva);
 }
 
 .columna__cabeza {
-  position: sticky;
-  top: var(--alto-barra);
-  z-index: 10;
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
+  align-items: center;
   gap: var(--e2);
-  padding: var(--e2) var(--e2) var(--e1);
-  background: var(--fondo);
+  padding: var(--e3);
+  border-bottom: 1px solid var(--borde);
+}
+
+.columna--pendientes .columna__cabeza {
+  background: color-mix(in oklch, var(--pendiente) 12%, var(--superficie));
+}
+
+.columna--cocina .columna__cabeza {
+  background: color-mix(in oklch, var(--en-curso) 9%, var(--superficie));
+}
+
+.columna--listos .columna__cabeza {
+  background: color-mix(in oklch, var(--listo) 9%, var(--superficie));
+}
+
+.columna__icono {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 999px;
+}
+
+.columna--pendientes .columna__icono {
+  background: color-mix(in oklch, var(--pendiente) 32%, var(--superficie));
+  color: color-mix(in oklch, var(--pendiente) 75%, black);
+}
+
+.columna--cocina .columna__icono {
+  background: color-mix(in oklch, var(--en-curso) 24%, var(--superficie));
+  color: var(--en-curso);
+}
+
+.columna--listos .columna__icono {
+  background: color-mix(in oklch, var(--listo) 24%, var(--superficie));
+  color: var(--listo);
 }
 
 .columna__titulo {
+  flex: 1;
   font-size: var(--t-medio);
   font-weight: 800;
   letter-spacing: -0.01em;
+  color: var(--tinta);
 }
 
 .columna__cuenta {
-  min-width: 2ch;
+  min-width: 26px;
+  height: 26px;
   padding: 0 var(--e2);
   border-radius: 999px;
-  background: var(--panel);
-  color: var(--tinta-suave);
   font-size: var(--t-mini);
   font-weight: 800;
   text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
-/* La columna de pendientes reclama atención: su cuenta va en color de estado. */
 .columna--pendientes .columna__cuenta {
-  background: var(--pendiente);
-  color: var(--sobre-pendiente);
+  background: color-mix(in oklch, var(--pendiente) 30%, var(--superficie));
+  color: color-mix(in oklch, var(--pendiente) 75%, black);
+}
+
+.columna--cocina .columna__cuenta {
+  background: color-mix(in oklch, var(--en-curso) 22%, var(--superficie));
+  color: var(--en-curso);
+}
+
+.columna--listos .columna__cuenta {
+  background: color-mix(in oklch, var(--listo) 22%, var(--superficie));
+  color: var(--listo);
 }
 
 .columna__lista {
   display: flex;
   flex-direction: column;
   gap: var(--e3);
+  padding: var(--e3);
 }
 
 .columna__vacia {
-  padding: var(--e3);
-  border: 1px dashed var(--borde);
-  border-radius: var(--radio);
+  padding: var(--e4) var(--e3);
+  border: 1.5px dashed var(--borde);
+  border-radius: var(--radio-chico);
+  background: var(--fondo);
   color: var(--tinta-suave);
   font-size: var(--t-mini);
+  text-align: center;
 }
 
 /* ── Tarjeta del pedido ──────────────────────────────────────────────────── */
 
-/* Reusa .turno (fondo por estado, sombra, acciones); acá van sus piezas propias. */
+/* Reusa .turno (papel, sombra, acciones); acá van sus piezas propias. */
 .pedido__cabeza {
   align-items: center;
 }
 
 .pedido__numero {
-  font-size: var(--t-grande);
+  font-size: var(--t-medio);
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
+  color: var(--tinta);
 }
 
 .pedido__entrega {
   display: inline-flex;
   align-items: center;
   gap: var(--e1);
+  padding: 3px var(--e2);
+  border-radius: 999px;
+  background: var(--acento-suave);
+  color: color-mix(in oklch, var(--acento) 85%, black);
   font-size: var(--t-mini);
   font-weight: 700;
 }
@@ -1343,8 +1567,10 @@
 .pedido__items {
   display: flex;
   flex-direction: column;
-  gap: var(--e1);
-  margin: var(--e1) 0;
+  gap: var(--e2);
+  margin: var(--e2) 0 0;
+  padding-top: var(--e2);
+  border-top: 1px solid var(--borde);
 }
 
 .pedido__item {
@@ -1357,6 +1583,16 @@
 }
 
 .pedido__cant {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 3px;
+  border-radius: var(--radio-chico);
+  background: color-mix(in oklch, var(--turno-color) 26%, var(--superficie));
+  color: color-mix(in oklch, var(--turno-color) 100%, black 22%);
+  font-size: var(--t-mini);
   font-weight: 800;
 }
 
@@ -1368,7 +1604,8 @@
 .pedido__mod {
   padding: 0 var(--e1);
   border-radius: var(--radio-chico);
-  background: oklch(0.99 0.004 60 / 0.55);
+  background: var(--acento-suave);
+  color: color-mix(in oklch, var(--acento) 85%, black);
   font-size: var(--t-mini);
   font-weight: 700;
 }
@@ -1376,7 +1613,26 @@
 .pedido__dir {
   font-size: var(--t-mini);
   font-weight: 600;
-  opacity: 0.95;
+  color: var(--tinta-suave);
+}
+
+.pedido .turno__contador {
+  padding: 2px var(--e2);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--tinta-suave);
+  font-weight: 700;
+}
+
+.pedido .turno__contador--vencido {
+  background: var(--vencido);
+  color: var(--sobre-vencido);
+}
+
+/* La tarjeta ahora es de papel: el aviso de error necesita su propio fondo
+   para destacar (antes contrastaba solo por ser blanco sobre color). */
+.pedido .turno__problema {
+  background: var(--panel);
 }
 
 /* ── Comanda: tickets grandes para la tablet de la cocina ────────────────── */

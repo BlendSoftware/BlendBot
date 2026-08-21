@@ -60,7 +60,7 @@ type FacturadorConfig struct {
 }
 
 // Facturador lleva cada comprobante pendiente hasta el CAE. Es el proceso que
-// hace que el consultorio no entre nunca más al portal de ARCA.
+// hace que el negocio no entre nunca más al portal de ARCA.
 type Facturador struct {
 	repo      repository.CobroRepository
 	pub       Publicador
@@ -254,8 +254,8 @@ func (w *Facturador) procesar(ctx context.Context, p repository.ComprobantePendi
 	return true
 }
 
-// avisarAlCliente manda la factura por el mismo WhatsApp donde el paciente sacó
-// el turno. Un error acá no vuelve atrás la factura: ya está emitida en ARCA.
+// avisarAlCliente manda la factura por el mismo WhatsApp donde el cliente hizo
+// el pedido. Un error acá no vuelve atrás la factura: ya está emitida en ARCA.
 func (w *Facturador) avisarAlCliente(ctx context.Context, p repository.ComprobantePendiente, resp respuestaFactura) {
 	if w.pub == nil || p.WaPhoneID == "" || p.Telefono == "" {
 		return
@@ -466,7 +466,7 @@ func docNroOCero(nro string) string {
 	return nro
 }
 
-// montoES pasa "12500.00" a "$12.500,00": el mensaje lo lee un paciente, no un
+// montoES pasa "12500.00" a "$12.500,00": el mensaje lo lee un cliente, no un
 // contador.
 func montoES(fijo string) string {
 	entero, decimales := fijo, "00"

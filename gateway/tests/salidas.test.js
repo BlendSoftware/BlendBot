@@ -21,7 +21,7 @@ const RECORDATORIO = {
   telefono: CLIENTE,
   tipo: 'plantilla',
   plantilla: 'recordatorio_turno',
-  variables: { nombre: 'Carla', fecha_hora_local: 'jueves 10:30', negocio: 'Consultorio' },
+  variables: { nombre: 'Carla', fecha_hora_local: 'jueves 10:30', negocio: 'Rotisería' },
   compromiso_id: 'c0ffee00-0000-4000-8000-000000000009',
 };
 

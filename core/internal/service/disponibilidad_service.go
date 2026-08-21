@@ -31,7 +31,7 @@ const (
 // puedo?" (el agente, antes de tomar un turno) y "¿qué tengo hoy?" (el panel).
 //
 // Todo el cálculo vive en la timezone del negocio: los horarios semanales son
-// TIME local (un consultorio abre a las 9 de SU reloj) mientras que
+// TIME local (un negocio abre a las 9 de SU reloj) mientras que
 // compromisos, holds y excepciones son instantes absolutos. Mezclarlos sin
 // time.LoadLocation es EL bug de este módulo.
 type DisponibilidadService interface {
@@ -359,7 +359,7 @@ func diaInicial(raw string, loc *time.Location) (time.Time, error) {
 
 // ubicacionDe carga la timezone del negocio. Una timezone rota es un dato mal
 // cargado, no un default silencioso: calcular la agenda en otro huso le da al
-// paciente un horario equivocado.
+// cliente un horario equivocado.
 func ubicacionDe(n *model.Negocio) (*time.Location, error) {
 	loc, err := time.LoadLocation(n.Timezone)
 	if err != nil {

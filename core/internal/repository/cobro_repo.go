@@ -20,7 +20,7 @@ type CompromisoACobrar struct {
 	Estado    model.EstadoCompromiso
 	Total     decimal.Decimal
 	ClienteID string
-	// Documento del paciente: define si la factura sale identificada (DNI) o a
+	// Documento del cliente: define si la factura sale identificada (DNI) o a
 	// consumidor final. Puede venir vacío, que es lo normal.
 	Documento string
 	Inicio    *time.Time

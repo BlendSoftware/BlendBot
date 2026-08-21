@@ -275,7 +275,7 @@ function NegocioFila({
         <div className="negocio__datos">
           <span className="negocio__nombre">{negocio.nombre}</span>
           <span className="negocio__meta">
-            {negocio.vertical === 'salud' ? 'consultorio' : 'gastronomía'} · {negocio.timezone}
+            gastronomía · {negocio.timezone}
             {negocio.wa_phone_id ? ` · WhatsApp ${negocio.wa_phone_id}` : ' · sin WhatsApp'}
           </span>
         </div>
@@ -467,7 +467,7 @@ function AltaNegocioForma({
   alFallar: (m: string) => void
 }) {
   const [nombre, setNombre] = useState('')
-  const [vertical, setVertical] = useState<Vertical>('salud')
+  const vertical: Vertical = 'gastronomia'
   const [usuario, setUsuario] = useState('')
   const [waPhone, setWaPhone] = useState('')
   const [guardando, setGuardando] = useState(false)
@@ -499,18 +499,6 @@ function AltaNegocioForma({
       <label className="campo">
         <span>Nombre del negocio</span>
         <input className="entrada" value={nombre} onChange={(e) => setNombre(e.target.value)} required />
-      </label>
-
-      <label className="campo">
-        <span>Rubro</span>
-        <select
-          className="entrada"
-          value={vertical}
-          onChange={(e) => setVertical(e.target.value as Vertical)}
-        >
-          <option value="salud">Consultorio</option>
-          <option value="gastronomia">Gastronomía</option>
-        </select>
       </label>
 
       <label className="campo">

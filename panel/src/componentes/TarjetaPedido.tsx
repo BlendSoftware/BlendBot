@@ -7,6 +7,7 @@
  */
 
 import { useEffect, useState } from 'react'
+import type { ReactNode } from 'react'
 import type { Estado, TipoEntrega } from '../api/tipos'
 import { COLOR_ESTADO, TINTA_ESTADO, accionesPara, etiquetaEstado } from '../dominio/estados'
 import { plata } from '../dominio/formato'
@@ -26,10 +27,51 @@ interface Props {
   soloCocina?: boolean
 }
 
-const ENTREGA: Record<TipoEntrega, { icono: string; texto: string }> = {
-  delivery: { icono: '🛵', texto: 'Delivery' },
-  retira: { icono: '🏃', texto: 'Retira' },
-  en_local: { icono: '🍽️', texto: 'En el local' },
+/* Mismo lenguaje de ícono que la barra inferior: trazo, no emoji — así el
+   badge de entrega no desentona con el resto del panel. */
+const trazoEntrega = {
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 1.8,
+  strokeLinecap: 'round' as const,
+  strokeLinejoin: 'round' as const,
+}
+
+function IconoDelivery() {
+  return (
+    <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" {...trazoEntrega}>
+      <path d="M14 17V7a2 2 0 0 0-2-2H4a1 1 0 0 0-1 1v10.5a.5.5 0 0 0 .5.5H5" />
+      <path d="M14 17h5.5a.5.5 0 0 0 .5-.5v-3.1a1 1 0 0 0-.22-.62L17 9h-3" />
+      <circle cx="7.5" cy="17" r="2" />
+      <circle cx="16.5" cy="17" r="2" />
+    </svg>
+  )
+}
+
+function IconoRetira() {
+  return (
+    <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" {...trazoEntrega}>
+      <path d="M6 3.5 4 7v13a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V7l-2-3.5Z" />
+      <path d="M4 7h16" />
+      <path d="M15 10.5a3 3 0 0 1-6 0" />
+    </svg>
+  )
+}
+
+function IconoEnLocal() {
+  return (
+    <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" {...trazoEntrega}>
+      <path d="M3 2v7a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2V2" />
+      <path d="M6 2v20" />
+      <path d="M18 2a4 4 0 0 0-4 4v5a2 2 0 0 0 2 2h2Zm0 0v18" />
+    </svg>
+  )
+}
+
+const ENTREGA: Record<TipoEntrega, { icono: ReactNode; texto: string }> = {
+  delivery: { icono: <IconoDelivery />, texto: 'Delivery' },
+  retira: { icono: <IconoRetira />, texto: 'Retira' },
+  en_local: { icono: <IconoEnLocal />, texto: 'En el local' },
 }
 
 export function TarjetaPedido({
@@ -76,7 +118,12 @@ export function TarjetaPedido({
   return (
     <article
       className={`turno pedido ${pulsa ? 'turno--late' : ''}`}
-      style={{ background: COLOR_ESTADO[pedido.estado], color: TINTA_ESTADO[pedido.estado] }}
+      style={
+        {
+          '--turno-color': COLOR_ESTADO[pedido.estado],
+          '--turno-tinta': TINTA_ESTADO[pedido.estado],
+        } as React.CSSProperties
+      }
       onPointerDown={() => setTocada(true)}
       aria-label={`Pedido ${pedido.numero}, ${etiquetaEstado(pedido.estado, 'pedido')}`}
     >
@@ -93,7 +140,10 @@ export function TarjetaPedido({
       <ul className="pedido__items">
         {pedido.items.map((it, i) => (
           <li key={i} className="pedido__item">
-            <span className="pedido__cant tabular">{it.cantidad}×</span>
+            <span className="pedido__cant tabular" aria-hidden="true">
+              {it.cantidad}
+            </span>
+            <span className="solo-lectores">{it.cantidad} ×</span>
             <span className="pedido__nombre">{it.nombre}</span>
             {it.nota && <span className="pedido__mod">{it.nota}</span>}
           </li>

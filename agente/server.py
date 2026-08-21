@@ -2,10 +2,10 @@
 
 Lo que el modelo puede hacer termina donde termina esta lista. No hay acceso a
 la base, no hay SQL, no hay `negocio_id` ni `telefono` como argumento: el
-negocio sale del token y el paciente del entorno de la sesión (ver settings.py).
+negocio sale del token y el cliente del entorno de la sesión (ver settings.py).
 
 Toda escritura va en dos pasos: primero `confirmado=False` (devuelve el resumen
-para leerle al paciente) y recién con el OK explícito `confirmado=True`.
+para leerle al cliente) y recién con el OK explícito `confirmado=True`.
 
 Correr: `uv run server.py` (transport stdio; lo lanza el gateway).
 """
@@ -94,6 +94,28 @@ async def _recursos() -> list[dict[str, Any]]:
     return s.recursos
 
 
+async def _cliente() -> dict[str, Any] | None:
+    """Ficha del que escribe: se crea (o se recupera) apenas arranca la
+    conversación, sin esperar a que confirme nada. Así todo el que habla por
+    WhatsApp queda en la lista de clientes del panel, no sólo el que compra.
+    Si el core no responde, no rompe la conversación: sigue sin ficha y
+    `confirmar` la crea más adelante como red de contención.
+    """
+    s = sesion()
+    if s.cliente is None:
+        telefono = _telefono()
+        if not telefono:
+            return None
+        try:
+            cliente = await core().cliente_por_telefono(telefono)
+            if cliente is None:
+                cliente = await core().crear_cliente(telefono)
+            s.cliente = cliente
+        except ErrorDelCore:
+            return None
+    return s.cliente
+
+
 async def _coberturas() -> list[dict[str, Any]]:
     negocio = await _negocio()
     cobs = negocio.get("coberturas")
@@ -124,8 +146,9 @@ def _politica(negocio: dict[str, Any], tipo: str = "turno") -> str:
 
 # El mismo objeto `compromiso` es turno, pedido o reserva según el vertical: en
 # gastronomía un compromiso con entrega es un `pedido`; una mesa bloqueada sin
-# entrega es una `reserva`. En salud, siempre `turno`. De acá sale también qué
-# política de confirmación aplica (`confirmacion.pedido` vs `confirmacion.turno`).
+# entrega es una `reserva`. Fuera de gastronomía el motor devuelve siempre
+# `turno` (nombre genérico). De acá sale también qué política de confirmación
+# aplica (`confirmacion.pedido` vs `confirmacion.turno`).
 def _tipo_compromiso(
     negocio: dict[str, Any],
     borrador: Borrador | None = None,
@@ -173,7 +196,7 @@ def _sin_encontrar(que: str, r: Resolucion, campo: str = "nombre") -> dict[str, 
         return {
             "ok": False,
             "codigo": "ambiguo",
-            "error": f"«{que}» puede ser más de una cosa. Preguntale al paciente cuál es, "
+            "error": f"«{que}» puede ser más de una cosa. Preguntale al cliente cuál es, "
             "no elijas vos.",
             "opciones": opciones,
         }
@@ -198,7 +221,7 @@ def _servicio_visible(s: dict[str, Any]) -> dict[str, Any]:
 
 
 async def _humanizar(momento_iso: str) -> dict[str, str]:
-    """Fecha y hora en la timezone del negocio, listas para leerle al paciente."""
+    """Fecha y hora en la timezone del negocio, listas para leerle al cliente."""
     try:
         dt = datetime.fromisoformat(momento_iso.replace("Z", "+00:00"))
     except ValueError:
@@ -224,11 +247,12 @@ async def datos_del_negocio() -> dict[str, Any]:
 
     ARRANCÁ POR ACÁ en toda conversación nueva: es lo que te dice cómo presentarte y si
     los turnos los confirmás vos (`confirmacion_turno = "automatica"`) o los tiene que
-    confirmar alguien del consultorio (`"humana"`). No asumas ninguna de las dos.
+    confirmar alguien del negocio (`"humana"`). No asumas ninguna de las dos.
 
-    No trae horarios de atención por profesional: eso sale de `consultar_disponibilidad`.
+    No trae horarios de atención por recurso: eso sale de `consultar_disponibilidad`.
     """
     negocio = await _negocio()
+    await _cliente()
     coberturas = await _coberturas()
     config = negocio.get("config") if isinstance(negocio.get("config"), dict) else {}
     config = config or {}
@@ -251,9 +275,9 @@ async def datos_del_negocio() -> dict[str, Any]:
 
 
 class LineaPedida(BaseModel):
-    """Un ítem tal como lo pidió el paciente: el nombre en sus palabras, no un ID."""
+    """Un ítem tal como lo pidió el cliente: el nombre en sus palabras, no un ID."""
 
-    servicio: str = Field(description="Nombre de la práctica como la dijo el paciente")
+    servicio: str = Field(description="Nombre del producto como lo dijo el cliente")
     cantidad: int = Field(default=1, ge=1, description="Cuántas veces. Casi siempre 1.")
     nota: str | None = Field(
         default=None,
@@ -267,10 +291,10 @@ async def ver_catalogo(categoria: str | None = None) -> dict[str, Any]:
     """Lo que el negocio ofrece HOY, con precio y duración.
 
     Nunca lista lo que está apagado en el panel (`disponible=false`): si algo no aparece
-    acá, para el paciente no existe. Si te pide algo que no está en la lista, decile que
+    acá, para el cliente no existe. Si te pide algo que no está en la lista, decile que
     no lo tienen — no lo ofrezcas "por las dudas".
 
-    Los precios que le digas al paciente salen de acá TAL CUAL. Si un precio no está en
+    Los precios que le digas al cliente salen de acá TAL CUAL. Si un precio no está en
     esta respuesta, no lo digas: no se estima ni se redondea.
     """
     servicios = await _catalogo(categoria)
@@ -279,7 +303,7 @@ async def ver_catalogo(categoria: str | None = None) -> dict[str, Any]:
             "ok": True,
             "servicios": [],
             "aviso": "El negocio no tiene nada disponible ahora mismo. Decilo así y ofrecé "
-            "que lo contacten del consultorio; no inventes prácticas.",
+            "que lo contacten del negocio; no inventes productos.",
         }
     return {
         "ok": True,
@@ -298,11 +322,12 @@ async def consultar_disponibilidad(
     """Huecos REALES para una práctica. Ya descuenta agenda ocupada, excepciones y holds
     de otras personas.
 
-    - `servicio`: el nombre como lo dijo el paciente; lo resuelvo contra el catálogo.
+    - `servicio`: el nombre como lo dijo el cliente; lo resuelvo contra el catálogo.
     - `desde`: fecha `YYYY-MM-DD` desde la que buscar. Sin esto, arranca hoy.
-    - `recurso`: nombre del profesional, si el paciente pidió uno. Sin esto, todos.
+    - `recurso`: nombre del recurso (mesa, repartidor, etc.), si el cliente pidió uno
+      puntual. Sin esto, todos.
 
-    Los horarios que le ofrezcas al paciente salen SOLO de acá. Si la respuesta viene
+    Los horarios que le ofrezcas al cliente salen SOLO de acá. Si la respuesta viene
     vacía, no hay turno en ese rango: ofrecé buscar en otra fecha, nunca inventes uno.
     Copiá `inicio` y `fin` tal cual para `bloquear`.
     """
@@ -344,7 +369,7 @@ async def consultar_disponibilidad(
             "servicio": sv.get("nombre"),
             "huecos": [],
             "aviso": "No hay huecos en ese rango. Ofrecé buscar en otra fecha o con otro "
-            "profesional. NO ofrezcas un horario que no esté en esta lista.",
+            "recurso. NO ofrezcas un horario que no esté en esta lista.",
         }
     return {
         "ok": True,
@@ -367,11 +392,12 @@ async def armar_compromiso(
 
     NO reserva NADA y NO escribe en el sistema: es una cuenta hecha con los precios del
     catálogo para que se la leas al cliente. Para que exista de verdad tiene que pasar
-    por `confirmar` (el OK del cliente), y en salud también por `bloquear` (el horario).
+    por `confirmar` (el OK del cliente), y si ocupa agenda (por ejemplo una reserva de
+    mesa) también por `bloquear` (el horario).
 
-    - `lineas`: los ítems que pidió. En gastronomía suelen ser varios (una hamburguesa,
-      unas papas, una gaseosa); en salud casi siempre uno.
-    - `entrega`: sólo gastronomía. `retira` (lo pasa a buscar), `delivery` (se lo llevan)
+    - `lineas`: los ítems que pidió. Suelen ser varios (una hamburguesa, unas papas, una
+      gaseosa); si es una reserva de mesa alcanza con un ítem.
+    - `entrega`: `retira` (lo pasa a buscar), `delivery` (se lo llevan)
       o `en_local` (come en el salón). Si el cliente ya lo dijo, ponelo y NO se lo
       vuelvas a preguntar.
     - `direccion`: sólo si `entrega=delivery`. La dirección donde llevar el pedido.
@@ -413,8 +439,8 @@ async def armar_compromiso(
         **borrador.como_dict(),
         "persistido": False,
         "falta_direccion": falta_direccion,
-        "aviso": "Esto TODAVÍA NO está confirmado. Leele el resumen con el total, y en "
-        "salud elegí el horario con `bloquear`. Recién con el OK explícito llamá a "
+        "aviso": "Esto TODAVÍA NO está confirmado. Leele el resumen con el total, y si "
+        "ocupa agenda elegí el horario con `bloquear`. Recién con el OK explícito llamá a "
         "`confirmar`.",
     }
     if falta_direccion:
@@ -428,10 +454,10 @@ async def armar_compromiso(
 @mcp.tool()
 @traduce_errores
 async def bloquear(recurso: str, inicio: str, fin: str) -> dict[str, Any]:
-    """Bloquea el hueco elegido mientras el paciente completa sus datos (típico: 10 min).
+    """Bloquea el hueco elegido mientras el cliente completa sus datos (típico: 10 min).
 
     Sin esto, dos personas sacan el mismo turno mientras una escribe su nombre. Llamala
-    APENAS el paciente elige horario, antes de pedirle nombre y cobertura.
+    APENAS el cliente elige horario, antes de pedirle nombre y cobertura.
 
     `recurso`, `inicio` y `fin` se copian TEXTUALES del hueco que devolvió
     `consultar_disponibilidad`. Si el core dice que ya está ocupado, pedí disculpas,
@@ -439,7 +465,7 @@ async def bloquear(recurso: str, inicio: str, fin: str) -> dict[str, Any]:
 
     Bloquear no es reservar: el turno recién existe cuando `confirmar` lo escribe.
     """
-    # Un profesional aparece en varios huecos: sin deduplicar, resolver lo lee como empate.
+    # Un recurso aparece en varios huecos: sin deduplicar, resolver lo lee como empate.
     por_id = {
         str(h["recurso_id"]): {"id": h["recurso_id"], "nombre": h.get("recurso")}
         for h in sesion().ultimos_huecos
@@ -452,7 +478,7 @@ async def bloquear(recurso: str, inicio: str, fin: str) -> dict[str, Any]:
     elegido = r.item or {}
 
     s = sesion()
-    if s.bloqueo:  # el paciente cambió de horario: soltamos el anterior
+    if s.bloqueo:  # el cliente cambió de horario: soltamos el anterior
         try:
             await core().liberar_hold(s.bloqueo.hold_id, _telefono())
         except ErrorDelCore:
@@ -473,7 +499,7 @@ async def bloquear(recurso: str, inicio: str, fin: str) -> dict[str, Any]:
         "ok": True,
         **s.bloqueo.como_dict(),
         **cuando,
-        "aviso": "Hueco bloqueado, TODAVÍA no confirmado. Avisale al paciente que se lo "
+        "aviso": "Hueco bloqueado, TODAVÍA no confirmado. Avisale al cliente que se lo "
         "guardás unos minutos mientras completan, pedile nombre y cobertura, y cerrá con "
         "`confirmar`.",
     }
@@ -494,9 +520,10 @@ async def confirmar(
     que se lo leas al cliente. Recién cuando él dice que sí, repetí con `confirmado=true`.
     Nunca confirmes sin ese OK explícito.
 
-    - `nombre`: nombre (y apellido en salud), como lo escribió el cliente.
-    - `cobertura`: sólo salud. Obra social o prepaga, si la dijo. La resuelvo contra las
-      que atiende el negocio; si no está, te lo aviso para que preguntes.
+    - `nombre`: nombre completo, como lo escribió el cliente.
+    - `cobertura`: sólo si el negocio maneja coberturas (obra social, prepaga, etc.) y el
+      cliente la dijo. La resuelvo contra las que atiende el negocio; si no está, te lo
+      aviso para que preguntes.
     - `compromiso_borrador`: el `borrador_id` de `armar_compromiso`. Vacío = el actual.
 
     La política sale de la config del negocio, por tipo. Si es `"automatica"` (típico de
@@ -512,21 +539,21 @@ async def confirmar(
             "ok": False,
             "codigo": "sin_borrador",
             "error": "No hay nada armado. Llamá primero a `armar_compromiso` con lo que "
-            "pidió el paciente.",
+            "pidió el cliente.",
         }
     if compromiso_borrador and compromiso_borrador != borrador.id:
         return {
             "ok": False,
             "codigo": "borrador_viejo",
             "error": f"Ese borrador ya no es el vigente (el actual es {borrador.id}). "
-            "Volvé a armarlo si el paciente cambió el pedido.",
+            "Volvé a armarlo si el cliente cambió el pedido.",
         }
     if borrador.duracion_min and s.bloqueo is None:
         return {
             "ok": False,
             "codigo": "sin_hueco",
             "error": "Esa práctica ocupa agenda y todavía no elegiste horario. Consultá "
-            "disponibilidad, que el paciente elija, y bloqueá el hueco antes de confirmar.",
+            "disponibilidad, que el cliente elija, y bloqueá el hueco antes de confirmar.",
         }
 
     negocio = await _negocio()
@@ -541,7 +568,7 @@ async def confirmar(
         if not coberturas:
             aviso_cobertura = (
                 "El negocio no tiene coberturas cargadas, así que no puedo registrar la "
-                "obra social. No le prometas cobertura: que lo consulte en el consultorio."
+                "obra social. No le prometas cobertura: que lo consulte en el negocio."
             )
         else:
             rc = resolver(cobertura, coberturas)
@@ -549,7 +576,7 @@ async def confirmar(
                 salida = _sin_encontrar(cobertura, rc)
                 salida["error"] = (
                     f"«{cobertura}» no está entre las coberturas que atiende el negocio. "
-                    "Preguntale al paciente si tiene otra o si va como particular; no le "
+                    "Preguntale al cliente si tiene otra o si va como particular; no le "
                     "asegures que se la toman."
                 )
                 return salida
@@ -559,7 +586,7 @@ async def confirmar(
     resumen = {
         "borrador_id": borrador.id,
         "tipo": tipo,
-        "paciente": nombre or (s.cliente or {}).get("nombre"),
+        "cliente_nombre": nombre or (s.cliente or {}).get("nombre"),
         "telefono": _telefono(),
         "cobertura": cobertura_nombre,
         **borrador.como_dict(),
@@ -575,14 +602,14 @@ async def confirmar(
             "ejecutado": False,
             "resumen": resumen,
             "aviso": (
-                "NO se agendó nada todavía. Leele este resumen al paciente con día, hora, "
-                "profesional y total, y pedile que confirme. Con su sí, repetí esta tool "
+                "NO se agendó nada todavía. Leele este resumen al cliente con día, hora, "
+                "recurso y total, y pedile que confirme. Con su sí, repetí esta tool "
                 "con confirmado=true."
             ),
             "siguiente_paso": "confirmar(confirmado=true)",
         }
 
-    if not resumen["paciente"]:
+    if not resumen["cliente_nombre"]:
         return {
             "ok": False,
             "codigo": "falta_nombre",
@@ -598,15 +625,23 @@ async def confirmar(
             "(calle y número), volvé a armar el pedido con `direccion` y recién ahí confirmá.",
         }
 
-    # 1) ficha del cliente: obtener o crear. El teléfono sale del entorno, no del modelo.
+    # 1) ficha del cliente: `_cliente()` ya la creó al arrancar la conversación
+    # (datos_del_negocio), así que acá casi siempre es completar lo que falta:
+    # el nombre (todavía no lo teníamos) y la cobertura si la dijo recién ahora.
     telefono = _telefono()
-    cliente = await core().cliente_por_telefono(telefono)
+    cliente = await _cliente() or await core().cliente_por_telefono(telefono)
     if cliente is None:
         cliente = await core().crear_cliente(
-            telefono, nombre=str(resumen["paciente"]), cobertura_id=cobertura_id
+            telefono, nombre=str(resumen["cliente_nombre"]), cobertura_id=cobertura_id
         )
-    elif cobertura_id and cliente.get("cobertura_id") != cobertura_id:
-        cliente = await core().actualizar_cliente(str(cliente.get("id")), cobertura_id=cobertura_id)
+    else:
+        cambios: dict[str, Any] = {}
+        if not cliente.get("nombre") and resumen["cliente_nombre"]:
+            cambios["nombre"] = str(resumen["cliente_nombre"])
+        if cobertura_id and cliente.get("cobertura_id") != cobertura_id:
+            cambios["cobertura_id"] = cobertura_id
+        if cambios:
+            cliente = await core().actualizar_cliente(str(cliente.get("id")), **cambios)
     s.cliente = cliente
 
     # 2) el compromiso. `sesion` va para que el hold propio no cuente como solape.
@@ -643,7 +678,7 @@ async def confirmar(
         estado = str(confirmado_resp.get("estado", "confirmado"))
 
     cuando = await _humanizar(s.bloqueo.inicio) if s.bloqueo else {}
-    profesional = s.bloqueo.recurso if s.bloqueo else None
+    recurso_asignado = s.bloqueo.recurso if s.bloqueo else None
     total = a_decimal(compromiso.get("total") or borrador.total)
     s.limpiar_compromiso()
 
@@ -661,13 +696,13 @@ async def confirmar(
             )
     elif estado == "confirmado":
         mensaje = (
-            "Turno CONFIRMADO. Decíselo con día, hora y profesional, contale qué llevar "
-            "(carnet y DNI si tiene cobertura) y que si no puede venir avise por acá."
+            "Turno CONFIRMADO. Decíselo con día, hora y recurso asignado, y que si no puede "
+            "venir avise por acá."
         )
     else:
         mensaje = (
             "Quedó PENDIENTE: la política del negocio es que confirma una persona del "
-            "consultorio. Decile que ya lo pasaste y que le confirman en un rato. NO se lo "
+            "negocio. Decile que ya lo pasaste y que le confirman en un rato. NO se lo "
             "des por confirmado."
         )
 
@@ -677,15 +712,14 @@ async def confirmar(
         "compromiso_id": compromiso_id,
         "tipo": tipo,
         "estado": estado,
-        "cliente": resumen["paciente"],
-        "paciente": resumen["paciente"],
+        "cliente": resumen["cliente_nombre"],
         "cobertura": cobertura_nombre,
         "entrega": borrador.entrega,
         "direccion": borrador.direccion,
         "total": str(total),
         "total_texto": plata(total),
         "cuando": cuando or None,
-        "profesional": profesional,
+        "recurso": recurso_asignado,
         "aviso": mensaje,
         **({"aviso_cobertura": aviso_cobertura} if aviso_cobertura else {}),
     }
@@ -694,15 +728,15 @@ async def confirmar(
 @mcp.tool()
 @traduce_errores
 async def cancelar(compromiso_id: str, motivo: str, confirmado: bool = False) -> dict[str, Any]:
-    """Cancela un turno ya agendado y libera el hueco para otro paciente.
+    """Cancela un turno ya agendado y libera el hueco para otro cliente.
 
     ESCRITURA. Llamala primero SIN `confirmado`: te devuelve qué se va a cancelar para que
-    el paciente confirme que es ese. Recién con su OK, repetí con `confirmado=true`.
+    el cliente confirme que es ese. Recién con su OK, repetí con `confirmado=true`.
 
-    `motivo` es lo que dijo el paciente, en una línea y sin datos clínicos.
+    `motivo` es lo que dijo el cliente, en una línea.
 
     Si el core rechaza la transición, el turno ya no está en un estado cancelable: no
-    insistas, decile que se comunique con el consultorio. Después de cancelar, ofrecele
+    insistas, decile que se comunique con el negocio. Después de cancelar, ofrecele
     buscar otro turno.
     """
     if not confirmado:
@@ -715,7 +749,7 @@ async def cancelar(compromiso_id: str, motivo: str, confirmado: bool = False) ->
             "estado_actual": datos.get("estado"),
             "cuando": cuando,
             "motivo": motivo,
-            "aviso": "Todavía NO se canceló. Confirmá con el paciente que es este turno y "
+            "aviso": "Todavía NO se canceló. Confirmá con el cliente que es este turno y "
             "repetí con confirmado=true.",
         }
 
@@ -727,7 +761,7 @@ async def cancelar(compromiso_id: str, motivo: str, confirmado: bool = False) ->
         "estado": datos.get("estado", "cancelado"),
         "motivo": motivo,
         "aviso": "Turno cancelado y hueco liberado. Agradecele el aviso (libera el lugar "
-        "para otro paciente) y ofrecele buscar otro turno.",
+        "para otro cliente) y ofrecele buscar otro turno.",
     }
 
 

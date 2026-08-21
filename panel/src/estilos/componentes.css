@@ -9,7 +9,7 @@
   border: 1px solid var(--borde);
   border-radius: 999px;
   background: var(--superficie);
-  font-weight: 600;
+  font-weight: 700;
   font-size: var(--t-mini);
   color: var(--tinta-suave);
   box-shadow: var(--sombra-baja);
@@ -17,7 +17,13 @@
     background-color var(--transicion),
     border-color var(--transicion),
     color var(--transicion),
-    box-shadow var(--transicion);
+    box-shadow var(--transicion),
+    transform 120ms var(--curva);
+}
+
+.interruptor:hover {
+  box-shadow: var(--sombra-tarjeta);
+  transform: translateY(-1px);
 }
 
 .interruptor__pista {
@@ -27,6 +33,7 @@
   height: 34px;
   border-radius: 999px;
   background: oklch(0.86 0.01 60);
+  box-shadow: inset 0 1px 3px oklch(0.24 0.012 55 / 0.15);
   transition: background-color var(--transicion);
 }
 
@@ -39,7 +46,11 @@
   border-radius: 999px;
   background: var(--superficie);
   box-shadow: var(--sombra-baja);
-  transition: transform var(--transicion);
+  transition: transform var(--transicion) , box-shadow var(--transicion);
+}
+
+.interruptor:active .interruptor__perilla {
+  box-shadow: var(--sombra-baja), 0 0 0 6px oklch(0.24 0.012 55 / 0.06);
 }
 
 .interruptor--si {
@@ -80,11 +91,24 @@
   border-radius: var(--radio);
   position: relative;
   box-shadow: var(--sombra-tarjeta);
-  transition: background-color var(--transicion);
+  transition:
+    background-color var(--transicion),
+    box-shadow 200ms var(--curva),
+    transform 200ms var(--curva);
+  animation: aparecer-arriba 220ms var(--curva);
+}
+
+.turno:hover {
+  box-shadow:
+    0 4px 10px oklch(0.24 0.012 55 / 0.16),
+    0 28px 56px oklch(0.24 0.012 55 / 0.32);
+  transform: translateY(-3px);
 }
 
 .turno--late {
-  animation: latido 2s var(--curva) infinite;
+  animation:
+    aparecer-arriba 220ms var(--curva),
+    latido 2s var(--curva) infinite;
 }
 
 @keyframes latido {
@@ -95,6 +119,29 @@
   50% {
     opacity: 0.88;
   }
+}
+
+/*
+ * El pedido queda en papel, pero teñido: un lavado suave del color del
+ * estado en todo el fondo (no la plancha a pleno de antes), el filo
+ * izquierdo más marcado y un halo de sombra del mismo color. Se sigue
+ * reconociendo de lejos y ahora tiene pulso, sin volver al cartel saturado.
+ */
+.turno.pedido {
+  background: color-mix(in oklch, var(--turno-color) 7%, var(--superficie));
+  color: var(--tinta);
+  border-left: 6px solid var(--turno-color);
+  border-radius: var(--radio-chico) var(--radio) var(--radio) var(--radio-chico);
+  box-shadow:
+    var(--sombra-tarjeta),
+    0 10px 22px color-mix(in oklch, var(--turno-color) 28%, transparent);
+}
+
+.turno.pedido:hover {
+  box-shadow:
+    0 4px 10px oklch(0.24 0.012 55 / 0.16),
+    0 28px 56px oklch(0.24 0.012 55 / 0.32),
+    0 14px 30px color-mix(in oklch, var(--turno-color) 34%, transparent);
 }
 
 .turno__cabeza {
@@ -111,14 +158,18 @@
 }
 
 .turno__estado {
+  padding: 2px var(--e2);
+  border-radius: 999px;
+  background: oklch(0.99 0.004 60 / 0.45);
   font-size: var(--t-mini);
-  font-weight: 600;
-  opacity: 0.85;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  opacity: 0.92;
 }
 
 .turno__nombre {
   font-size: var(--t-medio);
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1.2;
 }
 
@@ -138,6 +189,7 @@
   background: var(--vencido);
   color: var(--sobre-vencido);
   opacity: 1;
+  animation: latido 1.4s var(--curva) infinite;
 }
 
 .turno__nota {
@@ -148,10 +200,12 @@
 .turno__problema {
   padding: var(--e1) var(--e2);
   border-radius: var(--radio-chico);
+  border-left: 3px solid oklch(0.42 0.16 25 / 0.6);
   background: var(--superficie);
   color: oklch(0.42 0.16 25);
   font-size: var(--t-mini);
   font-weight: 600;
+  animation: aparecer 180ms var(--curva);
 }
 
 .turno__acciones {
@@ -169,20 +223,74 @@
   border-color: transparent;
   background: oklch(0.99 0.004 60 / 0.9);
   color: var(--tinta);
+  font-weight: 700;
 }
 
+.turno__accion:hover:not(:disabled) {
+  background: oklch(0.99 0.004 60);
+  box-shadow: 0 6px 16px oklch(0.24 0.012 55 / 0.18);
+  transform: translateY(-2px);
+}
+
+/* La acción principal manda: blanco a pleno, sombra propia, la que se toca. */
 .turno__accion--primario {
   background: var(--superficie);
   color: var(--tinta);
+  font-weight: 800;
+  box-shadow: var(--sombra-tarjeta), inset 0 0 0 1.5px oklch(0.99 0.004 60 / 0.6);
 }
 
-.turno__accion--peligro {
-  background: oklch(0.99 0.004 60 / 0.55);
-  color: oklch(0.4 0.16 25);
-}
-
+/* Rechazar/Cancelar/No vino son la salida: contorno, no relleno, para que no
+   compitan en peso visual con la acción principal. */
+.turno__accion--peligro,
 .turno__accion--neutro {
-  background: oklch(0.99 0.004 60 / 0.55);
+  background: oklch(0.24 0.012 55 / 0.1);
+  color: inherit;
+  box-shadow: inset 0 0 0 1.5px oklch(0.99 0.004 60 / 0.5);
+}
+
+.turno__accion--peligro:hover:not(:disabled),
+.turno__accion--neutro:hover:not(:disabled) {
+  background: oklch(0.24 0.012 55 / 0.18);
+  color: inherit;
+}
+
+/*
+ * El pedido vive en tarjeta clara: acá el color del estado aparece recién en
+ * la acción principal (el botón que se toca), y los de salida son contorno
+ * simple sobre papel, no oscurecido — leen distinto porque el fondo detrás
+ * es distinto.
+ */
+.pedido .turno__accion {
+  background: var(--panel);
+  color: var(--tinta);
+}
+
+.pedido .turno__accion:hover:not(:disabled) {
+  background: oklch(0.94 0.008 60);
+}
+
+.pedido .turno__accion--primario {
+  background: var(--turno-color);
+  color: var(--turno-tinta);
+  box-shadow: var(--sombra-baja);
+}
+
+.pedido .turno__accion--primario:hover:not(:disabled) {
+  background: color-mix(in oklch, var(--turno-color) 88%, black);
+}
+
+.pedido .turno__accion--peligro,
+.pedido .turno__accion--neutro {
+  background: transparent;
+  color: var(--tinta-suave);
+  box-shadow: inset 0 0 0 1.5px var(--borde);
+}
+
+.pedido .turno__accion--peligro:hover:not(:disabled),
+.pedido .turno__accion--neutro:hover:not(:disabled) {
+  background: var(--panel);
+  color: var(--tinta);
 }
 
 /* ── Cobro ───────────────────────────────────────────────────────────────── */
@@ -205,10 +313,17 @@
   background: var(--superficie);
   color: var(--tinta);
   font-size: var(--t-mini);
+  box-shadow: var(--sombra-baja);
+  animation: aparecer 200ms var(--curva);
 }
 
 .cobro__hecho {
   font-weight: 800;
+}
+
+.cobro__hecho::before {
+  content: '✓ ';
+  color: oklch(0.5 0.11 155);
 }
 
 .cobro__factura {
@@ -216,12 +331,24 @@
   color: var(--tinta-suave);
 }
 
+.cobro--bien {
+  border-left: 3px solid oklch(0.62 0.1 155 / 0.6);
+}
+
 .cobro--bien .cobro__factura {
   color: oklch(0.38 0.09 155);
 }
 
+.cobro--problema {
+  border-left: 3px solid oklch(0.55 0.18 25 / 0.5);
+}
+
 .cobro--problema .cobro__factura {
   color: oklch(0.42 0.16 25);
+}
+
+.cobro--espera {
+  border-left: 3px solid oklch(0.6 0.1 250 / 0.5);
 }
 
 .cobro--espera .cobro__factura {
@@ -256,10 +383,12 @@
   gap: var(--e2);
   padding: var(--e3);
   border: 1px solid var(--borde);
+  border-top: 3px solid var(--acento);
   border-radius: var(--radio);
   background: var(--superficie);
   color: var(--tinta);
   box-shadow: var(--sombra-flotante);
+  animation: aparecer-arriba 160ms var(--curva);
 }
 
 .medios__titulo {
@@ -279,6 +408,11 @@
   min-height: 56px;
 }
 
+.medios__opcion:hover:not(:disabled) {
+  border-color: var(--acento);
+  color: var(--acento);
+}
+
 /* ── Selector de demora ──────────────────────────────────────────────────── */
 
 .demora {
@@ -292,10 +426,12 @@
   gap: var(--e2);
   padding: var(--e3);
   border: 1px solid var(--borde);
+  border-top: 3px solid var(--acento);
   border-radius: var(--radio);
   background: var(--superficie);
   color: var(--tinta);
   box-shadow: var(--sombra-flotante);
+  animation: aparecer-arriba 160ms var(--curva);
 }
 
 .demora__titulo {
@@ -312,6 +448,11 @@
 
 .demora__preset {
   flex: 1 1 72px;
+}
+
+.demora__preset:hover:not(:disabled) {
+  border-color: var(--acento);
+  color: var(--acento);
 }
 
 .demora__libre {
@@ -335,7 +476,10 @@
   padding: var(--e2) var(--e2) calc(var(--e2) + env(safe-area-inset-bottom));
   border-top: 1px solid var(--borde);
   background: var(--panel);
-  box-shadow: 0 -4px 16px oklch(0.24 0.012 55 / 0.1);
+  background: color-mix(in oklch, var(--panel) 92%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 -8px 24px oklch(0.24 0.012 55 / 0.12);
 }
 
 .barra-inferior__ir {
@@ -344,16 +488,21 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: 3px;
   min-height: 60px;
   border-radius: var(--radio);
   color: var(--tinta-suave);
   font-size: var(--t-mini);
-  font-weight: 600;
+  font-weight: 700;
   text-decoration: none;
   transition:
     background-color var(--transicion),
-    color var(--transicion);
+    color var(--transicion),
+    transform 150ms var(--curva);
+}
+
+.barra-inferior__ir svg {
+  transition: transform 150ms var(--curva);
 }
 
 .barra-inferior__ir:hover {
@@ -361,9 +510,15 @@
   color: var(--acento);
 }
 
+.barra-inferior__ir:hover svg {
+  transform: translateY(-1px) scale(1.06);
+}
+
 .barra-inferior__ir.es-actual {
   background: var(--acento);
   color: var(--acento-tinta);
+  box-shadow: var(--sombra-baja);
+  transform: translateY(-2px);
 }
 
 /* ── Fila de servicio ────────────────────────────────────────────────────── */
@@ -372,11 +527,14 @@
   padding: var(--e2);
   margin-bottom: var(--e1);
   border-radius: var(--radio-chico);
-  transition: background-color var(--transicion);
+  transition:
+    background-color var(--transicion),
+    transform var(--transicion);
 }
 
 .servicio:hover {
   background: var(--acento-suave);
+  transform: translateX(3px);
 }
 
 .servicio--apagado {
@@ -461,14 +619,28 @@
   align-items: flex-start;
   gap: var(--e2);
   padding: var(--e4);
-  border: 1px dashed oklch(0.58 0.13 40 / 0.3);
+  border: 1.5px dashed oklch(0.58 0.13 40 / 0.32);
   border-radius: var(--radio);
-  background: oklch(0.58 0.13 40 / 0.05);
+  background:
+    radial-gradient(420px 180px at 0% 0%, oklch(0.58 0.13 40 / 0.08), transparent 70%),
+    oklch(0.58 0.13 40 / 0.04);
+}
+
+.vacio__icono {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  margin-bottom: var(--e1);
+  border-radius: var(--radio-chico);
+  background: var(--acento-suave);
+  color: var(--acento);
 }
 
 .vacio__titulo {
   font-size: var(--t-medio);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .vacio__detalle {
@@ -504,8 +676,18 @@
   margin-top: var(--e3);
   justify-content: flex-start;
   color: var(--acento);
+  font-weight: 700;
   border-style: dashed;
+  border-width: 1.5px;
   border-color: oklch(0.58 0.13 40 / 0.35);
+  box-shadow: none;
+}
+
+.disparador:hover:not(:disabled) {
+  border-color: var(--acento);
+  background: var(--acento-suave);
+  box-shadow: none;
+  transform: none;
 }
 
 /*
@@ -517,6 +699,7 @@
   display: inline-flex;
   align-items: center;
   gap: var(--e1);
+  animation: aparecer 150ms var(--curva);
 }
 
 .confirmar-inline .boton {

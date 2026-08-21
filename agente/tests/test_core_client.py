@@ -36,7 +36,7 @@ async def test_hold_solapado_le_dice_al_modelo_que_ofrezca_otro(respx_mock, core
         return_value=httpx.Response(409, json={"detail": "el hueco se solapa"})
     )
     with pytest.raises(ErrorDelCore) as e:
-        await core.crear_hold("rec-gomez", "2026-08-21T11:30:00-03:00", "2026-08-21T12:15:00-03:00", "549")
+        await core.crear_hold("rec-coty", "2026-08-21T11:30:00-03:00", "2026-08-21T12:15:00-03:00", "549")
 
     assert e.value.codigo == "ocupado"
     assert "se acaba de ocupar" in e.value.mensaje

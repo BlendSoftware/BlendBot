@@ -39,7 +39,16 @@ export function Login() {
   return (
     <div className="portada">
       <form className="portada__forma" onSubmit={mandar}>
-        <p className="portada__marca">Copiloto</p>
+        <p className="portada__marca">
+          <span className="portada__logo" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M6 2v7a2 2 0 0 0 2 2v11" />
+              <path d="M6 2v6M10 2v6" />
+              <path d="M18 2c-2 2-2 5-2 8s0 4 2 4v8" />
+            </svg>
+          </span>
+          Copiloto
+        </p>
         <h1 className="portada__titulo">Buen día. Entrá para ver la agenda.</h1>
 
         <label className="campo">
@@ -71,6 +80,10 @@ export function Login() {
         <button type="submit" className="boton boton--primario portada__entrar" disabled={entrando}>
           {entrando ? 'Entrando' : 'Entrar'}
         </button>
+
+        <a href="/" className="portada__volver">
+          ← Volver al sitio
+        </a>
       </form>
     </div>
   )

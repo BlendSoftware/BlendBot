@@ -10,9 +10,9 @@
 
 Todos los bots de WhatsApp del mercado contestan. **Ninguno factura.**
 
-Si el turno se toma, se cobra y sale el comprobante fiscal, el producto deja de
-ser un asistente y pasa a ser **el sistema de gestión del negocio**. Y de un
-sistema de gestión no te dan de baja a los tres meses.
+Si el pedido o la reserva se toman, se cobran y sale el comprobante fiscal, el
+producto deja de ser un asistente y pasa a ser **el sistema de gestión del
+negocio**. Y de un sistema de gestión no te dan de baja a los tres meses.
 
 Esto no se copia en un fin de semana. Certificados, WSAA, WSFEv1, los reintentos,
 los códigos de error crípticos del fisco: son meses de dolor que **ya están
@@ -48,12 +48,12 @@ Ese es el gancho. No hay que crear el dolor: lo creó el Estado hace seis semana
 
 Sin ARCA:
 
-> "Te contesto el WhatsApp y te agendo los turnos."
+> "Te contesto el WhatsApp y te tomo los pedidos."
 
 Con ARCA:
 
-> "Los pacientes te piden turno por WhatsApp y vos contestás cuando podés. Esto
-> contesta solo, te agenda el turno, y **cuando cobrás la consulta te emite la
+> "Los clientes te piden por WhatsApp y vos contestás cuando podés. Esto
+> contesta solo, te toma el pedido o la reserva, y **cuando cobrás te emite la
 > factura sola**. No entrás más a ARCA."
 
 La primera compite contra veinte. La segunda no compite contra nadie.
@@ -101,8 +101,7 @@ no la mecánica.
 | Tema | Qué revisar |
 |---|---|
 | **Tipo de comprobante** | Un monotributista emite **Factura C**. El sidecar hoy apunta al caso de comercio. Es un parámetro más en el request. |
-| **Servicios de salud** | Tienen tratamiento propio de IVA (muchas prestaciones exentas). **Exento no es "no facturar"**: igual se emite comprobante. Consultar con contador antes de codear. |
-| **Concepto** | WSFEv1 distingue productos, servicios y ambos. Un turno es **servicio**, y eso obliga a informar fecha de servicio desde/hasta. |
+| **Concepto** | WSFEv1 distingue productos, servicios y ambos. Un pedido con productos es **concepto productos**; una reserva de mesa, si se factura como tal, es **servicio** y obliga a informar fecha de servicio desde/hasta. |
 | **Punto de venta** | Cada negocio tiene el suyo. Ya está en `configuracion_fiscal`. |
 | **Certificados por tenant** | Hoy es un certificado. Multi-tenant necesita uno por CUIT, guardado cifrado. **Es el trabajo más grande de la adaptación.** |
 | **Operaciones > $10.000.000** | Obligan a identificar al cliente, sin comprobante anónimo. Poco probable acá, pero está |
@@ -149,14 +148,13 @@ compromiso COMPLETADO
    PDF al cliente por WhatsApp   ← el toque que lo hace parecer magia
 ```
 
-**Mandarle la factura al paciente por el mismo WhatsApp donde sacó el turno** es
-el remate. Cierra el círculo entero en un solo canal.
+**Mandarle la factura al cliente por el mismo WhatsApp donde hizo el pedido**
+es el remate. Cierra el círculo entero en un solo canal.
 
 ---
 
 ## Pendientes
 
-- [ ] Confirmar con contador el tratamiento de IVA en prestaciones de salud
 - [ ] Adaptar el sidecar a Factura C y concepto "servicios"
 - [ ] Diseñar el almacenamiento cifrado de certificados por tenant
 - [ ] Probar el circuito completo en el **homologación** de ARCA antes de producción

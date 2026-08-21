@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     agente_token: str = Field(description="Token del negocio, formato cop_<random>")
     cliente_telefono: str = Field(description="Número de WhatsApp del cliente de esta sesión")
     timeout_s: float = Field(default=15.0, description="Techo de cada request al core")
-    vertical: str = Field(default="salud", description="Qué SKILL.md carga el gateway")
+    vertical: str = Field(default="gastronomia", description="Qué SKILL.md carga el gateway")
 
     @field_validator("core_url")
     @classmethod

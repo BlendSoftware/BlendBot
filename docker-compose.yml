@@ -142,10 +142,14 @@ services:
     networks: [copiloto]
     restart: unless-stopped
 
-  # ── Panel: bundle estático + proxy /api → core ─────────────────────────────
+  # ── Front: landing (raíz) + panel (/panel/) + proxy /api → core ────────────
+  # Un solo servidor para las dos cosas (ver panel/Dockerfile y
+  # panel/nginx.conf): el contexto es la raíz porque la imagen necesita
+  # panel/ y landing/ juntos.
   panel:
     build:
-      context: ./panel
+      context: .
+      dockerfile: panel/Dockerfile
     ports:
       - "${PANEL_PORT:-8081}:80"
     depends_on:

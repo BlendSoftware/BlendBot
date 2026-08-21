@@ -19,41 +19,41 @@ BASE = "http://core.test"
 
 NEGOCIO = {
     "id": "neg-1",
-    "nombre": "Odontología Del Valle",
-    "vertical": "salud",
+    "nombre": "Estudio Bella Estilo",
+    "vertical": "estetica",
     "timezone": "America/Argentina/Mendoza",
     "config": {"confirmacion": {"turno": "automatica"}, "hold_minutos": 10},
     "coberturas": [
-        {"id": "cob-osep", "nombre": "OSEP"},
-        {"id": "cob-part", "nombre": "Particular"},
+        {"id": "cob-oro", "nombre": "Club Oro"},
+        {"id": "cob-sin", "nombre": "Sin club"},
     ],
 }
 
 CATALOGO = [
     {
-        "id": "sv-consulta",
-        "nombre": "Consulta",
+        "id": "sv-corte",
+        "nombre": "Corte",
         "duracion_min": 30,
         "precio_base": "12000.00",
         "disponible": True,
     },
     {
-        "id": "sv-control",
-        "nombre": "Consulta de control",
+        "id": "sv-retoque",
+        "nombre": "Corte de puntas",
         "duracion_min": 20,
         "precio_base": "9000.00",
         "disponible": True,
     },
     {
-        "id": "sv-limpieza",
-        "nombre": "Limpieza",
+        "id": "sv-lavado",
+        "nombre": "Lavado",
         "duracion_min": 30,
         "precio_base": "18000.00",
         "disponible": True,
     },
     {
-        "id": "sv-arreglo",
-        "nombre": "Arreglo (caries)",
+        "id": "sv-color",
+        "nombre": "Coloración fantasía",
         "duracion_min": 45,
         "precio_base": "25000.00",
         "disponible": True,
@@ -61,18 +61,18 @@ CATALOGO = [
 ]
 
 HUECOS = {
-    "servicio_id": "sv-arreglo",
+    "servicio_id": "sv-color",
     "duracion_min": 45,
     "huecos": [
         {
-            "recurso_id": "rec-gomez",
-            "recurso": "Dra. Gómez",
+            "recurso_id": "rec-coty",
+            "recurso": "Coty",
             "inicio": "2026-08-21T11:30:00-03:00",
             "fin": "2026-08-21T12:15:00-03:00",
         },
         {
-            "recurso_id": "rec-gomez",
-            "recurso": "Dra. Gómez",
+            "recurso_id": "rec-coty",
+            "recurso": "Coty",
             "inicio": "2026-08-21T16:15:00-03:00",
             "fin": "2026-08-21T17:00:00-03:00",
         },

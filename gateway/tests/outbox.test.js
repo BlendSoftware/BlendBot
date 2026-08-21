@@ -198,13 +198,13 @@ describe('cuerpo que se le manda a Graph', () => {
       telefono: CLIENTE,
       tipo: 'plantilla',
       plantilla: 'recordatorio_turno',
-      variables: { nombre: 'Carla', fecha_hora_local: 'jueves 10:30', negocio: 'Consultorio' },
+      variables: { nombre: 'Carla', fecha_hora_local: 'jueves 10:30', negocio: 'Rotisería' },
     });
     expect(cuerpo.type).toBe('template');
     expect(cuerpo.template.name).toBe('recordatorio_turno');
     expect(cuerpo.template.language).toEqual({ code: 'es_AR' });
     expect(cuerpo.template.components[0].parameters.map((p) => p.text))
-      .toEqual(['Carla', 'jueves 10:30', 'Consultorio']);
+      .toEqual(['Carla', 'jueves 10:30', 'Rotisería']);
   });
 
   it('plantilla con variables en array: posicional tal cual', () => {

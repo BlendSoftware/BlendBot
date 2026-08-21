@@ -5,20 +5,17 @@ register: product
 ## Qué es
 
 El panel de control de un SaaS argentino: el WhatsApp del negocio contesta solo
-(agente IA), toma pedidos/reservas/turnos, y este panel es donde el negocio los
-opera. Cuando se cobra, emite la factura de ARCA. Dos verticales sobre el mismo
-motor: consultorios (primero) y gastronomía.
+(agente IA), toma pedidos y reservas de mesa, y este panel es donde el negocio
+los opera. Cuando se cobra, emite la factura de ARCA. Un solo vertical activo:
+**gastronomía** (el motor es genérico, pero hoy no se vende otro vertical).
 
 Fuente completa: `docs/PRODUCTO.md` y `docs/PANEL.md` (escritos con el fundador).
 
 ## Usuarios
 
-- **La secretaria del consultorio** (usuaria principal, v1): mira la agenda del
-  día en una tablet o PC en el mostrador, con luz natural, mañana tranquila.
-  No es técnica. Si el panel la hace sentir reemplazada, sabotea el producto.
-- **El profesional dueño**: entra poco; quiere ver el día y la plata de un vistazo.
-- **El cajero/dueño gastronómico** (v2): parado, tablet con grasa, viernes 21hs,
-  gente gritando. Opera con el pulgar, mira de lejos.
+- **El cajero/dueño gastronómico** (usuario principal): parado, tablet con
+  grasa, viernes 21hs, gente gritando. Opera con el pulgar, mira de lejos. No
+  es técnico.
 - **Admin de la plataforma** (nosotros): alta de negocios, token del agente.
 
 ## Principios estratégicos (de docs/PANEL.md, no negociables)
@@ -35,7 +32,7 @@ Fuente completa: `docs/PRODUCTO.md` y `docs/PANEL.md` (escritos con el fundador)
 ## Tono y marca
 
 Español rioplatense neutro profesional (tuteo suave, sin slang). Cálido, directo,
-cero jerga técnica: la secretaria jamás lee "tenant", "commit" ni "estado inválido".
+cero jerga técnica: el cajero/dueño jamás lee "tenant", "commit" ni "estado inválido".
 Nombre de trabajo "Copiloto"; sin identidad visual heredada: la define DESIGN.md.
 
 ## Anti-referencias

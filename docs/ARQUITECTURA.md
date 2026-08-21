@@ -1,5 +1,12 @@
 # Arquitectura
 
+> **Vertical activo: gastronomía.** El motor descrito acá es genérico —
+> soporta más de un tipo de recurso y el vertical `salud` sigue existiendo a
+> nivel de datos y código— pero el producto que se vende y se opera hoy es
+> exclusivamente gastronomía (ver D21 en [`DECISIONES.md`](DECISIONES.md)).
+> Las menciones a turno/profesional/paciente en este documento describen una
+> capacidad del motor, no una oferta comercial vigente.
+
 ## La idea central
 
 Un **pedido**, una **reserva de mesa** y un **turno médico** son el mismo objeto.
@@ -352,7 +359,9 @@ Copiado del multi-tenant de Skill-Moodle, que ya está resuelto:
 
 ## Datos sensibles (Ley 25.326)
 
-Aplica al vertical salud desde el primer día.
+Aplica al vertical salud. Hoy ese vertical está discontinuado como oferta
+comercial (D21), así que esta sección documenta una capacidad del motor que no
+está en uso; se mantiene diseñada por si se reactiva.
 
 | Regla | Cómo |
 |---|---|

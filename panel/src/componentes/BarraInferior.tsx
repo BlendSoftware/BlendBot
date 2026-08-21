@@ -33,6 +33,15 @@ function IconoAgenda() {
   )
 }
 
+function IconoComanda() {
+  return (
+    <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" {...trazo}>
+      <path d="M5 3h11l3 3v15H5z" />
+      <path d="M8.5 10h7M8.5 13.5h7M8.5 17h4" />
+    </svg>
+  )
+}
+
 function IconoCatalogo() {
   return (
     <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" {...trazo}>
@@ -94,6 +103,7 @@ export function BarraInferior({ rol }: Props) {
   const gastro = negocio?.vertical === 'gastronomia'
   const delNegocio = [
     { a: '/', texto: gastro ? 'Pedidos' : 'Agenda', icono: <IconoAgenda /> },
+    ...(gastro ? [{ a: '/comanda', texto: 'Comanda', icono: <IconoComanda /> }] : []),
     { a: '/catalogo', texto: gastro ? 'Carta' : 'Catálogo', icono: <IconoCatalogo /> },
     { a: '/equipo', texto: 'Equipo', icono: <IconoEquipo /> },
     { a: '/clientes', texto: 'Clientes', icono: <IconoClientes /> },
