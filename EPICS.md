@@ -479,3 +479,40 @@ El Cierre actual sólo muestra comprobantes ARCA. El dueño quiere una CAJA real
 - Backend: `CompromisoResponse` suma `cliente_nombre` y `cliente_telefono` (join en `compromiso_repo.go`, tenant-scoped). Endpoint `GET /api/clientes` que liste TODOS los clientes del negocio (con su último pedido/total acumulado si es barato). Verificá que crear un pedido (por panel o agente) deje el cliente registrado y visible.
 - Panel: `TarjetaPedido.tsx` muestra el nombre del cliente (revertí la decisión de "sólo número e ítems" — el dueño lo quiere ver). `Clientes.tsx` en gastronomía lista a todos los que pidieron (hoy filtra por agenda de salud). El cliente creado por un pedido aparece ahí.
 - Tests Go + vitest. Dueño de: compromiso_dto.go, compromiso_repo.go, cliente handler/repo (list), panel TarjetaPedido.tsx + Clientes.tsx (+ tests), api endpoints/tipos SÓLO agregando lo de clientes. NO toques Cierre ni archivos de W7-A.
+
+---
+
+## E12 — Dogfooding 2: consultas, info del local y descripción de platos (21/08/2026)
+
+Feedback del dueño usando el producto. Motor NO se toca (aditivo/decorador).
+
+### Contratos de API (todos comparten esto)
+- **Consultas** (preguntas que el bot no supo responder):
+  - `POST /api/consultas` (permitido a RolAgente y dueño): body `{cliente_id, pregunta}` → crea consulta pendiente. Devuelve la consulta.
+  - `GET /api/consultas?estado=pendiente|respondida|` (dueño/operador): lista, con nombre+teléfono del cliente y la pregunta.
+  - `PATCH /api/consultas/:id/responder` (dueño): body `{respuesta}` → marca respondida y ENCOLA un aviso al cliente por `salidas_whatsapp` (texto: "Sobre tu consulta: <respuesta>"). Reusar worker.Publicador.
+- **Info del local** (dirección, horarios, teléfono): se guarda en `negocio.config.info = {direccion, horarios, telefono, notas}` (jsonb, sin migración de columnas).
+  - `GET /api/negocio` ya existe: sumar `info` a su respuesta.
+  - `PATCH /api/negocio` (dueño, NUEVO): body `{info:{direccion?,horarios?,telefono?,notas?}}` → mergea en config.info. No pisa el resto de config.
+- **Descripción de plato**: `servicio.descripcion text` (migración nueva). `GET /api/servicios` la devuelve; POST/PATCH servicio la aceptan.
+
+### W9-A: backend (Go — dueño de core; cablea router/main)
+- Migración nueva: tabla `consulta` (id, negocio_id fk, cliente_id fk null, telefono text, pregunta text, respuesta text null, estado text default 'pendiente', creado_en, respondida_en null) + `ALTER TABLE servicio ADD COLUMN descripcion text`.
+- model/repo/service/handler/dto de consultas (tenant-scoped). Al responder, encolar aviso al cliente (Publicador, tipo texto, con el telefono del cliente y wa_phone_id del negocio).
+- servicio.descripcion en model/dto/repo (create+update+list).
+- `GET /api/negocio`: sumar `info` (de config.info) y que cada servicio del catálogo traiga descripcion. `PATCH /api/negocio` nuevo (dueño) que mergea config.info.
+- Permisos (H8): agregar `POST /api/consultas` a la allowlist del agente (RestringirAgente). GET/PATCH consultas y PATCH negocio = dueño (o dueño+operador para GET consultas). PATCH negocio sólo dueño.
+- Tests Go (integración+e2e): crear consulta, responder encola aviso, tenant-scoped; descripcion ida y vuelta; PATCH negocio mergea info sin pisar confirmacion/delivery.
+- Verificá go build/vet/test ./... verde (gastro+salud).
+
+### W9-B: panel (React — dueño de panel)
+- **Consultas**: sección/inbox de preguntas pendientes (badge con el número). El dueño ve pregunta + cliente y responde inline (textarea → PATCH responder). Accesible desde el board de pedidos (un acceso visible cuando hay pendientes) y/o barra inferior. Copy rioplatense.
+- **El local** (en gastronomía, la pestaña "Equipo" no tiene sentido como profesionales): reconvertila/aprovechala para **la info del local** — dirección, horarios, teléfono, notas — editable (form → PATCH /api/negocio {info}). En salud dejá Equipo como está (profesionales). Bifurcá por vertical.
+- **Descripción de plato**: en Catálogo, cada ítem puede editar su descripción (lo que lleva); mostrarla. 
+- Tipos TS + endpoints nuevos (consultas, PATCH negocio, descripcion). Tests vitest. tsc/build/test verdes. Cambios acotados (Lautaro trabaja el panel en paralelo).
+
+### W9-C: agente (Python — dueño de agente/)
+- Tool nueva `dejar_consulta(pregunta)`: cuando el cliente pregunta algo que el bot NO puede verificar con las tools (no está en la carta, ni en datos del local), en vez de inventar, la registra (POST /api/consultas con el cliente resuelto por CLIENTE_TELEFONO) y le dice al cliente que el local le va a responder. Regla dura en el SKILL: ante lo que no sabés y no podés verificar, dejá_consulta, no inventes.
+- `ver_catalogo`: incluir/usar `descripcion` para poder responder "¿qué tiene la Doble bacon?".
+- `datos_del_negocio`: exponer `info` (dirección, horarios, teléfono) para responder esas preguntas cuando SÍ están cargadas.
+- SKILL.md gastronomía → subir versión. Tests pytest (dejar_consulta, responder con descripcion, no inventar). uv run pytest verde.
