@@ -462,3 +462,20 @@ PRODUCT.md/DESIGN.md mandan. El panel ya distingue `vertical` (`negocio.vertical
   bien, la bifurcación salud/gastro). tsc estricto, build y test verdes.
 - CUIDADO: Lautaro trabaja el panel en paralelo desde otra máquina; hacé cambios
   acotados y no reformatees archivos enteros, para que el merge no sea un infierno.
+
+---
+
+## E11 — Dogfooding gastronomía: bugs del primer cliente (21/08/2026)
+
+Feedback del dueño usando el producto. El motor NO se toca (patrón decorador/aditivo).
+
+### W7-A: Cierre del día de verdad (Go backend + panel Cierre.tsx)
+El Cierre actual sólo muestra comprobantes ARCA. El dueño quiere una CAJA real.
+- Backend: concepto de JORNADA (abrir/cerrar el día). Migración nueva `jornada(id, negocio_id, abierta_en, cerrada_en null, ...)`. Endpoints: `POST /api/jornada/abrir`, `POST /api/jornada/cerrar`, `GET /api/jornada/actual`. Reportes: extender `CierreDelDia` para contar lo **VENDIDO = pedidos en estado `completado`/entregado del día** (su total), además de lo cobrado por ARCA; y `GET /api/reportes?rango=semanal|mensual` con totales por día. Todo tenant-scoped, TZ del negocio.
+- Panel `Cierre.tsx`: con día ABIERTO muestra lo que va del día (ventas en curso, entregados, total vendido) + botón "Cerrar día"; con día CERRADO muestra el histórico (lo de días anteriores) + botón "Abrir día"; pestañitas/secciones de informe semanal y mensual (números grandes tabulares, mismo estilo). El total vendido tiene que INCLUIR los pedidos entregados, no sólo lo facturado.
+- Tests Go (integración + e2e) y vitest del panel. Verificá go+panel verdes. Dueño de: core migraciones/model/service/handler/dto de jornada+reportes, panel/src/vistas/Cierre.tsx (+ su test), api/endpoints.ts y tipos.ts SÓLO agregando lo de jornada/reportes (no toques lo de otros).
+
+### W7-B: el cliente del pedido se ve y queda registrado (Go + panel)
+- Backend: `CompromisoResponse` suma `cliente_nombre` y `cliente_telefono` (join en `compromiso_repo.go`, tenant-scoped). Endpoint `GET /api/clientes` que liste TODOS los clientes del negocio (con su último pedido/total acumulado si es barato). Verificá que crear un pedido (por panel o agente) deje el cliente registrado y visible.
+- Panel: `TarjetaPedido.tsx` muestra el nombre del cliente (revertí la decisión de "sólo número e ítems" — el dueño lo quiere ver). `Clientes.tsx` en gastronomía lista a todos los que pidieron (hoy filtra por agenda de salud). El cliente creado por un pedido aparece ahí.
+- Tests Go + vitest. Dueño de: compromiso_dto.go, compromiso_repo.go, cliente handler/repo (list), panel TarjetaPedido.tsx + Clientes.tsx (+ tests), api endpoints/tipos SÓLO agregando lo de clientes. NO toques Cierre ni archivos de W7-A.
