@@ -19,10 +19,20 @@ import type { Excepcion, Horario, Recurso } from '../api/tipos'
 import { Switch } from '../componentes/Switch'
 import { Aviso, BotonConfirmar, Esqueleto, Vacio, useAvisoBien } from '../componentes/basicos'
 import { DIAS_CORTOS } from '../dominio/formato'
+import { useSesion } from '../contexto'
+import { ElLocal } from './ElLocal'
 
 const DIAS_LARGOS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
 export function Equipo() {
+  const { negocio } = useSesion()
+  // En gastronomía esta pestaña no es "quién atiende" sino la ficha del local:
+  // un solo negocio, sin profesionales con agenda. En salud sigue igual.
+  if (negocio?.vertical === 'gastronomia') return <ElLocal />
+  return <EquipoSalud />
+}
+
+function EquipoSalud() {
   const [recursos, setRecursos] = useState<Recurso[]>([])
   const [elegido, setElegido] = useState<string | null>(null)
   const [cargando, setCargando] = useState(true)

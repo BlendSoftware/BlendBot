@@ -74,7 +74,7 @@ func (r *servicioRepository) ListDisponibles(ctx context.Context, negocioID stri
 func (r *servicioRepository) Update(ctx context.Context, negocioID string, s *model.Servicio) error {
 	res := r.db.WithContext(ctx).Model(&model.Servicio{}).
 		Where("id = ? AND negocio_id = ?", s.ID, negocioID).
-		Select("categoria_id", "nombre", "duracion_min", "precio_base", "disponible", "activo").
+		Select("categoria_id", "nombre", "descripcion", "duracion_min", "precio_base", "disponible", "activo").
 		Updates(s)
 	if res.Error != nil {
 		return res.Error

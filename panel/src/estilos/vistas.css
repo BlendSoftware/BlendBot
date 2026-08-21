@@ -1896,3 +1896,95 @@
 .comanda__grilla .pedido__numero {
   font-size: var(--t-titulo);
 }
+
+/* ── El local (info del negocio, gastronomía) ────────────────────────────── */
+
+.local__forma {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e3);
+  max-width: 620px;
+  padding: var(--e4);
+  border-radius: var(--radio);
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  box-shadow: var(--sombra-baja);
+}
+
+.local__acciones {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--e1);
+}
+
+/* ── Preguntas (consultas) ───────────────────────────────────────────────── */
+
+.consultas__lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e3);
+  list-style: none;
+}
+
+/*
+ * Cada pregunta en su bloque, con la franja ámbar del pendiente al costado:
+ * acá sí un borde de color, porque no es un estado del compromiso sino una
+ * bandeja de entrada, y el ámbar dice "esto espera respuesta".
+ */
+.consulta {
+  padding: var(--e3) var(--e4);
+  border-radius: var(--radio-chico);
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-left: 4px solid var(--pendiente);
+  box-shadow: var(--sombra-baja);
+  animation: aparecer 180ms var(--curva);
+}
+
+.consulta__quien {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--e2);
+  margin-bottom: var(--e2);
+}
+
+.consulta__nombre {
+  font-weight: 700;
+  font-size: var(--t-medio);
+}
+
+.consulta__telefono {
+  font-size: var(--t-mini);
+  color: var(--tinta-suave);
+}
+
+.consulta__hora {
+  margin-left: auto;
+  font-size: var(--t-mini);
+  color: var(--tinta-suave);
+}
+
+.consulta__pregunta {
+  margin-bottom: var(--e3);
+  font-size: var(--t-grande);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.consulta__forma {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--e2);
+}
+
+.consulta__respuesta {
+  flex: 1 1 260px;
+}
+
+@media (max-width: 560px) {
+  .consulta__forma .boton {
+    flex: 1 1 100%;
+  }
+}

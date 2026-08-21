@@ -7,18 +7,21 @@ import { Pedidos } from './Pedidos'
 import { ProveedorSesion } from '../contexto'
 import { guardarSesion, reiniciarSesionParaTests } from '../api/sesion'
 
-const { listarCompromisos, listarServicios, transicionar, datosDelNegocio } = vi.hoisted(() => ({
-  listarCompromisos: vi.fn(),
-  listarServicios: vi.fn(),
-  transicionar: vi.fn(),
-  datosDelNegocio: vi.fn(),
-}))
+const { listarCompromisos, listarServicios, transicionar, datosDelNegocio, listarConsultas } =
+  vi.hoisted(() => ({
+    listarCompromisos: vi.fn(),
+    listarServicios: vi.fn(),
+    transicionar: vi.fn(),
+    datosDelNegocio: vi.fn(),
+    listarConsultas: vi.fn(),
+  }))
 
 vi.mock('../api/endpoints', () => ({
   listarCompromisos,
   listarServicios,
   transicionar,
   datosDelNegocio,
+  listarConsultas,
   salir: vi.fn(),
 }))
 
@@ -66,9 +69,10 @@ beforeEach(() => {
   window.localStorage.clear()
   reiniciarSesionParaTests()
   listarServicios.mockResolvedValue([
-    { id: 's1', negocio_id: 'n1', categoria_id: null, nombre: 'Doble cheddar', duracion_min: null, precio_base: '9500', disponible: true, activo: true },
+    { id: 's1', negocio_id: 'n1', categoria_id: null, nombre: 'Doble cheddar', descripcion: null, duracion_min: null, precio_base: '9500', disponible: true, activo: true },
   ])
   transicionar.mockResolvedValue(undefined)
+  listarConsultas.mockResolvedValue([])
   datosDelNegocio.mockResolvedValue({
     id: 'n1',
     nombre: 'Lo de Juani',

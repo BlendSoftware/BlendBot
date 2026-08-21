@@ -33,6 +33,7 @@ type Deps struct {
 	DispoSvc     service.DisponibilidadService
 	TokenSvc     service.NegocioTokenService
 	ListaEspSvc  service.ListaEsperaService
+	ConsultaSvc  service.ConsultaService
 	CobroSvc     service.CobroService
 	JornadaSvc   service.JornadaService
 	ReporteSvc   service.ReporteService
@@ -98,6 +99,7 @@ func New(d Deps) *gin.Engine {
 	handler.NewDisponibilidadHandler(d.DispoSvc).Register(tenant)
 	handler.NewNegocioDatosHandler(d.NegDatosRepo).Register(tenant)
 	handler.NewListaEsperaHandler(d.ListaEspSvc).Register(tenant)
+	handler.NewConsultasHandler(d.ConsultaSvc).Register(tenant)
 	d.HorarioH.Register(tenant)
 
 	// La plata: cobros, cierre, jornada y reportes. Sólo el dueño (el admin de

@@ -137,6 +137,7 @@ func armarRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) *gin.Engine
 	dispoRepo := repository.NewDisponibilidadRepository(db)
 	negDatosRepo := repository.NewNegocioDatosRepository(db)
 	listaEsperaRepo := repository.NewListaEsperaRepository(db)
+	consultaRepo := repository.NewConsultaRepository(db)
 	avisoRepo := repository.NewAvisoRepository(db)
 	cobroRepo := repository.NewCobroRepository(db)
 	jornadaRepo := repository.NewJornadaRepository(db)
@@ -169,6 +170,7 @@ func armarRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) *gin.Engine
 		DispoSvc:     service.NewDisponibilidadService(dispoRepo),
 		TokenSvc:     service.NewNegocioTokenService(negDatosRepo),
 		ListaEspSvc:  service.NewListaEsperaService(listaEsperaRepo),
+		ConsultaSvc:  service.NewConsultaService(consultaRepo, worker.NewAvisadorConsulta(worker.NewPublicador(rdb))),
 		CobroSvc:     service.NewCobroService(cobroRepo, negDatosRepo, cifrador),
 		JornadaSvc:   service.NewJornadaService(jornadaRepo),
 		ReporteSvc:   service.NewReporteService(reporteRepo, negDatosRepo),

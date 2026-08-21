@@ -24,6 +24,22 @@ type NegocioDatosResponse struct {
 	Coberturas []CoberturaBreve `json:"coberturas"`
 }
 
+// ActualizarNegocioInput es el PATCH /api/negocio del dueño: por ahora sólo la
+// info del local. Los campos de Info son punteros para distinguir "no lo tocó"
+// de "lo vació": sólo lo provisto se mergea en config.info, el resto de la
+// config (confirmación, delivery) queda intacto.
+type ActualizarNegocioInput struct {
+	Info InfoNegocioInput `json:"info"`
+}
+
+// InfoNegocioInput son los datos del local a mergear. nil = no se toca esa clave.
+type InfoNegocioInput struct {
+	Direccion *string `json:"direccion,omitempty"`
+	Horarios  *string `json:"horarios,omitempty"`
+	Telefono  *string `json:"telefono,omitempty"`
+	Notas     *string `json:"notas,omitempty"`
+}
+
 // TokenAgenteResponse devuelve el token en claro UNA sola vez, al rotarlo.
 // Después sólo queda su sha256 en la base: no hay forma de recuperarlo.
 type TokenAgenteResponse struct {

@@ -12,7 +12,11 @@ import { Switch } from './Switch'
 interface Props {
   servicio: Servicio
   alCambiarDisponible: (valor: boolean) => Promise<void>
-  alGuardar: (cambios: { nombre?: string; precio_base?: string }) => Promise<void>
+  alGuardar: (cambios: {
+    nombre?: string
+    precio_base?: string
+    descripcion?: string | null
+  }) => Promise<void>
   alFallar: (mensaje: string) => void
   expandida: boolean
   alExpandir: () => void
@@ -35,17 +39,23 @@ export function FilaServicio({
   const [editando, setEditando] = useState(false)
   const [nombre, setNombre] = useState(servicio.nombre)
   const [precio, setPrecio] = useState(servicio.precio_base)
+  const [descripcion, setDescripcion] = useState(servicio.descripcion ?? '')
   const [guardando, setGuardando] = useState(false)
 
   useEffect(() => {
     setNombre(servicio.nombre)
     setPrecio(servicio.precio_base)
-  }, [servicio.nombre, servicio.precio_base])
+    setDescripcion(servicio.descripcion ?? '')
+  }, [servicio.nombre, servicio.precio_base, servicio.descripcion])
 
   async function guardar() {
     setGuardando(true)
     try {
-      await alGuardar({ nombre: nombre.trim(), precio_base: precio })
+      await alGuardar({
+        nombre: nombre.trim(),
+        precio_base: precio,
+        descripcion: descripcion.trim() || null,
+      })
       setEditando(false)
     } catch (e) {
       alFallar(e instanceof Error ? e.message : 'No se pudo guardar.')
@@ -78,6 +88,14 @@ export function FilaServicio({
               onChange={(e) => setPrecio(e.target.value.replace(/[^\d.,]/g, '').replace(',', '.'))}
               aria-label="Precio"
             />
+            <textarea
+              className="area servicio__descripcion-entrada"
+              value={descripcion}
+              onChange={(e) => setDescripcion(e.target.value)}
+              placeholder="Lo que lleva: medallón, cheddar, panceta, pan de papa"
+              aria-label="Lo que lleva"
+              rows={2}
+            />
             <button type="submit" className="boton boton--primario" disabled={guardando}>
               {guardando ? 'Guardando' : 'Guardar'}
             </button>
@@ -87,6 +105,7 @@ export function FilaServicio({
               onClick={() => {
                 setNombre(servicio.nombre)
                 setPrecio(servicio.precio_base)
+                setDescripcion(servicio.descripcion ?? '')
                 setEditando(false)
               }}
             >
@@ -96,9 +115,14 @@ export function FilaServicio({
         ) : (
           <>
             <button type="button" className="servicio__nombre" onClick={() => setEditando(true)}>
-              {servicio.nombre}
-              {servicio.duracion_min ? (
-                <span className="servicio__duracion">{servicio.duracion_min} min</span>
+              <span className="servicio__nombre-texto">
+                {servicio.nombre}
+                {servicio.duracion_min ? (
+                  <span className="servicio__duracion">{servicio.duracion_min} min</span>
+                ) : null}
+              </span>
+              {servicio.descripcion ? (
+                <span className="servicio__descripcion">{servicio.descripcion}</span>
               ) : null}
             </button>
             <span className="servicio__precio plata">{plata(servicio.precio_base)}</span>

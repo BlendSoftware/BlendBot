@@ -121,6 +121,7 @@ func main() {
 	dispoRepo := repository.NewDisponibilidadRepository(db)
 	negDatosRepo := repository.NewNegocioDatosRepository(db)
 	listaEsperaRepo := repository.NewListaEsperaRepository(db)
+	consultaRepo := repository.NewConsultaRepository(db)
 	avisoRepo := repository.NewAvisoRepository(db)
 	cobroRepo := repository.NewCobroRepository(db)
 	jornadaRepo := repository.NewJornadaRepository(db)
@@ -189,6 +190,7 @@ func main() {
 		DispoSvc:     service.NewDisponibilidadService(dispoRepo),
 		TokenSvc:     service.NewNegocioTokenService(negDatosRepo),
 		ListaEspSvc:  service.NewListaEsperaService(listaEsperaRepo),
+		ConsultaSvc:  service.NewConsultaService(consultaRepo, worker.NewAvisadorConsulta(publicador)),
 		CobroSvc:     service.NewCobroService(cobroRepo, negDatosRepo, cifrador),
 		JornadaSvc:   service.NewJornadaService(jornadaRepo),
 		ReporteSvc:   service.NewReporteService(reporteRepo, negDatosRepo),

@@ -182,6 +182,7 @@ func (s *catalogoService) CrearServicio(ctx context.Context, negocioID string, r
 	sv := &model.Servicio{
 		CategoriaID: req.CategoriaID,
 		Nombre:      req.Nombre,
+		Descripcion: req.Descripcion,
 		DuracionMin: req.DuracionMin,
 		PrecioBase:  req.PrecioBase,
 		Disponible:  true,
@@ -213,6 +214,9 @@ func (s *catalogoService) ActualizarServicio(ctx context.Context, negocioID, id 
 	}
 	if req.Nombre != nil {
 		sv.Nombre = *req.Nombre
+	}
+	if req.Descripcion != nil {
+		sv.Descripcion = req.Descripcion
 	}
 	if req.DuracionMin != nil {
 		sv.DuracionMin = req.DuracionMin

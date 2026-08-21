@@ -551,10 +551,11 @@
 .servicio__nombre {
   flex: 1 1 240px;
   display: flex;
-  align-items: baseline;
-  gap: var(--e2);
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--e1);
   min-height: var(--tacto);
-  padding: 0;
+  padding: var(--e1) 0;
   border: 0;
   background: none;
   text-align: left;
@@ -563,8 +564,32 @@
   color: inherit;
 }
 
-.servicio__nombre:hover {
+.servicio__nombre-texto {
+  display: flex;
+  align-items: baseline;
+  gap: var(--e2);
+}
+
+.servicio__nombre:hover .servicio__nombre-texto {
   color: var(--acento);
+}
+
+/* Lo que lleva el plato: subtítulo tenue bajo el nombre. No se tacha con el
+   plato apagado (es info, no precio) pero sí se aclara. */
+.servicio__descripcion {
+  font-size: var(--t-mini);
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--tinta-suave);
+}
+
+.servicio__descripcion-entrada {
+  flex: 1 1 100%;
+  min-height: calc(var(--tacto) * 1.1);
+}
+
+.servicio--apagado .servicio__descripcion {
+  opacity: 0.7;
 }
 
 .servicio__duracion {
@@ -705,5 +730,63 @@
 .confirmar-inline .boton {
   min-height: 36px;
   padding: 0 var(--e2);
+  font-size: var(--t-mini);
+}
+
+/* ── Acceso a preguntas desde el tablero ─────────────────────────────────────
+ *
+ * Franja ámbar (color --pendiente, el mismo que reclama atención en las
+ * tarjetas): aparece sobre el tablero cuando hay preguntas sin responder y
+ * lleva su número como badge. Toca todo el ancho, alto de tacto, para el pulgar.
+ */
+.acceso-consultas {
+  display: flex;
+  align-items: center;
+  gap: var(--e3);
+  min-height: var(--tacto);
+  margin-bottom: var(--e3);
+  padding: var(--e2) var(--e3);
+  border-radius: var(--radio-chico);
+  background: oklch(0.72 0.15 75 / 0.16);
+  border: 1px solid oklch(0.72 0.15 75 / 0.4);
+  color: var(--tinta);
+  text-decoration: none;
+  font-weight: 700;
+  box-shadow: var(--sombra-baja);
+  animation: aparecer 180ms var(--curva);
+  transition:
+    background-color var(--transicion),
+    transform var(--transicion);
+}
+
+.acceso-consultas:hover {
+  background: oklch(0.72 0.15 75 / 0.24);
+  transform: translateY(-1px);
+}
+
+.acceso-consultas__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 var(--e2);
+  border-radius: 999px;
+  background: var(--pendiente);
+  color: var(--sobre-pendiente);
+  font-size: var(--t-medio);
+  font-weight: 800;
+}
+
+.acceso-consultas__texto {
+  flex: 1;
+  font-size: var(--t-medio);
+}
+
+.acceso-consultas__ir {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e1);
+  color: var(--acento);
   font-size: var(--t-mini);
 }

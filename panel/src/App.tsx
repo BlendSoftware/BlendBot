@@ -12,6 +12,7 @@ import { Equipo } from './vistas/Equipo'
 import { Clientes } from './vistas/Clientes'
 import { ListaEspera } from './vistas/ListaEspera'
 import { Cierre } from './vistas/Cierre'
+import { Consultas } from './vistas/Consultas'
 import { Admin } from './vistas/Admin'
 
 /**
@@ -131,6 +132,14 @@ export function Rutas() {
           element={
             <Protegida soloDueno>
               <Cierre />
+            </Protegida>
+          }
+        />
+        <Route
+          path="/consultas"
+          element={
+            <Protegida soloDueno>
+              <Consultas />
             </Protegida>
           }
         />

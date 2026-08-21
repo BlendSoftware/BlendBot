@@ -313,6 +313,21 @@ class CoreClient:
             or {}
         )
 
+    # ── consultas ─────────────────────────────────────────────────────────────
+
+    async def crear_consulta(
+        self, pregunta: str, *, cliente_id: str | None = None
+    ) -> dict[str, Any]:
+        """Registra una pregunta que el agente no supo responder para que el local la
+        conteste. `cliente_id` puede ir vacío (cliente sin ficha): el core lo admite null.
+        """
+        cuerpo: dict[str, Any] = {"pregunta": pregunta}
+        if cliente_id:
+            cuerpo["cliente_id"] = cliente_id
+        return (
+            await self._pedir("POST", "/api/consultas", contexto="consulta", json=cuerpo) or {}
+        )
+
     # ── motor ─────────────────────────────────────────────────────────────────
 
     async def crear_hold(

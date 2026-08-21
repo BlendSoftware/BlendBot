@@ -232,6 +232,32 @@ button {
   box-shadow: none;
 }
 
+/* Hermana de .entrada para texto de varias líneas: mismo marco, pero con alto
+   propio y padding vertical (la .entrada centra una sola línea). */
+.area {
+  min-height: calc(var(--tacto) * 1.4);
+  padding: var(--e2) var(--e3);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-chico);
+  background: var(--superficie);
+  box-shadow: inset 0 1px 2px oklch(0.24 0.012 55 / 0.05);
+  line-height: 1.45;
+  resize: vertical;
+  width: 100%;
+  transition:
+    border-color var(--transicion),
+    box-shadow var(--transicion);
+}
+
+.area:hover {
+  border-color: oklch(0.75 0.04 50);
+}
+
+.area:focus {
+  border-color: var(--acento);
+  box-shadow: var(--halo-acento);
+}
+
 .aviso {
   padding: var(--e2) var(--e3);
   border: 1px solid oklch(0.55 0.18 25 / 0.2);

@@ -10,6 +10,7 @@
 
 import type { ReactNode } from 'react'
 import { salir } from '../api/endpoints'
+import { AccesoConsultas } from '../componentes/AccesoConsultas'
 import { TarjetaPedido } from '../componentes/TarjetaPedido'
 import { Aviso, Esqueleto, Vacio } from '../componentes/basicos'
 import { usarPedidos } from '../componentes/usarPedidos'
@@ -84,6 +85,8 @@ export function Pedidos() {
       </header>
 
       <Aviso texto={problema} alCerrar={limpiarProblema} />
+
+      {vePlata && <AccesoConsultas />}
 
       {cargando && !hayPedidos && <Esqueleto alto={120} cantidad={3} />}
 

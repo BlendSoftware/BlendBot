@@ -35,6 +35,7 @@ type ActualizarRecursoRequest struct {
 type CrearServicioRequest struct {
 	CategoriaID *string         `json:"categoria_id"`
 	Nombre      string          `json:"nombre" binding:"required"`
+	Descripcion *string         `json:"descripcion"`  // qué lleva el plato
 	DuracionMin *int            `json:"duracion_min"` // nil = no consume tiempo
 	PrecioBase  decimal.Decimal `json:"precio_base"`
 	Disponible  *bool           `json:"disponible"`
@@ -43,6 +44,7 @@ type CrearServicioRequest struct {
 type ActualizarServicioRequest struct {
 	CategoriaID *string          `json:"categoria_id"`
 	Nombre      *string          `json:"nombre"`
+	Descripcion *string          `json:"descripcion"`
 	DuracionMin *int             `json:"duracion_min"`
 	PrecioBase  *decimal.Decimal `json:"precio_base"`
 	Disponible  *bool            `json:"disponible"`

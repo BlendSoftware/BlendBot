@@ -41,6 +41,7 @@ type Servicio struct {
 	NegocioID   string          `gorm:"type:uuid;not null" json:"negocio_id"`
 	CategoriaID *string         `gorm:"type:uuid" json:"categoria_id"`
 	Nombre      string          `gorm:"not null" json:"nombre"`
+	Descripcion *string         `json:"descripcion"`  // qué lleva el plato; nil = sin describir
 	DuracionMin *int            `json:"duracion_min"` // nil = no consume tiempo (un producto)
 	PrecioBase  decimal.Decimal `gorm:"type:numeric(12,2);not null;default:0" json:"precio_base"`
 	Disponible  bool            `gorm:"not null;default:true" json:"disponible"`

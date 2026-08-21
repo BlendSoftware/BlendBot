@@ -258,6 +258,10 @@ type NegocioDatosRepository interface {
 	NegocioPorTokenHash(ctx context.Context, hashHex string) (string, error)
 	// SetTokenAgenteHash pisa el token anterior: rotar invalida el viejo.
 	SetTokenAgenteHash(ctx context.Context, negocioID, hashHex string) error
+	// MergearInfo mergea infoJSON dentro de config.info sin tocar el resto de la
+	// config (confirmación, delivery, etc.). El merge es a nivel de las claves de
+	// info: lo provisto pisa, lo omitido queda. false si el negocio no existe.
+	MergearInfo(ctx context.Context, negocioID string, infoJSON []byte) (bool, error)
 }
 
 type negocioDatosRepo struct{ db *gorm.DB }
@@ -304,6 +308,23 @@ func (r *negocioDatosRepo) NegocioPorTokenHash(ctx context.Context, hashHex stri
 		return "", nil
 	}
 	return ids[0], nil
+}
+
+func (r *negocioDatosRepo) MergearInfo(ctx context.Context, negocioID string, infoJSON []byte) (bool, error) {
+	// jsonb_set con el path {info} y el merge (||) de la info previa con la nueva:
+	// las claves provistas pisan, las omitidas se conservan, y el resto de la
+	// config queda intacta. create_missing=true crea info si no existía.
+	res := r.db.WithContext(ctx).
+		Model(&model.Negocio{}).
+		Where("id = ?", negocioID).
+		Update("config", gorm.Expr(
+			`jsonb_set(COALESCE(config, '{}'::jsonb), '{info}', COALESCE(config->'info', '{}'::jsonb) || ?::jsonb, true)`,
+			string(infoJSON),
+		))
+	if res.Error != nil {
+		return false, res.Error
+	}
+	return res.RowsAffected > 0, nil
 }
 
 func (r *negocioDatosRepo) SetTokenAgenteHash(ctx context.Context, negocioID, hashHex string) error {

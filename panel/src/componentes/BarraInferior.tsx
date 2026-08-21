@@ -62,6 +62,15 @@ function IconoEquipo() {
   )
 }
 
+function IconoLocal() {
+  return (
+    <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" {...trazo}>
+      <path d="M4 9.5 5.5 4h13L20 9.5M4 9.5h16M4 9.5v10.5h16V9.5M4 9.5a2 2 0 0 0 4 0 2 2 0 0 0 4 0 2 2 0 0 0 4 0 2 2 0 0 0 4 0" />
+      <path d="M9.5 20v-5h5v5" />
+    </svg>
+  )
+}
+
 function IconoClientes() {
   return (
     <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" {...trazo}>
@@ -105,7 +114,11 @@ export function BarraInferior({ rol }: Props) {
     { a: '/', texto: gastro ? 'Pedidos' : 'Agenda', icono: <IconoAgenda /> },
     ...(gastro ? [{ a: '/comanda', texto: 'Comanda', icono: <IconoComanda /> }] : []),
     { a: '/catalogo', texto: gastro ? 'Carta' : 'Catálogo', icono: <IconoCatalogo /> },
-    { a: '/equipo', texto: 'Equipo', icono: <IconoEquipo /> },
+    {
+      a: '/equipo',
+      texto: gastro ? 'El local' : 'Equipo',
+      icono: gastro ? <IconoLocal /> : <IconoEquipo />,
+    },
     { a: '/clientes', texto: 'Clientes', icono: <IconoClientes /> },
     { a: '/lista-espera', texto: 'Espera', icono: <IconoEspera /> },
   ]

@@ -1,4 +1,4 @@
-"""Servidor MCP del Copiloto de Comercios: las 7 tools del agente conversacional.
+"""Servidor MCP del Copiloto de Comercios: las tools del agente conversacional.
 
 Lo que el modelo puede hacer termina donde termina esta lista. No hay acceso a
 la base, no hay SQL, no hay `negocio_id` ni `telefono` como argumento: el
@@ -211,13 +211,20 @@ def _sin_encontrar(que: str, r: Resolucion, campo: str = "nombre") -> dict[str, 
 
 def _servicio_visible(s: dict[str, Any]) -> dict[str, Any]:
     precio = a_decimal(s.get("precio_base"))
-    return {
+    visible = {
         "nombre": s.get("nombre"),
         "precio": str(precio),
         "precio_texto": plata(precio),
         "duracion_min": s.get("duracion_min"),
         "categoria_id": s.get("categoria_id"),
     }
+    # La descripción es lo que lleva el plato ("doble medallón, cheddar, panceta"):
+    # sirve para responder "¿qué tiene la Doble bacon?" sin inventar. Sólo va si el
+    # local la cargó; si no, ni aparece (no se rellena con nada).
+    descripcion = s.get("descripcion")
+    if descripcion:
+        visible["descripcion"] = str(descripcion).strip()
+    return visible
 
 
 async def _humanizar(momento_iso: str) -> dict[str, str]:
@@ -236,7 +243,7 @@ async def _humanizar(momento_iso: str) -> dict[str, str]:
     }
 
 
-# ── LAS 7 TOOLS ───────────────────────────────────────────────────────────────
+# ── LAS TOOLS ─────────────────────────────────────────────────────────────────
 
 
 @mcp.tool()
@@ -249,6 +256,11 @@ async def datos_del_negocio() -> dict[str, Any]:
     los turnos los confirmás vos (`confirmacion_turno = "automatica"`) o los tiene que
     confirmar alguien del negocio (`"humana"`). No asumas ninguna de las dos.
 
+    Trae `info` (dirección, horarios de atención, teléfono, notas) SÓLO si el local la
+    cargó. Con eso respondés "¿dónde quedan?", "¿a qué hora abren?", "¿tienen teléfono?".
+    Si un dato de `info` no está, no lo sabés: no lo inventes — dejá la pregunta con
+    `dejar_consulta` para que el local responda.
+
     No trae horarios de atención por recurso: eso sale de `consultar_disponibilidad`.
     """
     negocio = await _negocio()
@@ -256,6 +268,12 @@ async def datos_del_negocio() -> dict[str, Any]:
     coberturas = await _coberturas()
     config = negocio.get("config") if isinstance(negocio.get("config"), dict) else {}
     config = config or {}
+    # La info del local vive en config.info; el core la sube también al nivel de arriba
+    # de /api/negocio. Leemos las dos por si acaso, sin romper si falta.
+    info = negocio.get("info")
+    if not isinstance(info, dict):
+        info = config.get("info")
+    info = info if isinstance(info, dict) else {}
     return {
         "ok": True,
         "nombre": negocio.get("nombre"),
@@ -270,6 +288,14 @@ async def datos_del_negocio() -> dict[str, Any]:
         "radio_delivery_km": config.get("radio_delivery_km"),
         "hold_minutos": config.get("hold_minutos", 10),
         "coberturas": [c.get("nombre") for c in coberturas if c.get("nombre")],
+        # Dirección / horarios / teléfono / notas del local, para responder esas
+        # preguntas cuando están cargadas. Vacío = no cargado, no inventar.
+        "info": {
+            "direccion": info.get("direccion"),
+            "horarios": info.get("horarios"),
+            "telefono": info.get("telefono"),
+            "notas": info.get("notas"),
+        },
         "config": config,
     }
 
@@ -296,6 +322,10 @@ async def ver_catalogo(categoria: str | None = None) -> dict[str, Any]:
 
     Los precios que le digas al cliente salen de acá TAL CUAL. Si un precio no está en
     esta respuesta, no lo digas: no se estima ni se redondea.
+
+    Cada ítem puede traer `descripcion` (lo que lleva el plato). Si el cliente pregunta
+    "¿qué tiene la Doble bacon?", respondé con ESA descripción textual. Si un ítem no la
+    trae, no la sabés: no la inventes — usá `dejar_consulta` para que el local responda.
     """
     servicios = await _catalogo(categoria)
     if not servicios:
@@ -787,6 +817,55 @@ async def cancelar(compromiso_id: str, motivo: str, confirmado: bool = False) ->
         "motivo": motivo,
         "aviso": "Turno cancelado y hueco liberado. Agradecele el aviso (libera el lugar "
         "para otro cliente) y ofrecele buscar otro turno.",
+    }
+
+
+@mcp.tool()
+@traduce_errores
+async def dejar_consulta(pregunta: str) -> dict[str, Any]:
+    """Registra una pregunta que NO podés verificar con ninguna otra tool, para que el
+    local la responda. Es la alternativa a inventar: si no lo sabés, lo dejás asentado.
+
+    Usala cuando el cliente pregunta algo que NO está en el catálogo (`ver_catalogo`,
+    incluida la `descripcion` de cada plato) ni en los datos del local
+    (`datos_del_negocio`, incluido `info`: dirección, horarios, teléfono): promos que no
+    ves, si tienen estacionamiento, si un plato es apto celíaco, si hacen factura A, etc.
+    NO la uses para lo que sí podés chequear con una tool — para eso está la tool.
+
+    Registra la consulta a nombre del cliente que escribió (lo resuelvo por su teléfono,
+    no es argumento) y queda pendiente en el panel del local. Después de llamarla, decile
+    al cliente que le pasaste la pregunta al local y que en un rato le responden — sin
+    prometer un dato que todavía no tenés.
+
+    - `pregunta`: lo que preguntó el cliente, en sus palabras, en una línea.
+    """
+    pregunta = (pregunta or "").strip()
+    if not pregunta:
+        return {
+            "ok": False,
+            "codigo": "sin_pregunta",
+            "error": "No hay ninguna pregunta para dejar. Registrá lo que preguntó el "
+            "cliente, textual y en una línea.",
+        }
+
+    # Cliente resuelto por CLIENTE_TELEFONO, igual que `confirmar`/`cancelar`. Puede no
+    # tener ficha todavía (core no respondió, o cliente nuevo sin registrar): la consulta
+    # se deja igual con cliente_id vacío, no perdemos la pregunta por eso.
+    telefono = _telefono()
+    cliente = await _cliente() or (
+        await core().cliente_por_telefono(telefono) if telefono else None
+    )
+    cliente_id = str(cliente.get("id")) if cliente else None
+
+    consulta = await core().crear_consulta(pregunta, cliente_id=cliente_id)
+    return {
+        "ok": True,
+        "registrada": True,
+        "consulta_id": consulta.get("id"),
+        "pregunta": pregunta,
+        "aviso": "Consulta registrada para el local. Decile al cliente que le pasaste la "
+        "pregunta y que en un rato le responden. NO inventes la respuesta ni prometas un "
+        "dato que todavía no tenés.",
     }
 
 

@@ -141,6 +141,9 @@ var rutasAgente = map[string]bool{
 	"POST /api/compromisos":               true,
 	"GET /api/compromisos/:id":            true,
 	"PATCH /api/compromisos/:id/estado":   true,
+	// Dejar una consulta cuando el bot no puede verificar algo: en vez de
+	// inventar, la registra para que el dueño responda. Listar/responder, no.
+	"POST /api/consultas": true,
 }
 
 // RestringirAgente aplica la allowlist de RolAgente sobre el grupo del tenant.

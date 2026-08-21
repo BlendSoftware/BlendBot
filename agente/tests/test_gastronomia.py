@@ -48,6 +48,20 @@ CLIENTE = {"id": "cli-9", "telefono": TELEFONO, "nombre": "Juani"}
 
 PEDIDO = {"id": "ped-1", "estado": "pendiente", "tipo": "pedido", "total": "13400.00"}
 
+# La carta con la descripción cargada (lo que lleva cada plato). El core la trae en
+# `GET /api/servicios`; el agente la usa para responder "¿qué tiene la Doble bacon?".
+MENU_CON_DESCRIPCION = [
+    {
+        "id": "sv-doble",
+        "nombre": "Doble bacon",
+        "precio_base": "9500.00",
+        "disponible": True,
+        "descripcion": "Doble medallón, cheddar, panceta y salsa de la casa",
+    },
+    # sin descripción cargada: el agente NO la puede inventar
+    {"id": "sv-papas", "nombre": "Papas", "precio_base": "4500.00", "disponible": True},
+]
+
 
 def _base(respx_mock):
     """Lo que siempre está: negocio de gastronomía y su carta."""
@@ -221,3 +235,94 @@ async def test_delivery_con_direccion_confirma_y_la_manda_al_core(respx_mock, co
     cuerpo = json.loads(creacion.calls[0].request.read())
     assert cuerpo["entrega"] == "delivery"
     assert cuerpo["direccion"] == "San Martín 1234"
+
+
+# ── E12: descripción de plato, info del local y consultas ─────────────────────
+
+
+@respx.mock(base_url=BASE, assert_all_called=False)
+async def test_la_carta_trae_la_descripcion_para_responder_que_lleva(respx_mock, core):
+    # "¿qué tiene la Doble bacon?" se responde con la descripción cargada, no de memoria.
+    respx_mock.get("/api/negocio").mock(
+        return_value=httpx.Response(200, json=copy.deepcopy(GASTRO_NEGOCIO))
+    )
+    respx_mock.get("/api/servicios").mock(
+        return_value=httpx.Response(200, json=MENU_CON_DESCRIPCION)
+    )
+    r = await server.ver_catalogo()
+
+    doble = next(s for s in r["servicios"] if s["nombre"] == "Doble bacon")
+    assert doble["descripcion"] == "Doble medallón, cheddar, panceta y salsa de la casa"
+    # el ítem sin descripción cargada NO la trae (no se inventa)
+    papas = next(s for s in r["servicios"] if s["nombre"] == "Papas")
+    assert "descripcion" not in papas
+
+
+@respx.mock(base_url=BASE, assert_all_called=False)
+async def test_datos_del_negocio_expone_info_del_local(respx_mock, core):
+    # dirección/horarios/teléfono para responder "¿dónde quedan?" cuando están cargados.
+    negocio = copy.deepcopy(GASTRO_NEGOCIO)
+    negocio["info"] = {
+        "direccion": "San Martín 1234",
+        "horarios": "Todos los días de 20 a 00",
+        "telefono": "2614445566",
+    }
+    respx_mock.get("/api/negocio").mock(return_value=httpx.Response(200, json=negocio))
+    respx_mock.get("/api/servicios").mock(return_value=httpx.Response(200, json=MENU))
+    respx_mock.get("/api/coberturas").mock(return_value=httpx.Response(200, json=[]))
+    respx_mock.get(f"/api/clientes/por-telefono/{TELEFONO}").mock(
+        return_value=httpx.Response(200, json=CLIENTE)
+    )
+    r = await server.datos_del_negocio()
+
+    assert r["ok"]
+    assert r["info"]["direccion"] == "San Martín 1234"
+    assert r["info"]["horarios"] == "Todos los días de 20 a 00"
+    assert r["info"]["telefono"] == "2614445566"
+    assert r["info"]["notas"] is None  # no cargada → vacía, no inventada
+
+
+@respx.mock(base_url=BASE, assert_all_called=False)
+async def test_dejar_consulta_registra_la_pregunta_a_nombre_del_cliente(respx_mock, core):
+    # Lo que el bot no puede verificar se registra en vez de inventarse.
+    respx_mock.get(f"/api/clientes/por-telefono/{TELEFONO}").mock(
+        return_value=httpx.Response(200, json=CLIENTE)
+    )
+    alta = respx_mock.post("/api/consultas").mock(
+        return_value=httpx.Response(
+            201, json={"id": "con-1", "pregunta": "¿tienen estacionamiento?", "estado": "pendiente"}
+        )
+    )
+
+    r = await server.dejar_consulta("¿tienen estacionamiento?")
+
+    assert r["ok"] and r["registrada"] is True and r["consulta_id"] == "con-1"
+    cuerpo = json.loads(alta.calls[0].request.read())
+    assert cuerpo["pregunta"] == "¿tienen estacionamiento?"
+    assert cuerpo["cliente_id"] == "cli-9"
+
+
+@respx.mock(base_url=BASE, assert_all_called=False)
+async def test_dejar_consulta_no_pierde_la_pregunta_sin_ficha_de_cliente(respx_mock, core):
+    # Aunque el core no pueda dar/crear la ficha, la consulta se deja igual (sin cliente_id):
+    # nunca se pierde la pregunta ni se responde inventando.
+    respx_mock.get(f"/api/clientes/por-telefono/{TELEFONO}").mock(
+        return_value=httpx.Response(404, json={"detail": "sin ficha"})
+    )
+    respx_mock.post("/api/clientes").mock(return_value=httpx.Response(500, json={"detail": "caido"}))
+    alta = respx_mock.post("/api/consultas").mock(
+        return_value=httpx.Response(201, json={"id": "con-2", "estado": "pendiente"})
+    )
+
+    r = await server.dejar_consulta("¿el alfajor es sin TACC?")
+
+    assert r["ok"] and r["registrada"] is True
+    cuerpo = json.loads(alta.calls[0].request.read())
+    assert cuerpo["pregunta"] == "¿el alfajor es sin TACC?"
+    assert "cliente_id" not in cuerpo
+
+
+async def test_dejar_consulta_vacia_no_postea_nada(core):
+    # Sin pregunta no hay nada que dejar: guard, sin tocar el core.
+    r = await server.dejar_consulta("   ")
+    assert r["ok"] is False and r["codigo"] == "sin_pregunta"

@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 
@@ -27,9 +28,12 @@ func NewNegocioDatosHandler(repo repository.NegocioDatosRepository) *NegocioDato
 	return &NegocioDatosHandler{repo: repo}
 }
 
-// Register cuelga la ruta del grupo /api ya autenticado y con tenant.
+// Register cuelga las rutas del grupo /api ya autenticado y con tenant. El GET
+// lo lee cualquiera del tenant (el agente arranca por acá); el PATCH que edita
+// la info del local es sólo del dueño.
 func (h *NegocioDatosHandler) Register(rg *gin.RouterGroup) {
 	rg.GET("/negocio", h.Obtener)
+	rg.PATCH("/negocio", middleware.RequireRole(middleware.RolDueno, middleware.RolAdmin), h.Actualizar)
 }
 
 func (h *NegocioDatosHandler) Obtener(c *gin.Context) {
@@ -52,5 +56,47 @@ func (h *NegocioDatosHandler) Obtener(c *gin.Context) {
 		return
 	}
 
+	c.JSON(http.StatusOK, dto.NegocioDatosDesdeModel(n, coberturas))
+}
+
+// Actualizar mergea la info del local (dirección, horarios, teléfono, notas) en
+// config.info sin pisar el resto de la config. Sólo las claves provistas se
+// escriben: mandar sólo {telefono} no borra la dirección ya cargada.
+func (h *NegocioDatosHandler) Actualizar(c *gin.Context) {
+	var in dto.ActualizarNegocioInput
+	if !bindJSON(c, &in) {
+		return
+	}
+
+	// Sólo lo provisto viaja al merge: los punteros nil quedan fuera del JSON por
+	// omitempty, así que no pisan lo que ya estaba.
+	infoJSON, err := json.Marshal(in.Info)
+	if err != nil {
+		errorDeServicio(c, err)
+		return
+	}
+
+	negocioID := middleware.NegocioID(c)
+	ctx := c.Request.Context()
+	ok, err := h.repo.MergearInfo(ctx, negocioID, infoJSON)
+	if err != nil {
+		errorDeServicio(c, err)
+		return
+	}
+	if !ok {
+		responderErrorMotor(c, service.ErrNoEncontrado)
+		return
+	}
+
+	n, err := h.repo.Negocio(ctx, negocioID)
+	if err != nil {
+		errorDeServicio(c, err)
+		return
+	}
+	coberturas, err := h.repo.Coberturas(ctx, negocioID)
+	if err != nil {
+		errorDeServicio(c, err)
+		return
+	}
 	c.JSON(http.StatusOK, dto.NegocioDatosDesdeModel(n, coberturas))
 }

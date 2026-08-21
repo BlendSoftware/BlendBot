@@ -14,9 +14,12 @@ import type {
   Cobro,
   Compromiso,
   ConfigFiscal,
+  Consulta,
   Estado,
+  EstadoConsulta,
   Excepcion,
   Horario,
+  InfoLocal,
   Jornada,
   JornadaActual,
   MedioPago,
@@ -66,6 +69,12 @@ export function cambiarPassword(passwordNueva: string): Promise<{ mensaje: strin
 
 export function datosDelNegocio(): Promise<NegocioDatos> {
   return pedir<NegocioDatos>('/api/negocio')
+}
+
+/** Guarda la info del local (dirección, horarios, teléfono, notas). El core
+ *  mergea en config.info: mandá sólo lo que cambió, no pisa el resto. */
+export function guardarInfoLocal(info: InfoLocal): Promise<NegocioDatos> {
+  return pedir<NegocioDatos>('/api/negocio', { metodo: 'PATCH', cuerpo: { info } })
 }
 
 // ─── Agenda y compromisos ────────────────────────────────────────────────────
@@ -170,6 +179,7 @@ export function crearServicio(cuerpo: {
   categoria_id?: string | null
   duracion_min?: number | null
   precio_base?: Plata
+  descripcion?: string | null
 }): Promise<Servicio> {
   return pedir<Servicio>('/api/servicios', { metodo: 'POST', cuerpo })
 }
@@ -181,6 +191,7 @@ export function actualizarServicio(
     categoria_id: string | null
     duracion_min: number | null
     precio_base: Plata
+    descripcion: string | null
     disponible: boolean
     activo: boolean
   }>,
@@ -317,6 +328,24 @@ export function actualizarCliente(
   }>,
 ): Promise<Cliente> {
   return pedir<Cliente>(`/api/clientes/${id}`, { metodo: 'PATCH', cuerpo })
+}
+
+// ─── Consultas ───────────────────────────────────────────────────────────────
+
+/** Las preguntas que el asistente dejó para el dueño. Sin filtro trae todas;
+ *  con `estado` deja sólo las pendientes o las ya respondidas. */
+export function listarConsultas(estado?: EstadoConsulta): Promise<Consulta[]> {
+  const cola = estado ? `?estado=${estado}` : ''
+  return pedir<Consulta[]>(`/api/consultas${cola}`)
+}
+
+/** Responde una consulta: la marca respondida y el core le avisa al cliente
+ *  por WhatsApp ("Sobre tu consulta: ..."). */
+export function responderConsulta(id: string, respuesta: string): Promise<Consulta> {
+  return pedir<Consulta>(`/api/consultas/${id}/responder`, {
+    metodo: 'PATCH',
+    cuerpo: { respuesta },
+  })
 }
 
 // ─── Admin de la plataforma ──────────────────────────────────────────────────

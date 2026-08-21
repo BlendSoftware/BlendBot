@@ -53,6 +53,18 @@ export interface CoberturaBreve {
   nombre: string
 }
 
+/**
+ * Info del local que el asistente contesta cuando alguien pregunta dónde
+ * están, a qué hora abren o el teléfono. Vive en config.info (jsonb): todos
+ * los campos son opcionales porque el dueño la va cargando de a poco.
+ */
+export interface InfoLocal {
+  direccion?: string
+  horarios?: string
+  telefono?: string
+  notas?: string
+}
+
 export interface ConfigNegocio {
   confirmacion?: Partial<Record<TipoCompromiso, 'humana' | 'automatica'>>
   hold_minutos?: number
@@ -60,6 +72,7 @@ export interface ConfigNegocio {
   demoras_sugeridas?: number[]
   acepta_delivery?: boolean
   radio_delivery_km?: number
+  info?: InfoLocal
 }
 
 export interface NegocioDatos {
@@ -124,6 +137,9 @@ export interface Servicio {
   negocio_id: string
   categoria_id: string | null
   nombre: string
+  /** Lo que lleva el plato: el asistente la usa para contestar "¿qué tiene la
+   *  Doble bacon?". Vacía hasta que el dueño la carga. */
+  descripcion: string | null
   duracion_min: number | null
   precio_base: Plata
   disponible: boolean
@@ -419,4 +435,26 @@ export interface Reporte {
   dias: ReporteDia[]
   total_vendido: Plata
   total_cobrado: Plata
+}
+
+// ─── Consultas ───────────────────────────────────────────────────────────────
+//
+// Preguntas que el asistente no supo contestar (no estaban en la carta ni en
+// los datos del local): en vez de inventar, las deja acá para que el dueño las
+// responda. Al responder, el core le avisa al cliente por WhatsApp.
+
+export type EstadoConsulta = 'pendiente' | 'respondida'
+
+export interface Consulta {
+  id: string
+  negocio_id: string
+  /** null si el cliente no quedó registrado; el teléfono siempre está. */
+  cliente_id: string | null
+  cliente_nombre: string | null
+  telefono: string
+  pregunta: string
+  respuesta: string | null
+  estado: EstadoConsulta
+  creado_en: string
+  respondida_en: string | null
 }

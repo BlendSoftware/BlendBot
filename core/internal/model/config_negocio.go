@@ -30,6 +30,20 @@ type ConfigNegocio struct {
 	DemorasSugeridas []int   `json:"demoras_sugeridas"`
 	AceptaDelivery   bool    `json:"acepta_delivery"`
 	RadioDeliveryKm  float64 `json:"radio_delivery_km"`
+	// Info es lo que el cliente pregunta y no está en la carta: dirección,
+	// horarios, teléfono, notas. Vive en config para no migrar columnas por cada
+	// dato nuevo del local; el agente la lee para responder sin inventar.
+	Info InfoNegocio `json:"info"`
+}
+
+// InfoNegocio son los datos del local. Todos opcionales: un negocio recién dado
+// de alta no cargó nada y eso es válido — el agente entonces deja la consulta en
+// vez de inventar.
+type InfoNegocio struct {
+	Direccion string `json:"direccion,omitempty"`
+	Horarios  string `json:"horarios,omitempty"`
+	Telefono  string `json:"telefono,omitempty"`
+	Notas     string `json:"notas,omitempty"`
 }
 
 // ParseConfigNegocio lee la config del tenant. Una config vacía o `{}` es
