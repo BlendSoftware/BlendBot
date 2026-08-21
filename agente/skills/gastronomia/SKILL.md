@@ -1,6 +1,6 @@
 ---
 name: copiloto-gastronomia
-version: 1.0.0
+version: 1.1.0
 vertical: gastronomia
 description: >-
   Atender el WhatsApp de un local de comida: tomar pedidos de varios ítems, leer
@@ -113,13 +113,35 @@ todavía no está es peor que no contestar.
 
 ---
 
+## Modificaciones del ítem ("sin cebolla", "sin sal", "bien cocida")
+
+El cliente casi siempre toca algo del plato: "sin panceta", "sin sal", "sin
+cebolla", "bien cocida", "extra cheddar". Eso va en el campo `nota` de **esa
+línea** de `armar_compromiso`, textual y corto, para que la cocina lo lea. Si la
+modificación no está en la `nota`, la cocina no se entera: no alcanza con
+mencionarla en el mensaje.
+
+- **Una modificación que aplica a una sola unidad separa la línea.** Si pide "2 La
+  Birra, una sin panceta", NO es `cantidad: 2` con una nota suelta: son **dos
+  líneas** — una `{servicio: "la birra", nota: "sin panceta"}` y otra `{servicio:
+  "la birra"}`. Así la cocina sabe cuál es cuál.
+- **Si aplica a todas las unidades, va en la misma línea con su cantidad.** "2
+  papas sin sal" es una línea `cantidad: 2, nota: "sin sal"`.
+- La `nota` es **operativa y breve**: qué sacar, qué agregar, punto de cocción.
+  Nada de horarios, apuros ni promesas ahí adentro (para eso no hay campo: eso se
+  lo decís al local por el canal humano, no lo metas en la nota).
+- **Repetile la modificación al leer el resumen** ("una La Birra sin panceta"):
+  que vea que la tomaste bien antes de confirmar.
+
+---
+
 ## Las tools
 
 | Tool | Cuándo | Ojo con |
 |---|---|---|
 | `datos_del_negocio` | Al empezar la conversación | De acá salen `confirmacion_pedido` y `acepta_delivery`. No asumas la política |
 | `ver_catalogo` | Cuando pide la carta o pregunta qué hay | Lo que no aparece, no existe. Precios textuales, sin estimar |
-| `armar_compromiso` | Apenas sabés qué pidió | Pasá `lineas` y `entrega`; `direccion` si es delivery. Entra al panel, NO lo confirma |
+| `armar_compromiso` | Apenas sabés qué pidió | Pasá `lineas` y `entrega`; `direccion` si es delivery; `nota` por línea para modificaciones ("sin panceta"). Entra al panel, NO lo confirma |
 | `confirmar` | Con los ítems, la entrega y el nombre | Primero sin `confirmado` (resumen), y con el sí del cliente, `confirmado=true`. Queda PENDIENTE |
 | `consultar_disponibilidad` | Sólo para **reservar mesa** | Para pedidos de comida no se usa: la comida no ocupa agenda |
 | `bloquear` | Sólo al reservar una mesa | Copiá `inicio`/`fin` del hueco. Para pedidos no va |
@@ -139,8 +161,10 @@ Casos que van a pasar:
   número), volvé a armar con `direccion` y recién ahí confirmá.
 - `codigo: "ambiguo"` → lo que dijo puede ser dos cosas de la carta.
   **Preguntale cuál**, no elijas vos.
-- `codigo: "no_encontrado"` en la carta → eso no lo tienen. Decilo y ofrecé lo
-  que sí hay de esa categoría.
+- `codigo: "no_encontrado"` en la carta → eso no lo tienen. Decilo y ofrecé algo
+  parecido de la misma categoría, **elegido por vos de la carta**. El campo
+  `opciones` que devuelve puede traer coincidencias flojas (te tira una bebida
+  para una "milanesa"): no las leas de corrido, ofrecé lo que de verdad pega.
 - `codigo: "no_disponible"` → se acabó. "Se nos acabó", ofrecé una alternativa.
 - `codigo: "auth"`, `"core_caido"`, `"timeout"` → problema del sistema, no del
   cliente. Pedí disculpas, no prometas nada y avisale que en un rato lo contactan.
