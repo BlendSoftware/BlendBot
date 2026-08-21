@@ -170,9 +170,14 @@ func (s *cobroService) CierreDelDia(ctx context.Context, negocioID string, fecha
 		return nil, err
 	}
 
+	// El ticket promedio del dueño es lo VENDIDO sobre los pedidos entregados,
+	// no lo cobrado por ARCA: cobrar es un paso aparte (y en gastronomía muchas
+	// veces ni pasa por caja fiscal), así que dividir por cobros daba $0 al lado
+	// de un vendido grande y no cerraba. Vendido/entregados es el número que el
+	// dueño espera ver.
 	ticket := decimal.Zero
-	if r.Cobros > 0 {
-		ticket = r.TotalCobrado.Div(decimal.NewFromInt(int64(r.Cobros))).Round(2)
+	if r.Completados > 0 {
+		ticket = r.Vendido.Div(decimal.NewFromInt(int64(r.Completados))).Round(2)
 	}
 
 	return &dto.CierreResponse{

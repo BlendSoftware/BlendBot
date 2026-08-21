@@ -137,6 +137,7 @@ export function Catalogo() {
                   alFallar={setProblema}
                   expandida={abierta === s.id}
                   alExpandir={() => setAbierta(abierta === s.id ? null : s.id)}
+                  hayClubes={coberturas.length > 0}
                 >
                   <PreciosPorCobertura
                     servicioID={s.id}

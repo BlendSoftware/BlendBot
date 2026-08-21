@@ -408,7 +408,12 @@ function Informe() {
                   <span className="informe__barra">
                     <span
                       className="informe__relleno"
-                      style={{ width: `${(Number(d.vendido) / maximo) * 100}%` }}
+                      style={{
+                        width: `${(Number(d.vendido) / maximo) * 100}%`,
+                        // Un día sin ventas no deja ni el mínimo asomo de barra:
+                        // el nub de 2px del CSS haría leer plata donde hubo $0.
+                        ...(Number(d.vendido) === 0 ? { minWidth: 0 } : {}),
+                      }}
                     />
                   </span>
                   <span className="informe__montos">

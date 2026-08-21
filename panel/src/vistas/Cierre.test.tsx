@@ -232,6 +232,31 @@ describe('el informe por día', () => {
     await waitFor(() => expect(traerReportes).toHaveBeenCalledWith('mensual'))
   })
 
+  it('un día en $0 no deja ni el asomo de barra entre días con ventas', async () => {
+    traerCierre.mockResolvedValue(dia())
+    traerReportes.mockResolvedValue(
+      informe({
+        dias: [
+          { fecha: '2026-08-20', vendido: '0', cobrado: '0' },
+          { fecha: '2026-08-21', vendido: '118000', cobrado: '101000' },
+        ],
+        total_vendido: '118000',
+        total_cobrado: '101000',
+      }),
+    )
+    const { container } = render(<Cierre />)
+
+    await screen.findByText('Cómo viene la cosa')
+    const rellenos = container.querySelectorAll<HTMLElement>('.informe__relleno')
+    expect(rellenos).toHaveLength(2)
+    // El día en $0 apaga el min-width de 2px del CSS: nada de nub que se lea como plata.
+    expect(rellenos[0]?.style.width).toBe('0%')
+    expect(rellenos[0]?.style.minWidth).toBe('0')
+    // El día con ventas conserva su ancho proporcional, sin tocar el min-width.
+    expect(rellenos[1]?.style.width).toBe('100%')
+    expect(rellenos[1]?.style.minWidth).toBe('')
+  })
+
   it('sin ventas en el período lo dice en vez de barras vacías', async () => {
     traerCierre.mockResolvedValue(dia())
     traerReportes.mockResolvedValue(

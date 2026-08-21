@@ -16,6 +16,9 @@ interface Props {
   alFallar: (mensaje: string) => void
   expandida: boolean
   alExpandir: () => void
+  /** Sin clubes cargados el precio de lista es el único precio: no tiene sentido
+   *  colgar un "Precios por club" en cada fila que sólo abre a un vacío. */
+  hayClubes?: boolean
   children?: React.ReactNode
 }
 
@@ -26,6 +29,7 @@ export function FilaServicio({
   alFallar,
   expandida,
   alExpandir,
+  hayClubes = true,
   children,
 }: Props) {
   const [editando, setEditando] = useState(false)
@@ -101,7 +105,7 @@ export function FilaServicio({
           </>
         )}
 
-        {!editando && (
+        {!editando && hayClubes && (
           <button
             type="button"
             className="boton boton--fantasma servicio__coberturas"
@@ -122,7 +126,7 @@ export function FilaServicio({
         />
       </div>
 
-      {expandida && <div className="servicio__precios">{children}</div>}
+      {hayClubes && expandida && <div className="servicio__precios">{children}</div>}
     </li>
   )
 }
