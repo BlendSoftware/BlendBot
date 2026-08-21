@@ -140,10 +140,13 @@ func responderErrorMotor(c *gin.Context, err error) {
 		c.JSON(http.StatusUnprocessableEntity, apierror.New(err.Error()))
 	case errors.Is(err, service.ErrYaCobrado), errors.Is(err, service.ErrNoCobrable):
 		c.JSON(http.StatusConflict, apierror.New(err.Error()))
+	case errors.Is(err, service.ErrJornadaYaAbierta), errors.Is(err, service.ErrSinJornadaAbierta):
+		c.JSON(http.StatusConflict, apierror.New(err.Error()))
 	case errors.Is(err, service.ErrMedioPagoInvalido),
 		errors.Is(err, service.ErrCUITInvalido),
 		errors.Is(err, service.ErrPuntoVentaInvalido),
 		errors.Is(err, service.ErrModoFiscalInvalido),
+		errors.Is(err, service.ErrRangoInvalido),
 		errors.Is(err, service.ErrTimezoneInvalida):
 		c.JSON(http.StatusUnprocessableEntity, apierror.New(err.Error()))
 	case errors.Is(err, service.ErrCifradoNoConfigurado):

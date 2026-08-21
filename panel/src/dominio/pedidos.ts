@@ -41,6 +41,9 @@ export interface PedidoVista {
   id: string
   /** Referencia corta para cantar en la cocina. */
   numero: string
+  /** De quién es el pedido: el nombre puede faltar, el teléfono no. */
+  clienteNombre: string | null
+  clienteTelefono: string
   estado: Estado
   total: string
   entrega: TipoEntrega | null
@@ -82,6 +85,8 @@ export function aVista(
   return {
     id: compromiso.id,
     numero: numeroCorto(compromiso.id),
+    clienteNombre: compromiso.cliente_nombre,
+    clienteTelefono: compromiso.cliente_telefono,
     estado: compromiso.estado,
     total: compromiso.total,
     entrega: compromiso.entrega,

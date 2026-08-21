@@ -58,7 +58,7 @@ func estadosTerminales() []model.EstadoCompromiso {
 // Create inserta el compromiso y sus líneas en una sola transacción.
 func (r *compromisoRepo) Create(ctx context.Context, c *model.Compromiso) error {
 	lineas := c.Lineas
-	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Omit("Lineas").Create(c).Error; err != nil {
 			return err
 		}
@@ -74,6 +74,72 @@ func (r *compromisoRepo) Create(ctx context.Context, c *model.Compromiso) error 
 		c.Lineas = lineas
 		return nil
 	})
+	if err != nil {
+		return err
+	}
+	// El que recién crea el pedido también quiere ver quién pidió en la
+	// respuesta, no sólo el tablero; la hidratación es la misma, tenant-scoped.
+	return r.hidratarCliente(ctx, c.NegocioID, c)
+}
+
+// hidratarCliente completa nombre y teléfono del cliente de cada compromiso
+// desde la tabla `cliente`, acotado al tenant (negocio_id). Son datos de
+// presentación —el panel muestra a quién pertenece el pedido—, no columnas de
+// compromiso: viajan en campos transitorios del modelo. Se resuelve en una sola
+// consulta agrupando los cliente_id, así el tablero no dispara un SELECT por
+// tarjeta.
+func (r *compromisoRepo) hidratarCliente(ctx context.Context, negocioID string, cs ...*model.Compromiso) error {
+	if len(cs) == 0 {
+		return nil
+	}
+	ids := make([]string, 0, len(cs))
+	visto := make(map[string]struct{}, len(cs))
+	for _, c := range cs {
+		if c == nil || c.ClienteID == "" {
+			continue
+		}
+		if _, ok := visto[c.ClienteID]; ok {
+			continue
+		}
+		visto[c.ClienteID] = struct{}{}
+		ids = append(ids, c.ClienteID)
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+
+	var filas []struct {
+		ID       string
+		Nombre   *string
+		Telefono string
+	}
+	err := r.db.WithContext(ctx).
+		Model(&model.Cliente{}).
+		Select("id", "nombre", "telefono").
+		Where("negocio_id = ? AND id IN ?", negocioID, ids).
+		Scan(&filas).Error
+	if err != nil {
+		return err
+	}
+
+	type datosCliente struct {
+		nombre   *string
+		telefono string
+	}
+	porID := make(map[string]datosCliente, len(filas))
+	for _, f := range filas {
+		porID[f.ID] = datosCliente{nombre: f.Nombre, telefono: f.Telefono}
+	}
+	for _, c := range cs {
+		if c == nil {
+			continue
+		}
+		if d, ok := porID[c.ClienteID]; ok {
+			c.ClienteNombre = d.nombre
+			c.ClienteTelefono = d.telefono
+		}
+	}
+	return nil
 }
 
 func (r *compromisoRepo) GetByID(ctx context.Context, negocioID, id string) (*model.Compromiso, error) {
@@ -83,6 +149,9 @@ func (r *compromisoRepo) GetByID(ctx context.Context, negocioID, id string) (*mo
 		Where("negocio_id = ? AND id = ?", negocioID, id).
 		First(&c).Error
 	if err != nil {
+		return nil, err
+	}
+	if err := r.hidratarCliente(ctx, negocioID, &c); err != nil {
 		return nil, err
 	}
 	return &c, nil
@@ -103,6 +172,13 @@ func (r *compromisoRepo) ListTablero(ctx context.Context, negocioID string, esta
 	}
 	var cs []model.Compromiso
 	if err := q.Order("creado_en ASC").Find(&cs).Error; err != nil {
+		return nil, err
+	}
+	punteros := make([]*model.Compromiso, len(cs))
+	for i := range cs {
+		punteros[i] = &cs[i]
+	}
+	if err := r.hidratarCliente(ctx, negocioID, punteros...); err != nil {
 		return nil, err
 	}
 	return cs, nil

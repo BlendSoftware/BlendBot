@@ -22,9 +22,31 @@ func NewClientesHandler(svc service.ClienteService, audit service.AuditService) 
 }
 
 func (h *ClientesHandler) Register(rg *gin.RouterGroup) {
+	rg.GET("/clientes", h.Listar)
 	rg.GET("/clientes/por-telefono/:tel", h.PorTelefono)
 	rg.POST("/clientes", h.Crear)
 	rg.PATCH("/clientes/:id", h.Actualizar)
+}
+
+// Listar devuelve todos los clientes del negocio con su resumen de actividad.
+// Es una lectura en bloque (la usa la vista de Clientes de gastronomía): queda
+// auditada como cualquier acceso a fichas, sin una entidad puntual.
+func (h *ClientesHandler) Listar(c *gin.Context) {
+	negocioID := middleware.NegocioID(c)
+	lista, err := h.svc.Listar(c.Request.Context(), negocioID)
+	if err != nil {
+		errorDeServicio(c, err)
+		return
+	}
+
+	h.audit.Registrar(c.Request.Context(), service.Evento{
+		NegocioID: negocioID,
+		UsuarioID: middleware.GetClaims(c).UserID,
+		Accion:    service.AccionClienteLeer,
+		Entidad:   "cliente",
+	})
+
+	c.JSON(http.StatusOK, lista)
 }
 
 func (h *ClientesHandler) PorTelefono(c *gin.Context) {

@@ -27,6 +27,8 @@ function compromiso(estado: Estado, over: Partial<Compromiso> = {}): Compromiso 
     id: `c-${estado}`,
     negocio_id: 'n1',
     cliente_id: 'cl1',
+    cliente_nombre: 'Juani',
+    cliente_telefono: '5492611234567',
     recurso_id: null,
     tipo: 'pedido',
     estado,

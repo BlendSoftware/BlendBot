@@ -163,6 +163,19 @@ export interface Cliente {
   creado_en: string
 }
 
+/** Una fila de la lista de clientes del negocio: la ficha básica más el resumen
+ *  de su actividad. Alimenta la vista de Clientes de gastronomía. */
+export interface ClienteResumen {
+  id: string
+  telefono: string
+  nombre: string | null
+  cobertura_id: string | null
+  creado_en: string
+  cantidad_pedidos: number
+  total_acumulado: Plata
+  ultimo_pedido: string | null
+}
+
 // ─── Horarios ────────────────────────────────────────────────────────────────
 
 export interface Horario {
@@ -196,6 +209,9 @@ export interface Compromiso {
   id: string
   negocio_id: string
   cliente_id: string
+  /** Quién pidió: el nombre puede venir nulo (aún no lo dio), el teléfono no. */
+  cliente_nombre: string | null
+  cliente_telefono: string
   recurso_id: string | null
   tipo: TipoCompromiso
   estado: Estado
@@ -349,10 +365,58 @@ export interface Cierre {
   ausentes: number
   /** origen → cuántos compromisos. */
   por_origen: Partial<Record<OrigenCompromiso, number>>
+  /**
+   * Lo entregado del día (total de los completados), se haya cobrado o no.
+   * Suele ser mayor que total_cobrado: un pedido se entrega sin pasar por caja.
+   */
+  vendido: Plata
   cobros: number
   total_cobrado: Plata
   ticket_promedio: Plata
   /** medio de pago → cuánta plata. */
   por_medio_pago: Partial<Record<MedioPago, Plata>>
   comprobantes: CierreComprobantes
+}
+
+// ─── Jornada: la caja del día ────────────────────────────────────────────────
+//
+// Espejo de core/internal/dto/jornada_dto.go. La jornada es el ciclo abrir →
+// cerrar; los números del día los da el cierre, no la jornada.
+
+export interface Jornada {
+  id: string
+  negocio_id: string
+  abierta: boolean
+  abierta_en: string
+  cerrada_en: string | null
+  abierta_por: string | null
+  cerrada_por: string | null
+}
+
+/** GET /api/jornada/actual: abierta primero, la jornada null si está cerrada. */
+export interface JornadaActual {
+  abierta: boolean
+  jornada: Jornada | null
+}
+
+// ─── Reportes por día ────────────────────────────────────────────────────────
+//
+// Espejo de core/internal/dto/reporte_dto.go. Una fila por día, ceros incluidos.
+
+export type RangoReporte = 'semanal' | 'mensual'
+
+export interface ReporteDia {
+  fecha: string
+  vendido: Plata
+  cobrado: Plata
+}
+
+export interface Reporte {
+  rango: RangoReporte
+  desde: string
+  hasta: string
+  timezone: string
+  dias: ReporteDia[]
+  total_vendido: Plata
+  total_cobrado: Plata
 }

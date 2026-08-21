@@ -882,6 +882,70 @@
   color: var(--tinta-suave);
 }
 
+/* La libreta de gastronomía: una fila por cliente con quién es a la izquierda y
+   su actividad a la derecha. Es de lectura, no un botón, así que no se hunde ni
+   se corre al pasar el mouse. */
+.clientes__tabla {
+  margin: var(--e2) 0 0;
+  padding: 0;
+  list-style: none;
+  border-radius: var(--radio);
+  overflow: hidden;
+  background: var(--superficie);
+  box-shadow: var(--sombra-baja);
+  border: 1px solid oklch(0.24 0.012 55 / 0.06);
+}
+
+.clientes__fila {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e3);
+  padding: var(--e3);
+  border-bottom: 1px solid oklch(0.24 0.012 55 / 0.06);
+}
+
+.clientes__fila:last-child {
+  border-bottom: 0;
+}
+
+.clientes__fila-quien {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.clientes__fila-nombre {
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.clientes__fila-tel {
+  font-size: var(--t-mini);
+  color: var(--tinta-suave);
+}
+
+.clientes__fila-datos {
+  display: flex;
+  align-items: baseline;
+  gap: var(--e3);
+  flex-shrink: 0;
+}
+
+.clientes__fila-pedidos {
+  font-size: var(--t-mini);
+  font-weight: 700;
+  color: var(--tinta-suave);
+}
+
+.clientes__fila-ultimo {
+  font-size: var(--t-mini);
+  color: var(--tinta-suave);
+}
+
 .ficha__nombre {
   font-size: var(--t-grande);
 }
@@ -1178,6 +1242,173 @@
   text-align: right;
   color: var(--tinta-suave);
   font-weight: 600;
+}
+
+/* ── Caja del día ─────────────────────────────────────────────────────────── */
+
+/*
+ * La franja de la caja: dice si está abierta o cerrada y deja moverla. Se lee
+ * de un vistazo por el punto de color (verde = abierta), no por el texto.
+ */
+.caja {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--e3);
+  margin-bottom: var(--e4);
+  padding: var(--e3) var(--e4);
+  border-radius: var(--radio);
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  box-shadow: var(--sombra-baja);
+}
+
+.caja--abierta {
+  border-color: oklch(0.62 0.1 155 / 0.5);
+}
+
+.caja__estado {
+  display: flex;
+  align-items: center;
+  gap: var(--e2);
+}
+
+.caja__punto {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: var(--tinta-suave);
+}
+
+.caja--abierta .caja__punto {
+  background: var(--confirmado);
+  box-shadow: 0 0 0 4px oklch(0.62 0.1 155 / 0.18);
+}
+
+.caja__texto {
+  font-size: var(--t-medio);
+  font-weight: 800;
+}
+
+.caja__desde {
+  font-weight: 600;
+  color: var(--tinta-suave);
+}
+
+/* ── Informe por día ──────────────────────────────────────────────────────── */
+
+.informe {
+  margin-top: var(--e5);
+  padding-top: var(--e4);
+  border-top: 1px solid var(--borde);
+}
+
+.informe__cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--e3);
+  margin-bottom: var(--e3);
+}
+
+.informe__titulo {
+  font-size: var(--t-grande);
+  font-weight: 800;
+}
+
+.informe__pestanas {
+  display: inline-flex;
+  gap: var(--e1);
+  padding: var(--e1);
+  border-radius: var(--radio-chico);
+  background: var(--panel);
+}
+
+.informe__pestana {
+  min-height: 40px;
+  padding: 0 var(--e3);
+  border: none;
+  border-radius: var(--radio-chico);
+  background: transparent;
+  color: var(--tinta-suave);
+  font-weight: 700;
+  transition: background-color var(--transicion), color var(--transicion);
+}
+
+.informe__pestana--activa {
+  background: var(--superficie);
+  color: var(--tinta);
+  box-shadow: var(--sombra-baja);
+}
+
+.informe__totales {
+  display: flex;
+  gap: var(--e5);
+  margin-bottom: var(--e4);
+}
+
+.informe__totalvalor {
+  font-size: var(--t-titulo);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.informe__dias {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--e2);
+}
+
+.informe__dia {
+  display: grid;
+  grid-template-columns: 4.5rem 1fr auto;
+  align-items: center;
+  gap: var(--e3);
+}
+
+.informe__fecha {
+  font-size: var(--t-mini);
+  font-weight: 700;
+  color: var(--tinta-suave);
+  text-transform: capitalize;
+}
+
+.informe__barra {
+  height: 14px;
+  border-radius: 999px;
+  background: var(--panel);
+  overflow: hidden;
+}
+
+.informe__relleno {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  border-radius: 999px;
+  background: var(--acento);
+  transition: width var(--transicion);
+}
+
+.informe__montos {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.2;
+}
+
+.informe__vendido {
+  font-weight: 800;
+}
+
+.informe__cobrado {
+  font-size: var(--t-mini);
+  color: var(--tinta-suave);
 }
 
 /* ── Admin ───────────────────────────────────────────────────────────────── */
@@ -1545,6 +1776,19 @@
   font-size: var(--t-medio);
   font-weight: 800;
   letter-spacing: -0.01em;
+  color: var(--tinta);
+}
+
+/* El nombre de quién pidió, entre el número y el badge de entrega. Toma el
+   espacio del medio y se corta con puntos suspensivos si no entra. */
+.pedido__cliente {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--t-medio);
+  font-weight: 700;
   color: var(--tinta);
 }
 

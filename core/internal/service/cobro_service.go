@@ -183,6 +183,7 @@ func (s *cobroService) CierreDelDia(ctx context.Context, negocioID string, fecha
 		Cancelados:     r.Cancelados,
 		Ausentes:       r.Ausentes,
 		PorOrigen:      r.PorOrigen,
+		Vendido:        r.Vendido,
 		Cobros:         r.Cobros,
 		TotalCobrado:   r.TotalCobrado,
 		TicketPromedio: ticket,

@@ -8,6 +8,8 @@ function pedido(over: Partial<PedidoVista> = {}): PedidoVista {
   return {
     id: 'p1',
     numero: '#48',
+    clienteNombre: 'Juani',
+    clienteTelefono: '5492611234567',
     estado: 'pendiente',
     total: '9500',
     entrega: 'delivery',
@@ -42,6 +44,16 @@ describe('TarjetaPedido', () => {
     expect(screen.getByText('#48')).toBeInTheDocument()
     expect(screen.getByText('Doble cheddar')).toBeInTheDocument()
     expect(screen.getByText('sin cebolla')).toBeInTheDocument()
+  })
+
+  it('muestra el nombre del cliente arriba: el dueño quiere ver de quién es', () => {
+    pintar()
+    expect(screen.getByText('Juani')).toBeInTheDocument()
+  })
+
+  it('sin nombre cargado cae al teléfono, no queda anónimo', () => {
+    pintar({ clienteNombre: null, clienteTelefono: '5492611234567' })
+    expect(screen.getByText('Sin nombre (4567)')).toBeInTheDocument()
   })
 
   it('un delivery muestra el tipo de entrega y la dirección', () => {

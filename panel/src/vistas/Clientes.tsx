@@ -1,25 +1,154 @@
 /**
- * Buscar a alguien y ver su ficha. El core busca por teléfono exacto (es el
- * identificador de WhatsApp); por nombre se filtra sobre la gente del día, que
- * es lo que se pregunta en el mostrador: "¿a qué hora venía la señora Paz?".
+ * La vista de Clientes se bifurca por vertical. En gastronomía es la libreta de
+ * todos los que pidieron alguna vez: el dueño quiere ver de un vistazo a su
+ * gente, con cuántos pedidos hizo cada uno y cuánto gastó. En salud es la ficha
+ * del paciente: se busca por teléfono exacto (el identificador de WhatsApp) o
+ * por nombre entre los del día, que es lo que se pregunta en el mostrador.
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   actualizarCliente,
   clientePorTelefono,
+  listarClientes,
   listarCompromisos,
   traerAgenda,
 } from '../api/endpoints'
-import type { Cliente, Compromiso, TurnoAgenda } from '../api/tipos'
+import type { Cliente, ClienteResumen, Compromiso, TurnoAgenda } from '../api/tipos'
 import { Aviso, Esqueleto, Vacio, useAvisoBien } from '../componentes/basicos'
 import { useSesion } from '../contexto'
 import { etiquetaEstado } from '../dominio/estados'
-import { fechaCorta, horaDe, hoyISO, nombreVisible, plata, sumarDias, telefonoVisible } from '../dominio/formato'
+import {
+  fechaCorta,
+  horaDe,
+  hoyISO,
+  nombreVisible,
+  plata,
+  sumarDias,
+  telefonoVisible,
+} from '../dominio/formato'
 
 const DIAS_DE_HISTORIAL = 180
 
 export function Clientes() {
+  const { negocio } = useSesion()
+  // Hasta que llega el negocio no sabemos qué vertical es; no queremos mostrar
+  // la libreta de gastronomía y que después salte a la ficha de salud (ni al
+  // revés). Es un ida y vuelta corto contra el token.
+  if (!negocio) return <Esqueleto alto={80} cantidad={4} />
+  return negocio.vertical === 'gastronomia' ? <ClientesGastro /> : <ClientesSalud />
+}
+
+// ── Gastronomía: la libreta de todos los que pidieron ──────────────────────────
+
+function ClientesGastro() {
+  const { vePlata } = useSesion()
+  const [lista, setLista] = useState<ClienteResumen[] | null>(null)
+  const [busqueda, setBusqueda] = useState('')
+  const [problema, setProblema] = useState('')
+
+  useEffect(() => {
+    let vivo = true
+    listarClientes()
+      .then((cs) => {
+        if (vivo) setLista(cs)
+      })
+      .catch((e) => {
+        if (vivo) setProblema(e instanceof Error ? e.message : 'No se pudo traer la lista.')
+      })
+    return () => {
+      vivo = false
+    }
+  }, [])
+
+  const filtrados = useMemo(() => {
+    if (!lista) return []
+    const texto = busqueda.trim().toLowerCase()
+    if (!texto) return lista
+    const soloNumeros = texto.replace(/\D/g, '')
+    return lista.filter(
+      (c) =>
+        (c.nombre ?? '').toLowerCase().includes(texto) ||
+        (soloNumeros.length > 0 && c.telefono.includes(soloNumeros)),
+    )
+  }, [lista, busqueda])
+
+  return (
+    <section className="clientes">
+      <header className="encabezado">
+        <div>
+          <h1>Clientes</h1>
+          <p className="encabezado__bajada">Todos los que pidieron alguna vez, el último primero.</p>
+        </div>
+      </header>
+
+      <form className="clientes__buscador" onSubmit={(e) => e.preventDefault()}>
+        <label className="campo clientes__campo">
+          <span>Buscar por nombre o teléfono</span>
+          <input
+            className="entrada"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Lucía o 2615551234"
+          />
+        </label>
+      </form>
+
+      <Aviso texto={problema} alCerrar={() => setProblema('')} />
+
+      {!lista && <Esqueleto alto={56} cantidad={5} />}
+
+      {lista && lista.length === 0 && (
+        <Vacio
+          titulo="Todavía no pidió nadie."
+          detalle="Cuando entre el primer pedido, el cliente aparece acá."
+        />
+      )}
+
+      {lista && lista.length > 0 && (
+        <>
+          <div className="grupo__cabeza">
+            <span className="grupo__cuenta">
+              {filtrados.length === 1 ? '1 cliente' : `${filtrados.length} clientes`}
+            </span>
+          </div>
+          {filtrados.length === 0 ? (
+            <Vacio titulo="Nadie coincide con esa búsqueda." detalle="Probá con otro nombre o teléfono." />
+          ) : (
+            <ul className="clientes__tabla">
+              {filtrados.map((c) => (
+                <li key={c.id} className="clientes__fila">
+                  <div className="clientes__fila-quien">
+                    <span className="clientes__fila-nombre">{nombreVisible(c.nombre, c.telefono)}</span>
+                    <span className="clientes__fila-tel tabular">{telefonoVisible(c.telefono)}</span>
+                  </div>
+                  <div className="clientes__fila-datos">
+                    <span className="clientes__fila-pedidos">
+                      {c.cantidad_pedidos === 1 ? '1 pedido' : `${c.cantidad_pedidos} pedidos`}
+                    </span>
+                    {/* Lo que gastó cada cliente es plata del negocio: la ve el dueño. */}
+                    {vePlata && c.cantidad_pedidos > 0 && (
+                      <span className="plata">{plata(c.total_acumulado)}</span>
+                    )}
+                    {c.ultimo_pedido && (
+                      <span className="clientes__fila-ultimo tabular">
+                        {fechaCorta(c.ultimo_pedido.slice(0, 10))}
+                      </span>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      )}
+    </section>
+  )
+}
+
+// ── Salud: buscar a alguien y ver su ficha ─────────────────────────────────────
+
+function ClientesSalud() {
   const { negocio, vePlata } = useSesion()
   const [busqueda, setBusqueda] = useState('')
   const [delDia, setDelDia] = useState<TurnoAgenda[]>([])

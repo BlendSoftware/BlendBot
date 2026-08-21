@@ -1,16 +1,16 @@
 /**
  * La tarjeta del pedido en el tablero de cocina. Prima hermana de
  * TarjetaCompromiso: comparte la máquina de estados (dominio/estados.ts), el
- * color de fondo por estado y el selector de demora. Pero un pedido se
- * identifica por su número y sus ítems, no por el nombre del cliente, así que
- * la cabeza y el cuerpo son propios.
+ * color de fondo por estado y el selector de demora. Muestra el nombre del
+ * cliente arriba —el dueño quiere ver de quién es cada pedido— y abajo su
+ * número y sus ítems; la cabeza y el cuerpo son propios.
  */
 
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { Estado, TipoEntrega } from '../api/tipos'
 import { COLOR_ESTADO, TINTA_ESTADO, accionesPara, etiquetaEstado } from '../dominio/estados'
-import { plata } from '../dominio/formato'
+import { nombreVisible, plata } from '../dominio/formato'
 import { contadorDemora, type PedidoVista } from '../dominio/pedidos'
 import { SelectorDemora } from './SelectorDemora'
 
@@ -125,10 +125,13 @@ export function TarjetaPedido({
         } as React.CSSProperties
       }
       onPointerDown={() => setTocada(true)}
-      aria-label={`Pedido ${pedido.numero}, ${etiquetaEstado(pedido.estado, 'pedido')}`}
+      aria-label={`Pedido ${pedido.numero} de ${nombreVisible(pedido.clienteNombre, pedido.clienteTelefono)}, ${etiquetaEstado(pedido.estado, 'pedido')}`}
     >
       <header className="turno__cabeza pedido__cabeza">
         <span className="pedido__numero tabular">{pedido.numero}</span>
+        <span className="pedido__cliente">
+          {nombreVisible(pedido.clienteNombre, pedido.clienteTelefono)}
+        </span>
         {entrega && (
           <span className="pedido__entrega" title={entrega.texto}>
             <span aria-hidden="true">{entrega.icono}</span>

@@ -21,6 +21,8 @@ var ErrClienteDuplicado = errors.New("ya existe un cliente con ese telefono")
 type ClienteService interface {
 	BuscarPorTelefono(ctx context.Context, negocioID, telefono string) (*model.Cliente, error)
 	ObtenerPorID(ctx context.Context, negocioID, id string) (*model.Cliente, error)
+	// Listar trae todos los clientes del negocio con su resumen de actividad.
+	Listar(ctx context.Context, negocioID string) ([]dto.ClienteResumen, error)
 	Crear(ctx context.Context, negocioID string, req dto.CrearClienteRequest) (*model.Cliente, error)
 	Actualizar(ctx context.Context, negocioID, id string, req dto.ActualizarClienteRequest) (*model.Cliente, error)
 }
@@ -48,6 +50,27 @@ func (s *clienteService) ObtenerPorID(ctx context.Context, negocioID, id string)
 		return nil, traducirNoEncontrado(err)
 	}
 	return c, nil
+}
+
+func (s *clienteService) Listar(ctx context.Context, negocioID string) ([]dto.ClienteResumen, error) {
+	filas, err := s.clientes.ListarConResumen(ctx, negocioID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]dto.ClienteResumen, 0, len(filas))
+	for _, f := range filas {
+		out = append(out, dto.ClienteResumen{
+			ID:              f.ID,
+			Telefono:        f.Telefono,
+			Nombre:          f.Nombre,
+			CoberturaID:     f.CoberturaID,
+			CreadoEn:        f.CreadoEn,
+			CantidadPedidos: f.CantidadPedidos,
+			TotalAcumulado:  f.TotalAcumulado,
+			UltimoPedido:    f.UltimoPedido,
+		})
+	}
+	return out, nil
 }
 
 func (s *clienteService) Crear(ctx context.Context, negocioID string, req dto.CrearClienteRequest) (*model.Cliente, error) {

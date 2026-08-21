@@ -13,6 +13,8 @@ function compromiso(over: Partial<Compromiso> = {}): Compromiso {
     id: '11111111-2222-3333-4444-5555aa66bb77',
     negocio_id: 'n1',
     cliente_id: 'cl1',
+    cliente_nombre: 'Juani',
+    cliente_telefono: '5492611234567',
     recurso_id: null,
     tipo: 'pedido',
     estado: 'pendiente' as Estado,

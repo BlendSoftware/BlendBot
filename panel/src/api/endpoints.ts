@@ -9,6 +9,7 @@ import type {
   Categoria,
   Cierre,
   Cliente,
+  ClienteResumen,
   Cobertura,
   Cobro,
   Compromiso,
@@ -16,13 +17,17 @@ import type {
   Estado,
   Excepcion,
   Horario,
+  Jornada,
+  JornadaActual,
   MedioPago,
   ModoFiscal,
   Negocio,
   NegocioDatos,
   Plata,
   PrecioCobertura,
+  RangoReporte,
   Recurso,
+  Reporte,
   Servicio,
   TokenAgente,
   Tokens,
@@ -131,6 +136,26 @@ export function traerCobro(compromisoID: string): Promise<Cobro> {
 
 export function traerCierre(fecha: string): Promise<Cierre> {
   return pedir<Cierre>(`/api/cierre?fecha=${encodeURIComponent(fecha)}`)
+}
+
+// ─── Jornada (la caja del día) ───────────────────────────────────────────────
+
+export function jornadaActual(): Promise<JornadaActual> {
+  return pedir<JornadaActual>('/api/jornada/actual')
+}
+
+export function abrirJornada(): Promise<Jornada> {
+  return pedir<Jornada>('/api/jornada/abrir', { metodo: 'POST' })
+}
+
+export function cerrarJornada(): Promise<Jornada> {
+  return pedir<Jornada>('/api/jornada/cerrar', { metodo: 'POST' })
+}
+
+// ─── Informes por día ────────────────────────────────────────────────────────
+
+export function traerReportes(rango: RangoReporte): Promise<Reporte> {
+  return pedir<Reporte>(`/api/reportes?rango=${rango}`)
 }
 
 // ─── Catálogo ────────────────────────────────────────────────────────────────
@@ -262,6 +287,11 @@ export function borrarExcepcion(recursoID: string, excepcionID: string): Promise
 }
 
 // ─── Clientes ────────────────────────────────────────────────────────────────
+
+/** Todos los clientes del negocio con el resumen de su actividad (gastronomía). */
+export function listarClientes(): Promise<ClienteResumen[]> {
+  return pedir<ClienteResumen[]>('/api/clientes')
+}
 
 export function clientePorTelefono(telefono: string): Promise<Cliente> {
   return pedir<Cliente>(`/api/clientes/por-telefono/${encodeURIComponent(telefono)}`)

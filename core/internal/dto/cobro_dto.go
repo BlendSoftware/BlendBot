@@ -132,6 +132,11 @@ type CierreResponse struct {
 	Ausentes    int            `json:"ausentes"`
 	PorOrigen   map[string]int `json:"por_origen"`
 
+	// Vendido es lo entregado del día (total de los compromisos completados),
+	// haya entrado o no por la caja de ARCA. Suele ser mayor que TotalCobrado:
+	// se puede entregar un pedido sin cobrarlo por el panel.
+	Vendido decimal.Decimal `json:"vendido"`
+
 	Cobros         int                        `json:"cobros"`
 	TotalCobrado   decimal.Decimal            `json:"total_cobrado"`
 	TicketPromedio decimal.Decimal            `json:"ticket_promedio"`

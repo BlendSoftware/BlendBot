@@ -139,6 +139,8 @@ func armarRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) *gin.Engine
 	listaEsperaRepo := repository.NewListaEsperaRepository(db)
 	avisoRepo := repository.NewAvisoRepository(db)
 	cobroRepo := repository.NewCobroRepository(db)
+	jornadaRepo := repository.NewJornadaRepository(db)
+	reporteRepo := repository.NewReporteRepository(db)
 
 	// El cifrado fiscal va con una clave de test: sin cifrador, cargar
 	// certificados devolvería 503 y el e2e no probaría el camino real.
@@ -168,6 +170,8 @@ func armarRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) *gin.Engine
 		TokenSvc:     service.NewNegocioTokenService(negDatosRepo),
 		ListaEspSvc:  service.NewListaEsperaService(listaEsperaRepo),
 		CobroSvc:     service.NewCobroService(cobroRepo, negDatosRepo, cifrador),
+		JornadaSvc:   service.NewJornadaService(jornadaRepo),
+		ReporteSvc:   service.NewReporteService(reporteRepo, negDatosRepo),
 		NegDatosRepo: negDatosRepo,
 		HorarioH:     handler.NewHorariosHandler(horarioRepo),
 	})

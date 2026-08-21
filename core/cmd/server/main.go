@@ -123,6 +123,8 @@ func main() {
 	listaEsperaRepo := repository.NewListaEsperaRepository(db)
 	avisoRepo := repository.NewAvisoRepository(db)
 	cobroRepo := repository.NewCobroRepository(db)
+	jornadaRepo := repository.NewJornadaRepository(db)
+	reporteRepo := repository.NewReporteRepository(db)
 
 	// ── Cifrado fiscal ──────────────────────────────────────────────
 	// Sin FISCAL_CIPHER_KEY el módulo fiscal queda apagado: no se pueden
@@ -184,6 +186,8 @@ func main() {
 		TokenSvc:     service.NewNegocioTokenService(negDatosRepo),
 		ListaEspSvc:  service.NewListaEsperaService(listaEsperaRepo),
 		CobroSvc:     service.NewCobroService(cobroRepo, negDatosRepo, cifrador),
+		JornadaSvc:   service.NewJornadaService(jornadaRepo),
+		ReporteSvc:   service.NewReporteService(reporteRepo, negDatosRepo),
 		NegDatosRepo: negDatosRepo,
 		HorarioH:     handler.NewHorariosHandler(horarioRepo),
 	})

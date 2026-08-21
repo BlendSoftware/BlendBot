@@ -60,24 +60,29 @@ type LineaCompromisoResponse struct {
 
 // CompromisoResponse es la vista del motor para panel y agente.
 type CompromisoResponse struct {
-	ID           string                    `json:"id"`
-	NegocioID    string                    `json:"negocio_id"`
-	ClienteID    string                    `json:"cliente_id"`
-	RecursoID    *string                   `json:"recurso_id"`
-	Tipo         model.TipoCompromiso      `json:"tipo"`
-	Estado       model.EstadoCompromiso    `json:"estado"`
-	Inicio       *time.Time                `json:"inicio"`
-	Fin          *time.Time                `json:"fin"`
-	DemoraMin    *int                      `json:"demora_min"`
-	Entrega      *model.TipoEntrega        `json:"entrega"`
-	Direccion    *string                   `json:"direccion"`
-	Total        decimal.Decimal           `json:"total"`
-	Origen       model.OrigenCompromiso    `json:"origen"`
-	Nota         *string                   `json:"nota"`
-	CreadoEn     time.Time                 `json:"creado_en"`
-	ConfirmadoEn *time.Time                `json:"confirmado_en"`
-	CerradoEn    *time.Time                `json:"cerrado_en"`
-	Lineas       []LineaCompromisoResponse `json:"lineas"`
+	ID        string `json:"id"`
+	NegocioID string `json:"negocio_id"`
+	ClienteID string `json:"cliente_id"`
+	// Datos del cliente para mostrar quién pidió sin un GET extra por ficha. El
+	// nombre puede venir nulo (el que escribe por WhatsApp aún no lo dio); el
+	// teléfono es la identidad y siempre está.
+	ClienteNombre   *string                   `json:"cliente_nombre"`
+	ClienteTelefono string                    `json:"cliente_telefono"`
+	RecursoID       *string                   `json:"recurso_id"`
+	Tipo            model.TipoCompromiso      `json:"tipo"`
+	Estado          model.EstadoCompromiso    `json:"estado"`
+	Inicio          *time.Time                `json:"inicio"`
+	Fin             *time.Time                `json:"fin"`
+	DemoraMin       *int                      `json:"demora_min"`
+	Entrega         *model.TipoEntrega        `json:"entrega"`
+	Direccion       *string                   `json:"direccion"`
+	Total           decimal.Decimal           `json:"total"`
+	Origen          model.OrigenCompromiso    `json:"origen"`
+	Nota            *string                   `json:"nota"`
+	CreadoEn        time.Time                 `json:"creado_en"`
+	ConfirmadoEn    *time.Time                `json:"confirmado_en"`
+	CerradoEn       *time.Time                `json:"cerrado_en"`
+	Lineas          []LineaCompromisoResponse `json:"lineas"`
 }
 
 // CompromisoDesdeModel arma la respuesta a partir del modelo.
@@ -97,24 +102,26 @@ func CompromisoDesdeModel(c *model.Compromiso) *CompromisoResponse {
 		})
 	}
 	return &CompromisoResponse{
-		ID:           c.ID,
-		NegocioID:    c.NegocioID,
-		ClienteID:    c.ClienteID,
-		RecursoID:    c.RecursoID,
-		Tipo:         c.Tipo,
-		Estado:       c.Estado,
-		Inicio:       c.Inicio,
-		Fin:          c.Fin,
-		DemoraMin:    c.DemoraMin,
-		Entrega:      c.Entrega,
-		Direccion:    c.Direccion,
-		Total:        c.Total,
-		Origen:       c.Origen,
-		Nota:         c.Nota,
-		CreadoEn:     c.CreadoEn,
-		ConfirmadoEn: c.ConfirmadoEn,
-		CerradoEn:    c.CerradoEn,
-		Lineas:       lineas,
+		ID:              c.ID,
+		NegocioID:       c.NegocioID,
+		ClienteID:       c.ClienteID,
+		ClienteNombre:   c.ClienteNombre,
+		ClienteTelefono: c.ClienteTelefono,
+		RecursoID:       c.RecursoID,
+		Tipo:            c.Tipo,
+		Estado:          c.Estado,
+		Inicio:          c.Inicio,
+		Fin:             c.Fin,
+		DemoraMin:       c.DemoraMin,
+		Entrega:         c.Entrega,
+		Direccion:       c.Direccion,
+		Total:           c.Total,
+		Origen:          c.Origen,
+		Nota:            c.Nota,
+		CreadoEn:        c.CreadoEn,
+		ConfirmadoEn:    c.ConfirmadoEn,
+		CerradoEn:       c.CerradoEn,
+		Lineas:          lineas,
 	}
 }
 

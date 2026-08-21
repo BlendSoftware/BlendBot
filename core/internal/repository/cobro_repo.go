@@ -29,11 +29,15 @@ type CompromisoACobrar struct {
 
 // ResumenCierre es el corte del día que mira el dueño antes de irse.
 type ResumenCierre struct {
-	Compromisos  int
-	Completados  int
-	Cancelados   int
-	Ausentes     int
-	PorOrigen    map[string]int
+	Compromisos int
+	Completados int
+	Cancelados  int
+	Ausentes    int
+	PorOrigen   map[string]int
+	// Vendido es el total de lo entregado del día (compromisos completados),
+	// haya entrado o no por la caja de ARCA. Es lo que faltaba: antes el cierre
+	// sólo mostraba lo cobrado y el dueño no veía lo que salió de la cocina.
+	Vendido      decimal.Decimal
 	Cobros       int
 	TotalCobrado decimal.Decimal
 	PorMedioPago map[string]decimal.Decimal
@@ -202,7 +206,23 @@ func (r *cobroRepo) Cierre(ctx context.Context, negocioID string, desde, hasta t
 		PorOrigen:    map[string]int{},
 		PorMedioPago: map[string]decimal.Decimal{},
 		TotalCobrado: decimal.Zero,
+		Vendido:      decimal.Zero,
 	}
+
+	// Lo vendido del día: la suma de los totales de lo entregado (completados),
+	// por cerrado_en, sin depender de que se haya cobrado por ARCA. Es una
+	// query aparte de la de conteo porque acá interesa la plata, no cuántos.
+	var vendido decimal.Decimal
+	err := r.db.WithContext(ctx).Raw(`
+		SELECT COALESCE(SUM(total), 0)
+		FROM compromiso
+		WHERE negocio_id = ? AND estado = 'completado'
+		  AND cerrado_en >= ? AND cerrado_en < ?
+	`, negocioID, desde, hasta).Scan(&vendido).Error
+	if err != nil {
+		return nil, err
+	}
+	out.Vendido = vendido
 
 	// Los compromisos del día se cuentan por cerrado_en: lo que se cerró hoy,
 	// sin importar cuándo se pidió. Un turno tomado el lunes y atendido el
@@ -212,7 +232,7 @@ func (r *cobroRepo) Cierre(ctx context.Context, negocioID string, desde, hasta t
 		Origen string
 		N      int
 	}
-	err := r.db.WithContext(ctx).Raw(`
+	err = r.db.WithContext(ctx).Raw(`
 		SELECT estado::text AS estado, origen::text AS origen, COUNT(*) AS n
 		FROM compromiso
 		WHERE negocio_id = ? AND cerrado_en >= ? AND cerrado_en < ?

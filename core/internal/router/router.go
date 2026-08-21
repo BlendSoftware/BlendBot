@@ -34,6 +34,8 @@ type Deps struct {
 	TokenSvc     service.NegocioTokenService
 	ListaEspSvc  service.ListaEsperaService
 	CobroSvc     service.CobroService
+	JornadaSvc   service.JornadaService
+	ReporteSvc   service.ReporteService
 	NegDatosRepo repository.NegocioDatosRepository
 	HorarioH     *handler.HorariosHandler
 }
@@ -91,6 +93,8 @@ func New(d Deps) *gin.Engine {
 	handler.NewNegocioDatosHandler(d.NegDatosRepo).Register(tenant)
 	handler.NewListaEsperaHandler(d.ListaEspSvc).Register(tenant)
 	handler.NewCobrosHandler(d.CobroSvc).Register(tenant)
+	handler.NewJornadaHandler(d.JornadaSvc).Register(tenant)
+	handler.NewReportesHandler(d.ReporteSvc).Register(tenant)
 	d.HorarioH.Register(tenant)
 
 	return r

@@ -59,6 +59,13 @@ type Compromiso struct {
 	// nunca mandan dos recordatorios del mismo turno.
 	RecordatorioEnviadoEn *time.Time        `json:"recordatorio_enviado_en"`
 	Lineas                []LineaCompromiso `gorm:"foreignKey:CompromisoID" json:"lineas,omitempty"`
+	// Datos de presentación del cliente, hidratados por compromiso_repo desde la
+	// tabla `cliente` (tenant-scoped). No son columnas de compromiso: por eso
+	// `gorm:"-"` (GORM los ignora en todo INSERT/SELECT) y `json:"-"` (la API
+	// expone estos datos por dto.CompromisoResponse, no por el modelo). Así el
+	// panel muestra quién pidió sin un GET extra por ficha.
+	ClienteNombre   *string `gorm:"-" json:"-"`
+	ClienteTelefono string  `gorm:"-" json:"-"`
 }
 
 func (Compromiso) TableName() string { return "compromiso" }
