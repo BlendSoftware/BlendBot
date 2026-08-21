@@ -1,0 +1,62 @@
+package worker
+
+import (
+	"context"
+	"fmt"
+	"strings"
+
+	"copiloto/core/internal/service"
+
+	"github.com/shopspring/decimal"
+)
+
+// avisadorPedido implementa service.AvisadorPedido publicando a la cola de
+// salidas de WhatsApp. Es el "el panel actúa, no sólo muestra" del lado del
+// pedido: cuando el local confirma con una demora, el cliente se entera.
+type avisadorPedido struct {
+	pub Publicador
+}
+
+// NewAvisadorPedido arma el avisador sobre el mismo publicador de Redis que usa
+// el resto de las salidas.
+func NewAvisadorPedido(pub Publicador) service.AvisadorPedido {
+	return &avisadorPedido{pub: pub}
+}
+
+func (a *avisadorPedido) PedidoConfirmado(ctx context.Context, av service.AvisoPedidoConfirmado) error {
+	saludo := "¡Listo!"
+	if av.ClienteNombre != "" {
+		saludo = "¡Listo, " + av.ClienteNombre + "!"
+	}
+	texto := fmt.Sprintf(
+		"%s Confirmamos tu pedido 🍔 Sale en ~%d min. Total %s. Cualquier cosa te avisamos por acá.",
+		saludo, av.DemoraMin, plataAR(av.Total),
+	)
+	return a.pub.Publicar(ctx, MensajeSalida{
+		NegocioID:    av.NegocioID,
+		WaPhoneID:    av.WaPhoneID,
+		Telefono:     av.ClienteTelefono,
+		Tipo:         "texto",
+		Texto:        texto,
+		CompromisoID: av.CompromisoID,
+	})
+}
+
+// plataAR formatea un decimal como plata argentina: "$26.300" (punto de miles,
+// sin decimales para montos redondos de comida).
+func plataAR(d decimal.Decimal) string {
+	entero := d.Round(0).String()
+	neg := strings.HasPrefix(entero, "-")
+	entero = strings.TrimPrefix(entero, "-")
+	var grupos []string
+	for len(entero) > 3 {
+		grupos = append([]string{entero[len(entero)-3:]}, grupos...)
+		entero = entero[:len(entero)-3]
+	}
+	grupos = append([]string{entero}, grupos...)
+	out := "$" + strings.Join(grupos, ".")
+	if neg {
+		out = "-" + out
+	}
+	return out
+}

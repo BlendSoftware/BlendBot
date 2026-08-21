@@ -8,6 +8,7 @@ import (
 	"copiloto/core/internal/dto"
 	"copiloto/core/internal/model"
 
+	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
 
@@ -28,12 +29,26 @@ type negocioConfigLeer interface {
 type motorGastro struct {
 	inner    MotorService
 	negocios negocioConfigLeer
+	avisador AvisadorPedido // opcional: nil = no se avisa al cliente
+}
+
+// OpcionGastro configura el decorador sin romperle la firma al constructor.
+type OpcionGastro func(*motorGastro)
+
+// ConAvisadorPedido engancha el aviso al cliente: cuando el local confirma un
+// pedido de WhatsApp con una demora, el cliente recibe un mensaje con el tiempo.
+func ConAvisadorPedido(a AvisadorPedido) OpcionGastro {
+	return func(m *motorGastro) { m.avisador = a }
 }
 
 // NewMotorGastro envuelve un MotorService ya construido (con su notificador y
 // todo). Se cablea en la composition root en lugar del motor pelado.
-func NewMotorGastro(inner MotorService, negocios negocioConfigLeer) MotorService {
-	return &motorGastro{inner: inner, negocios: negocios}
+func NewMotorGastro(inner MotorService, negocios negocioConfigLeer, opts ...OpcionGastro) MotorService {
+	m := &motorGastro{inner: inner, negocios: negocios}
+	for _, o := range opts {
+		o(m)
+	}
+	return m
 }
 
 func (m *motorGastro) Crear(ctx context.Context, negocioID string, in dto.CrearCompromisoInput) (*dto.CompromisoResponse, error) {
@@ -91,7 +106,49 @@ func (m *motorGastro) Transicionar(ctx context.Context, negocioID, id string, nu
 	if err != nil {
 		return nil, err
 	}
+	m.avisarConfirmacion(ctx, negocioID, resp)
 	return m.localizado(ctx, negocioID, resp)
+}
+
+// avisarConfirmacion le avisa al cliente que el local confirmó su pedido y con
+// qué demora. Sólo cuando el pedido entró por WhatsApp (hay a quién avisarle) y
+// la confirmación trae una demora. Es best-effort: si el aviso falla no voltea
+// la transición, que ya está persistida — sólo se loguea. El panel "no sólo
+// muestra: actúa", y esto es esa acción del lado del pedido.
+func (m *motorGastro) avisarConfirmacion(ctx context.Context, negocioID string, resp *dto.CompromisoResponse) {
+	if m.avisador == nil || resp == nil {
+		return
+	}
+	if resp.Estado != model.EstadoConfirmado || resp.Tipo != model.CompromisoPedido {
+		return
+	}
+	if resp.Origen != model.OrigenWhatsApp || resp.DemoraMin == nil || resp.ClienteTelefono == "" {
+		return
+	}
+	neg, err := m.negocios.Negocio(ctx, negocioID)
+	if err != nil {
+		return
+	}
+	waPhone := ""
+	if neg.WaPhoneID != nil {
+		waPhone = *neg.WaPhoneID
+	}
+	nombre := ""
+	if resp.ClienteNombre != nil {
+		nombre = *resp.ClienteNombre
+	}
+	aviso := AvisoPedidoConfirmado{
+		NegocioID:       negocioID,
+		CompromisoID:    resp.ID,
+		WaPhoneID:       waPhone,
+		ClienteTelefono: resp.ClienteTelefono,
+		ClienteNombre:   nombre,
+		DemoraMin:       *resp.DemoraMin,
+		Total:           resp.Total,
+	}
+	if err := m.avisador.PedidoConfirmado(ctx, aviso); err != nil {
+		log.Warn().Err(err).Str("compromiso", resp.ID).Msg("no se pudo avisar la confirmación del pedido")
+	}
 }
 
 // localizado reescribe los timestamps del response a la TZ del negocio. Es la

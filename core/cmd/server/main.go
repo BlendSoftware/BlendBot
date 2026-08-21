@@ -172,15 +172,19 @@ func main() {
 	}
 
 	r := router.New(router.Deps{
-		Cfg:          cfg,
-		DB:           db,
-		RDB:          rdb,
-		AuthSvc:      service.NewAuthService(usuarioRepo, cfg, rdb),
-		NegocioSvc:   service.NewNegocioService(db, negocioRepo, usuarioRepo),
-		CatalogoSvc:  service.NewCatalogoService(categoriaRepo, recursoRepo, servicioRepo, coberturaRepo),
-		ClienteSvc:   service.NewClienteService(clienteRepo, coberturaRepo),
-		AuditSvc:     service.NewAuditService(auditRepo),
-		MotorSvc:     service.NewMotorGastro(service.NewMotorService(compromisoRepo, holdRepo, service.ConNotificador(huecoLiberado)), negDatosRepo),
+		Cfg:         cfg,
+		DB:          db,
+		RDB:         rdb,
+		AuthSvc:     service.NewAuthService(usuarioRepo, cfg, rdb),
+		NegocioSvc:  service.NewNegocioService(db, negocioRepo, usuarioRepo),
+		CatalogoSvc: service.NewCatalogoService(categoriaRepo, recursoRepo, servicioRepo, coberturaRepo),
+		ClienteSvc:  service.NewClienteService(clienteRepo, coberturaRepo),
+		AuditSvc:    service.NewAuditService(auditRepo),
+		MotorSvc: service.NewMotorGastro(
+			service.NewMotorService(compromisoRepo, holdRepo, service.ConNotificador(huecoLiberado)),
+			negDatosRepo,
+			service.ConAvisadorPedido(worker.NewAvisadorPedido(publicador)),
+		),
 		HoldSvc:      service.NewHoldService(holdRepo, compromisoRepo),
 		DispoSvc:     service.NewDisponibilidadService(dispoRepo),
 		TokenSvc:     service.NewNegocioTokenService(negDatosRepo),

@@ -107,6 +107,73 @@ func TestMotorGastroLocalizaTimestampsALaTZDelNegocio(t *testing.T) {
 	}
 }
 
+// avisadorFake captura el aviso en vez de publicarlo a Redis.
+type avisadorFake struct{ avisos []AvisoPedidoConfirmado }
+
+func (a *avisadorFake) PedidoConfirmado(_ context.Context, av AvisoPedidoConfirmado) error {
+	a.avisos = append(a.avisos, av)
+	return nil
+}
+
+// innerTrans devuelve un response fijo desde Transicionar (para el test del aviso).
+type innerTrans struct{ resp *dto.CompromisoResponse }
+
+func (innerTrans) Crear(context.Context, string, dto.CrearCompromisoInput) (*dto.CompromisoResponse, error) {
+	return nil, nil
+}
+func (innerTrans) Obtener(context.Context, string, string) (*dto.CompromisoResponse, error) {
+	return nil, nil
+}
+func (innerTrans) Listar(context.Context, string, dto.FiltroCompromisos) ([]dto.CompromisoResponse, error) {
+	return nil, nil
+}
+func (f innerTrans) Transicionar(context.Context, string, string, model.EstadoCompromiso, OpcionesTransicion) (*dto.CompromisoResponse, error) {
+	c := *f.resp
+	return &c, nil
+}
+
+func pedidoConfirmado(demora *int, origen model.OrigenCompromiso, tel string) *dto.CompromisoResponse {
+	nombre := "Juani"
+	return &dto.CompromisoResponse{
+		ID: "comp-1", NegocioID: "neg-1",
+		Tipo: model.CompromisoPedido, Estado: model.EstadoConfirmado,
+		Origen: origen, DemoraMin: demora,
+		ClienteNombre: &nombre, ClienteTelefono: tel,
+	}
+}
+
+func TestAvisoAlConfirmarPedidoDeWhatsApp(t *testing.T) {
+	d := 40
+	casos := []struct {
+		nombre string
+		resp   *dto.CompromisoResponse
+		avisa  bool
+	}{
+		{"pedido whatsapp con demora → avisa", pedidoConfirmado(&d, model.OrigenWhatsApp, "549260111"), true},
+		{"sin demora → no avisa", pedidoConfirmado(nil, model.OrigenWhatsApp, "549260111"), false},
+		{"origen panel → no avisa (no hay WhatsApp del otro lado)", pedidoConfirmado(&d, model.OrigenPanel, "549260111"), false},
+		{"sin teléfono → no avisa", pedidoConfirmado(&d, model.OrigenWhatsApp, ""), false},
+	}
+	for _, c := range casos {
+		t.Run(c.nombre, func(t *testing.T) {
+			av := &avisadorFake{}
+			motor := NewMotorGastro(innerTrans{resp: c.resp}, negocioFake{tz: "America/Argentina/Mendoza"}, ConAvisadorPedido(av))
+			if _, err := motor.Transicionar(context.Background(), "neg-1", "comp-1", model.EstadoConfirmado, OpcionesTransicion{}); err != nil {
+				t.Fatalf("Transicionar: %v", err)
+			}
+			if c.avisa && len(av.avisos) != 1 {
+				t.Fatalf("esperaba 1 aviso, hubo %d", len(av.avisos))
+			}
+			if !c.avisa && len(av.avisos) != 0 {
+				t.Fatalf("no debía avisar, hubo %d", len(av.avisos))
+			}
+			if c.avisa && av.avisos[0].DemoraMin != d {
+				t.Fatalf("la demora no llegó al aviso: %d", av.avisos[0].DemoraMin)
+			}
+		})
+	}
+}
+
 func TestMotorGastroLocalizaEnListar(t *testing.T) {
 	motor := NewMotorGastro(innerFake{resp: respUTC()}, negocioFake{tz: "America/Argentina/Mendoza"})
 
