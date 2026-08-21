@@ -1,6 +1,9 @@
 package integration
 
 import (
+	"errors"
+	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -61,6 +64,54 @@ func TestHoldSolapadoEsRechazado(t *testing.T) {
 			t.Errorf("cada recurso tiene su propia agenda: %v", err)
 		}
 	})
+}
+
+// TestHoldConcurrenteSoloUnoGana es el test de H3: varias sesiones piden el
+// mismo hueco a la vez. Sin el lock del recurso las verificaciones ven el hueco
+// vacío todas y crean todas; con él, exactamente una gana y el resto choca.
+func TestHoldConcurrenteSoloUnoGana(t *testing.T) {
+	ctx, e := montar(t, model.VerticalSalud)
+
+	inicio, fin := franja(0, 30)
+
+	const n = 8
+	results := make(chan error, n)
+	arranquen := make(chan struct{})
+	var wg sync.WaitGroup
+	for i := 0; i < n; i++ {
+		wg.Add(1)
+		sesion := fmt.Sprintf("54926110%05d", i)
+		go func(s string) {
+			defer wg.Done()
+			<-arranquen // que todas lleguen juntas a la línea de largada
+			_, err := e.holds.Crear(ctx, e.negocio.ID, e.recurso.ID, inicio, fin, s)
+			results <- err
+		}(sesion)
+	}
+	close(arranquen)
+	wg.Wait()
+	close(results)
+
+	ganadores, solapados := 0, 0
+	for err := range results {
+		switch {
+		case err == nil:
+			ganadores++
+		case errors.Is(err, service.ErrSolapado):
+			solapados++
+		default:
+			t.Fatalf("error inesperado en Crear concurrente: %v", err)
+		}
+	}
+	if ganadores != 1 || solapados != n-1 {
+		t.Fatalf("esperaba 1 ganador y %d solapados, obtuve ganadores=%d solapados=%d", n-1, ganadores, solapados)
+	}
+
+	var quedan int64
+	e.db.Model(&model.Hold{}).Count(&quedan)
+	if quedan != 1 {
+		t.Fatalf("el lock tenía que dejar un solo hold, quedaron %d", quedan)
+	}
 }
 
 // TestHoldExpiradoNoBloquea: el hold caducado es basura, no una reserva. Si

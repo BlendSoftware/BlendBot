@@ -96,7 +96,9 @@ func (w *Recordatorios) Start(ctx context.Context) {
 func (w *Recordatorios) Tick(ctx context.Context) (int, error) {
 	ahora := w.ahora()
 
-	candidatos, err := w.repo.TurnosSinRecordatorio(ctx, ahora, ahora.Add(recordatorioVentanaMax), recordatorioLote)
+	// La ventana fina (por negocio) se resuelve en SQL; el filtro en memoria de
+	// abajo queda como red de seguridad y para exactitud en los bordes.
+	candidatos, err := w.repo.TurnosSinRecordatorio(ctx, ahora, RecordatorioMargen, recordatorioLote)
 	if err != nil {
 		return 0, err
 	}

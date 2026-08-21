@@ -38,6 +38,15 @@ type CompromisoRepository interface {
 	CoberturaDeCliente(ctx context.Context, negocioID, clienteID string) (*string, bool, error)
 	PreciosPorCobertura(ctx context.Context, negocioID, coberturaID string, servicioIDs []string) (map[string]decimal.Decimal, error)
 	RecursoActivo(ctx context.Context, negocioID, recursoID string) (bool, error)
+
+	// ReservarConLock serializa por recurso la verificación de hueco y la
+	// inserción. Corre fn dentro de una transacción que primero toma un lock
+	// pesimista sobre la fila del recurso (SELECT ... FOR UPDATE) y le entrega
+	// repos ligados a esa misma transacción. Sin esto, dos Crear simultáneos
+	// sobre el mismo recurso/franja verifican el hueco vacío los dos y crean
+	// ambos (H3): el lock obliga al segundo a esperar y ver lo que insertó el
+	// primero.
+	ReservarConLock(ctx context.Context, recursoID string, fn func(comps CompromisoRepository, holds HoldRepository) error) error
 }
 
 type compromisoRepo struct{ db *gorm.DB }
@@ -285,6 +294,19 @@ func (r *compromisoRepo) PreciosPorCobertura(ctx context.Context, negocioID, cob
 
 func (r *compromisoRepo) RecursoActivo(ctx context.Context, negocioID, recursoID string) (bool, error) {
 	return recursoDelNegocio(ctx, r.db, negocioID, recursoID)
+}
+
+func (r *compromisoRepo) ReservarConLock(ctx context.Context, recursoID string, fn func(comps CompromisoRepository, holds HoldRepository) error) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Lock pesimista sobre el recurso: dos reservas del mismo recurso se
+		// serializan acá. La FK garantiza que la fila existe (el recurso ya se
+		// validó activo antes de entrar), así que el FOR UPDATE siempre bloquea
+		// algo. Se libera al cerrar la transacción.
+		if err := tx.Exec(`SELECT 1 FROM recurso WHERE id = ? FOR UPDATE`, recursoID).Error; err != nil {
+			return err
+		}
+		return fn(&compromisoRepo{db: tx}, &holdRepo{db: tx})
+	})
 }
 
 // recursoDelNegocio responde si el recurso existe, está activo y es del tenant.

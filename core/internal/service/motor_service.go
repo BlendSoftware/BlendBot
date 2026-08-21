@@ -133,16 +133,6 @@ func (s *motorService) Crear(ctx context.Context, negocioID string, in dto.Crear
 		})
 	}
 
-	if in.RecursoID != nil && in.Inicio != nil {
-		sesion := ""
-		if in.Sesion != nil {
-			sesion = *in.Sesion
-		}
-		if err := s.verificarHueco(ctx, negocioID, *in.RecursoID, *in.Inicio, *in.Fin, sesion); err != nil {
-			return nil, err
-		}
-	}
-
 	c := &model.Compromiso{
 		NegocioID: negocioID,
 		ClienteID: in.ClienteID,
@@ -158,6 +148,27 @@ func (s *motorService) Crear(ctx context.Context, negocioID string, in dto.Crear
 		Nota:      in.Nota,
 		Lineas:    lineas,
 	}
+
+	if in.RecursoID != nil && in.Inicio != nil {
+		sesion := ""
+		if in.Sesion != nil {
+			sesion = *in.Sesion
+		}
+		// Verificación de hueco e inserción bajo un lock del recurso: sin esto,
+		// dos turnos simultáneos sobre el mismo recurso/hora verifican el hueco
+		// vacío los dos y crean ambos (H3).
+		err := s.repo.ReservarConLock(ctx, *in.RecursoID, func(comps repository.CompromisoRepository, holds repository.HoldRepository) error {
+			if err := verificarHueco(ctx, comps, holds, negocioID, *in.RecursoID, *in.Inicio, *in.Fin, sesion); err != nil {
+				return err
+			}
+			return comps.Create(ctx, c)
+		})
+		if err != nil {
+			return nil, err
+		}
+		return dto.CompromisoDesdeModel(c), nil
+	}
+
 	if err := s.repo.Create(ctx, c); err != nil {
 		return nil, err
 	}
@@ -275,9 +286,10 @@ func (s *motorService) avisarHuecoLiberado(ctx context.Context, c *model.Comprom
 
 // verificarHueco falla si el rango pisa un compromiso activo o un hold vigente
 // del recurso. El hold de la propia sesión no cuenta: es el que tomó este
-// mismo cliente mientras completaba sus datos.
-func (s *motorService) verificarHueco(ctx context.Context, negocioID, recursoID string, inicio, fin time.Time, sesion string) error {
-	ocupados, err := s.repo.ListPorRecurso(ctx, negocioID, recursoID, inicio, fin)
+// mismo cliente mientras completaba sus datos. Recibe los repos por parámetro
+// para poder correr ligado a la transacción con lock de ReservarConLock (H3).
+func verificarHueco(ctx context.Context, comps repository.CompromisoRepository, holds repository.HoldRepository, negocioID, recursoID string, inicio, fin time.Time, sesion string) error {
+	ocupados, err := comps.ListPorRecurso(ctx, negocioID, recursoID, inicio, fin)
 	if err != nil {
 		return err
 	}
@@ -286,10 +298,10 @@ func (s *motorService) verificarHueco(ctx context.Context, negocioID, recursoID 
 	}
 
 	ahora := time.Now()
-	if _, err := s.holds.DeleteExpirados(ctx, ahora); err != nil {
+	if _, err := holds.DeleteExpirados(ctx, ahora); err != nil {
 		return err
 	}
-	vigentes, err := s.holds.ListVigentes(ctx, recursoID, inicio, fin, ahora)
+	vigentes, err := holds.ListVigentes(ctx, recursoID, inicio, fin, ahora)
 	if err != nil {
 		return err
 	}

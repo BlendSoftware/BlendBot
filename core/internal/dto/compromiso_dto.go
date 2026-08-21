@@ -133,3 +133,29 @@ func CompromisosDesdeModelos(cs []model.Compromiso) []CompromisoResponse {
 	}
 	return out
 }
+
+// EnTimezone reescribe los timestamps del response a la timezone del negocio,
+// igual que hace la agenda. El motor los arma con la TZ del proceso (UTC en el
+// contenedor) y el panel lee la hora de pared directamente del string
+// (`horaDe`/`minutosDe` cortan el "HH:MM" sin mirar el offset), así que sin
+// esto la ficha del cliente y el board muestran horas —y a veces días—
+// corridas. No cambia el contrato: los mismos campos JSON, con el offset del
+// negocio (p.ej. -03:00) en lugar de Z. El motor sigue sin saber de timezones.
+func (r *CompromisoResponse) EnTimezone(loc *time.Location) {
+	if r == nil || loc == nil {
+		return
+	}
+	r.CreadoEn = r.CreadoEn.In(loc)
+	r.Inicio = enTimezone(r.Inicio, loc)
+	r.Fin = enTimezone(r.Fin, loc)
+	r.ConfirmadoEn = enTimezone(r.ConfirmadoEn, loc)
+	r.CerradoEn = enTimezone(r.CerradoEn, loc)
+}
+
+func enTimezone(t *time.Time, loc *time.Location) *time.Time {
+	if t == nil {
+		return nil
+	}
+	v := t.In(loc)
+	return &v
+}

@@ -32,6 +32,7 @@ import patch_analizar_errores  # noqa: F401  (monkey patch por import)
 
 import logging
 import os
+import threading
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -90,6 +91,14 @@ class AFIPClient:
 
         # Estado interno
         self._wsfev1: Optional[WSFEv1] = None
+        # Candado de facturación: el sidecar sirve /facturar sync (threadpool de
+        # FastAPI) y el pool devuelve ESTE mismo cliente a requests concurrentes
+        # del mismo tenant. facturar() muta estado compartido —el dict
+        # `wsfev1.factura` y el número correlativo (ultimo+1)—, así que dos
+        # facturas en paralelo se pisaban y salía un CAE con importe/DNI
+        # cruzados. Serializamos por tenant; distintos tenants tienen distinto
+        # cliente y distinto lock, así que siguen facturando en paralelo.
+        self._facturar_lock = threading.Lock()
         self._token: Optional[str] = None
         self._sign: Optional[str] = None
         self._token_expiracion: Optional[datetime] = None
@@ -309,7 +318,15 @@ class AFIPClient:
         """
         Pide el CAE a ARCA. Nunca lanza por errores del fisco: los devuelve en
         `FacturarResponse.error` para que el core los guarde y reintente.
+
+        Serializado por tenant: toma `self._facturar_lock` alrededor de todo el
+        armado + CAESolicitar, porque el WSFEv1 (y su número correlativo) es
+        compartido y no reentrante.
         """
+        with self._facturar_lock:
+            return self._facturar_serializado(req)
+
+    def _facturar_serializado(self, req: FacturarRequest) -> FacturarResponse:
         logger.info("Solicitando CAE — %s", req.resumen_seguro())
 
         numero_cbte: Optional[int] = None

@@ -48,36 +48,12 @@ func (s *holdService) Crear(ctx context.Context, negocioID, recursoID string, in
 		return nil, ErrNoEncontrado
 	}
 
-	ahora := time.Now()
-	// Limpieza lazy: los expirados no bloquean, así que se van antes de mirar.
-	if _, err := s.repo.DeleteExpirados(ctx, ahora); err != nil {
-		return nil, err
-	}
-
-	vigentes, err := s.repo.ListVigentes(ctx, recursoID, inicio, fin, ahora)
-	if err != nil {
-		return nil, err
-	}
-	for _, h := range vigentes {
-		if h.Sesion == sesion {
-			continue // renovar el propio hold no es solapar
-		}
-		return nil, ErrSolapado
-	}
-
-	ocupados, err := s.compromisos.ListPorRecurso(ctx, negocioID, recursoID, inicio, fin)
-	if err != nil {
-		return nil, err
-	}
-	if len(ocupados) > 0 {
-		return nil, ErrSolapado
-	}
-
 	minutos, err := s.holdMinutos(ctx, negocioID)
 	if err != nil {
 		return nil, err
 	}
 
+	ahora := time.Now()
 	h := &model.Hold{
 		RecursoID: recursoID,
 		Inicio:    inicio,
@@ -85,7 +61,37 @@ func (s *holdService) Crear(ctx context.Context, negocioID, recursoID string, in
 		ExpiraEn:  ahora.Add(time.Duration(minutos) * time.Minute),
 		Sesion:    sesion,
 	}
-	if err := s.repo.Create(ctx, h); err != nil {
+
+	// Verificación e inserción bajo un lock del recurso: dos holds simultáneos
+	// sobre la misma franja se serializan y el segundo ve el del primero (H3).
+	err = s.compromisos.ReservarConLock(ctx, recursoID, func(comps repository.CompromisoRepository, holds repository.HoldRepository) error {
+		// Limpieza lazy: los expirados no bloquean, así que se van antes de mirar.
+		if _, err := holds.DeleteExpirados(ctx, ahora); err != nil {
+			return err
+		}
+
+		vigentes, err := holds.ListVigentes(ctx, recursoID, inicio, fin, ahora)
+		if err != nil {
+			return err
+		}
+		for _, hv := range vigentes {
+			if hv.Sesion == sesion {
+				continue // renovar el propio hold no es solapar
+			}
+			return ErrSolapado
+		}
+
+		ocupados, err := comps.ListPorRecurso(ctx, negocioID, recursoID, inicio, fin)
+		if err != nil {
+			return err
+		}
+		if len(ocupados) > 0 {
+			return ErrSolapado
+		}
+
+		return holds.Create(ctx, h)
+	})
+	if err != nil {
 		return nil, err
 	}
 	return dto.HoldDesdeModel(h), nil

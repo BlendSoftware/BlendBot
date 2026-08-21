@@ -17,6 +17,7 @@ import (
 
 	"github.com/alicebob/miniredis/v2"
 	"github.com/redis/go-redis/v9"
+	"github.com/shopspring/decimal"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
@@ -328,6 +329,69 @@ func TestRecordatorioSinWhatsAppNoSeMarca(t *testing.T) {
 	}
 	if sello := recordatorioEnviadoEn(t, e.db, turno.ID); sello != nil {
 		t.Error("se selló un recordatorio que nunca se pudo mandar")
+	}
+}
+
+// TestRecordatorioNoSeAhogaConLoteLleno es el test de H7: muchos turnos
+// confirmados cercanos (todos dentro de las 72h pero fuera de la ventana real)
+// no pueden tapar al único que sí entra en la franja de las 24h. Con el filtro
+// de ventana en memoria y un SELECT de 200 ordenado por inicio ASC, el lote se
+// llenaba de turnos cercanos y el de las 24h no salía nunca; con la ventana en
+// SQL el LIMIT sólo cuenta candidatos reales.
+func TestRecordatorioNoSeAhogaConLoteLleno(t *testing.T) {
+	ctx, e := montar(t, model.VerticalSalud)
+	c := nuevaCola(t)
+	setWhatsApp(t, e.db, e.negocio.ID, "wa-phone-lote")
+
+	ahora := time.Now().Truncate(time.Second)
+
+	// Lote de turnos "en 2 horas": están dentro de las 72h y son los más
+	// próximos, así que un SELECT por inicio ASC los pondría primero y llenaría
+	// el lote de 200 antes de llegar a la ventana de las 24h.
+	cercano := ahora.Add(2 * time.Hour)
+	finCercano := cercano.Add(30 * time.Minute)
+	crowd := make([]model.Compromiso, 0, 250)
+	for i := 0; i < 250; i++ {
+		inicio := cercano
+		fin := finCercano
+		crowd = append(crowd, model.Compromiso{
+			NegocioID: e.negocio.ID,
+			ClienteID: e.cliente.ID,
+			Tipo:      model.CompromisoTurno,
+			Estado:    model.EstadoConfirmado,
+			RecursoID: &e.recurso.ID,
+			Inicio:    &inicio,
+			Fin:       &fin,
+			Total:     decimal.RequireFromString("1000.00"),
+			Origen:    model.OrigenPanel,
+		})
+	}
+	if err := e.db.Omit("Lineas").Create(&crowd).Error; err != nil {
+		t.Fatalf("sembrar el lote de turnos cercanos: %v", err)
+	}
+
+	// El único turno en la ventana de las 24h.
+	enVentana := ahora.Add(24 * time.Hour)
+	finVentana := enVentana.Add(30 * time.Minute)
+	elQueVa := crearCompromisoDirecto(t, e.db, e.negocio.ID, e.cliente.ID, e.servicio.ID,
+		&e.recurso.ID, &enVentana, &finVentana, model.CompromisoTurno, model.EstadoConfirmado, "1000.00")
+
+	w := worker.NewRecordatorios(worker.RecordatoriosConfig{
+		Repo:  repository.NewAvisoRepository(e.db),
+		Pub:   c.pub,
+		Ahora: func() time.Time { return ahora },
+	})
+
+	n, err := w.Tick(ctx)
+	if err != nil {
+		t.Fatalf("tick: %v", err)
+	}
+	if n != 1 {
+		t.Fatalf("el turno en ventana quedó ahogado por el lote: encoló %d, esperaba 1", n)
+	}
+	msgs := c.mensajes(t, ctx)
+	if len(msgs) != 1 || msgs[0].CompromisoID != elQueVa.ID {
+		t.Fatalf("se recordó el turno equivocado: %+v", msgs)
 	}
 }
 

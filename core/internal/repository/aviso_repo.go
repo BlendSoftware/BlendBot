@@ -41,10 +41,14 @@ type DatosOferta struct {
 // proyección del recordatorio trae el negocio_id de cada fila y el marcado
 // vuelve a filtrar por él.
 type AvisoRepository interface {
-	// TurnosSinRecordatorio son los turnos CONFIRMADOS que empiezan dentro del
-	// rango y a los que todavía no se les mandó el aviso. El filtro fino de la
-	// ventana (que depende de la config de cada negocio) lo hace el worker.
-	TurnosSinRecordatorio(ctx context.Context, desde, hasta time.Time, limite int) ([]TurnoParaRecordatorio, error)
+	// TurnosSinRecordatorio son los turnos CONFIRMADOS a los que ya les toca el
+	// recordatorio y todavía no se les mandó. La ventana fina —que depende del
+	// recordatorio_horas_antes de cada negocio— se resuelve en SQL: cada turno
+	// entra sólo si inicio ∈ [ahora + H - margen, ahora + H]. Antes el filtro
+	// vivía en el worker sobre un lote de 200 traído a 72h ordenado por inicio,
+	// y con muchos turnos cercanos el lote nunca alcanzaba a los de la ventana
+	// real (H7). El worker vuelve a validar la ventana como red de seguridad.
+	TurnosSinRecordatorio(ctx context.Context, ahora time.Time, margen time.Duration, limite int) ([]TurnoParaRecordatorio, error)
 	// MarcarRecordatorioEnviado es EL candado: condicional sobre
 	// recordatorio_enviado_en IS NULL. Devuelve false si otro tick o otra
 	// réplica llegó primero, y entonces nadie encola nada.
@@ -58,14 +62,21 @@ type avisoRepo struct{ db *gorm.DB }
 
 func NewAvisoRepository(db *gorm.DB) AvisoRepository { return &avisoRepo{db: db} }
 
-func (r *avisoRepo) TurnosSinRecordatorio(ctx context.Context, desde, hasta time.Time, limite int) ([]TurnoParaRecordatorio, error) {
+func (r *avisoRepo) TurnosSinRecordatorio(ctx context.Context, ahora time.Time, margen time.Duration, limite int) ([]TurnoParaRecordatorio, error) {
 	if limite <= 0 || limite > 500 {
 		limite = 200
 	}
+	margenSecs := int64(margen / time.Second)
 	var out []TurnoParaRecordatorio
 	// Un negocio sin wa_phone_id no puede recibir el aviso: el gateway no
 	// tendría por dónde mandarlo. Se lo saltea sin marcar nada, así que cuando
 	// configure WhatsApp el circuito arranca solo.
+	//
+	// hrs es el recordatorio_horas_antes efectivo del negocio, saneado igual que
+	// en el worker: sólo un entero en (0, 72] vale; cualquier otra cosa (ausente,
+	// no numérico, fuera de rango) cae al default de 24. La ventana fina se aplica
+	// acá, así el LIMIT sólo cuenta candidatos reales y no se llena de turnos
+	// cercanos que todavía no entran (H7).
 	err := r.db.WithContext(ctx).Raw(`
 		SELECT c.id                    AS compromiso_id,
 		       c.negocio_id            AS negocio_id,
@@ -79,16 +90,25 @@ func (r *avisoRepo) TurnosSinRecordatorio(ctx context.Context, desde, hasta time
 		FROM compromiso c
 		JOIN negocio n  ON n.id  = c.negocio_id
 		JOIN cliente cl ON cl.id = c.cliente_id
+		CROSS JOIN LATERAL (
+		  SELECT CASE
+		    WHEN (n.config->>'recordatorio_horas_antes') ~ '^[0-9]+$'
+		     AND (n.config->>'recordatorio_horas_antes')::int BETWEEN 1 AND 72
+		    THEN (n.config->>'recordatorio_horas_antes')::int
+		    ELSE 24
+		  END AS hrs
+		) w
 		WHERE c.tipo   = 'turno'
 		  AND c.estado = 'confirmado'
 		  AND c.recordatorio_enviado_en IS NULL
 		  AND c.inicio IS NOT NULL
-		  AND c.inicio >= ? AND c.inicio <= ?
 		  AND n.activo = TRUE
 		  AND n.wa_phone_id IS NOT NULL
+		  AND c.inicio >= ?::timestamptz + make_interval(hours => w.hrs) - make_interval(secs => ?)
+		  AND c.inicio <= ?::timestamptz + make_interval(hours => w.hrs)
 		ORDER BY c.inicio ASC
 		LIMIT ?
-	`, desde, hasta, limite).Scan(&out).Error
+	`, ahora, margenSecs, ahora, limite).Scan(&out).Error
 	if err != nil {
 		return nil, err
 	}
