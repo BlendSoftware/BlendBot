@@ -45,9 +45,12 @@ export function cuerpoGraph(mensaje) {
 
 /**
  * Las plantillas de WhatsApp toman parámetros POSICIONALES ({{1}}, {{2}}...).
- * El core encola un objeto `{nombre, fecha_hora_local, negocio}`: el orden que
- * vale es el de las claves del JSON, que es el orden de inserción. Si alguna
- * vez importa más, mandá un array y listo.
+ * El contrato con el core (E7) es un ARRAY ordenado: el índice 0 es {{1}}, el 1
+ * es {{2}}, etc. Así tiene que ser, porque Go serializa los maps en orden
+ * ALFABÉTICO: si el core mandara un objeto, `{nombre, fecha_hora_local, negocio}`
+ * llegaría como `{fecha_hora_local, negocio, nombre}` y saldrían permutados (H2).
+ * Se acepta un objeto sólo por compatibilidad defensiva; el camino real es el
+ * array posicional.
  */
 function parametros(variables) {
   if (!variables) return [];

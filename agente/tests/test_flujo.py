@@ -18,6 +18,7 @@ CLIENTE = {"id": "cli-1", "telefono": TELEFONO, "nombre": "Juani Sarmiento", "co
 
 COMPROMISO = {
     "id": "com-1",
+    "cliente_id": "cli-1",  # el dueño: coincide con CLIENTE.id
     "estado": "pendiente",
     "tipo": "turno",
     "total": "25000.00",
@@ -238,6 +239,9 @@ async def test_confirmar_sin_nombre_no_escribe(respx_mock, core):
 @respx.mock(base_url=BASE, assert_all_called=False)
 async def test_cancelar_en_dos_pasos(respx_mock, core):
     _base(respx_mock)
+    respx_mock.get(f"/api/clientes/por-telefono/{TELEFONO}").mock(
+        return_value=httpx.Response(200, json=CLIENTE)
+    )
     respx_mock.get("/api/compromisos/com-1").mock(
         return_value=httpx.Response(200, json={**COMPROMISO, "estado": "confirmado"})
     )
@@ -252,6 +256,32 @@ async def test_cancelar_en_dos_pasos(respx_mock, core):
     hecho = await server.cancelar("com-1", "no puedo ir", confirmado=True)
     assert hecho["ejecutado"] and hecho["estado"] == "cancelado"
     assert patch.called
+
+
+@respx.mock(base_url=BASE, assert_all_called=False)
+async def test_cancelar_turno_ajeno_se_rechaza(respx_mock, core):
+    """H9: el compromiso es de OTRO cliente del mismo negocio → no se cancela."""
+    _base(respx_mock)
+    respx_mock.get(f"/api/clientes/por-telefono/{TELEFONO}").mock(
+        return_value=httpx.Response(200, json=CLIENTE)  # id cli-1
+    )
+    # El turno figura a nombre de otro cliente (cli-999), no del que escribe.
+    respx_mock.get("/api/compromisos/com-ajeno").mock(
+        return_value=httpx.Response(
+            200, json={**COMPROMISO, "id": "com-ajeno", "cliente_id": "cli-999", "estado": "confirmado"}
+        )
+    )
+    patch = respx_mock.patch("/api/compromisos/com-ajeno/estado").mock(
+        return_value=httpx.Response(200, json={**COMPROMISO, "estado": "cancelado"})
+    )
+
+    # Ni el preview ni el confirmado=true pueden tocar el turno ajeno.
+    previo = await server.cancelar("com-ajeno", "no puedo ir")
+    assert previo["ok"] is False and previo["codigo"] == "no_es_tuyo"
+
+    hecho = await server.cancelar("com-ajeno", "no puedo ir", confirmado=True)
+    assert hecho["ok"] is False and hecho["codigo"] == "no_es_tuyo"
+    assert not patch.called
 
 
 @respx.mock(base_url=BASE, assert_all_called=False)

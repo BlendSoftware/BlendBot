@@ -84,7 +84,13 @@ func New(d Deps) *gin.Engine {
 	handler.NewAdminFiscalHandler(d.CobroSvc, d.AuditSvc).Register(admin)
 
 	// Rutas del negocio: el tenant sale del token, jamás del request.
-	tenant := priv.Group("", middleware.RequireNegocio())
+	// RestringirAgente aplica la allowlist de RolAgente (el token cop_): el
+	// agente sólo alcanza lo que necesita para atender WhatsApp; para los demás
+	// roles es transparente y el control lo llevan RequireNegocio/RequireRole.
+	tenant := priv.Group("", middleware.RequireNegocio(), middleware.RestringirAgente())
+
+	// Operación del mostrador: la ve el operador (y el dueño, y el agente en su
+	// allowlist). Nada de plata acá.
 	handler.NewCatalogoHandler(d.CatalogoSvc, d.AuditSvc).Register(tenant)
 	handler.NewClientesHandler(d.ClienteSvc, d.AuditSvc).Register(tenant)
 	handler.NewCompromisosHandler(d.MotorSvc).Register(tenant)
@@ -92,10 +98,16 @@ func New(d Deps) *gin.Engine {
 	handler.NewDisponibilidadHandler(d.DispoSvc).Register(tenant)
 	handler.NewNegocioDatosHandler(d.NegDatosRepo).Register(tenant)
 	handler.NewListaEsperaHandler(d.ListaEspSvc).Register(tenant)
-	handler.NewCobrosHandler(d.CobroSvc).Register(tenant)
-	handler.NewJornadaHandler(d.JornadaSvc).Register(tenant)
-	handler.NewReportesHandler(d.ReporteSvc).Register(tenant)
 	d.HorarioH.Register(tenant)
+
+	// La plata: cobros, cierre, jornada y reportes. Sólo el dueño (el admin de
+	// plataforma ya queda afuera por RequireNegocio; se lista por explícito).
+	// El operador ve el mostrador pero no la caja; el agente ni la toca (no
+	// está en su allowlist).
+	plata := tenant.Group("", middleware.RequireRole(middleware.RolDueno, middleware.RolAdmin))
+	handler.NewCobrosHandler(d.CobroSvc).Register(plata)
+	handler.NewJornadaHandler(d.JornadaSvc).Register(plata)
+	handler.NewReportesHandler(d.ReporteSvc).Register(plata)
 
 	return r
 }

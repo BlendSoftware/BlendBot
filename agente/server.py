@@ -745,8 +745,27 @@ async def cancelar(compromiso_id: str, motivo: str, confirmado: bool = False) ->
     insistas, decile que se comunique con el negocio. Después de cancelar, ofrecele
     buscar otro turno.
     """
+    datos = await core().compromiso(compromiso_id)
+
+    # Dueño del compromiso: sólo el cliente que lo pidió puede cancelarlo. Sin
+    # esto, un cliente con un UUID ajeno cancela el turno de otro del mismo
+    # negocio y dispara la oferta a la lista de espera (H9). Se resuelve la ficha
+    # por CLIENTE_TELEFONO —igual que `confirmar`— y se compara contra el dueño.
+    telefono = _telefono()
+    cliente = await _cliente() or (
+        await core().cliente_por_telefono(telefono) if telefono else None
+    )
+    cliente_id = str(cliente.get("id")) if cliente else None
+    if not cliente_id or str(datos.get("cliente_id") or "") != cliente_id:
+        return {
+            "ok": False,
+            "codigo": "no_es_tuyo",
+            "error": "Ese turno no figura a nombre de este cliente, así que no lo puedo "
+            "cancelar desde acá. Si cree que hay un error, que se comunique con el negocio. "
+            "NO intentes con otro número ni con otro código.",
+        }
+
     if not confirmado:
-        datos = await core().compromiso(compromiso_id)
         cuando = await _humanizar(str(datos.get("inicio") or "")) if datos.get("inicio") else None
         return {
             "ok": True,

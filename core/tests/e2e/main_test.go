@@ -371,6 +371,30 @@ func negocioListo(t *testing.T, tokenAdmin, nombre, usuarioDueno string) (string
 	return alta.NegocioID, definitivo.AccessToken
 }
 
+// crearOperador da de alta un operador del tenant por INSERT directo (no hay
+// endpoint de altas de operadores todavía) y devuelve su token ya operativo.
+// El operador ve el mostrador pero no la plata (H8).
+func crearOperador(t *testing.T, negocioID, username string) string {
+	t.Helper()
+	password := "operador-de-prueba-2026"
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
+	if err != nil {
+		t.Fatalf("bcrypt del operador: %v", err)
+	}
+	neg := negocioID
+	u := &model.Usuario{
+		Username:     username,
+		PasswordHash: string(hash),
+		Rol:          middleware.RolOperador,
+		NegocioID:    &neg,
+		Activo:       true,
+	}
+	if err := env.DB.Create(u).Error; err != nil {
+		t.Fatalf("crear operador: %v", err)
+	}
+	return login(t, username, password).AccessToken
+}
+
 // crearServicio crea un servicio del tenant del token y devuelve el modelo.
 func crearServicio(t *testing.T, token, nombre string, duracionMin int, precioBase float64) model.Servicio {
 	t.Helper()

@@ -193,12 +193,13 @@ describe('cuerpo que se le manda a Graph', () => {
     });
   });
 
-  it('plantilla con variables en objeto: orden de las claves', () => {
+  it('plantilla con variables en array posicional: el contrato E7 sale tal cual', () => {
+    // recordatorio_turno: {{1}} nombre, {{2}} fecha_hora_local, {{3}} negocio.
     const cuerpo = cuerpoGraph({
       telefono: CLIENTE,
       tipo: 'plantilla',
       plantilla: 'recordatorio_turno',
-      variables: { nombre: 'Carla', fecha_hora_local: 'jueves 10:30', negocio: 'Rotisería' },
+      variables: ['Carla', 'jueves 10:30', 'Rotisería'],
     });
     expect(cuerpo.type).toBe('template');
     expect(cuerpo.template.name).toBe('recordatorio_turno');
@@ -215,6 +216,19 @@ describe('cuerpo que se le manda a Graph', () => {
       { type: 'text', text: 'Carla' },
       { type: 'text', text: '3 empanadas' },
     ]);
+  });
+
+  it('objeto como variables: se acepta por compat, pero NO se garantiza el orden', () => {
+    // El core manda array; si alguien manda objeto, se cae a Object.values().
+    // Es sólo la red de seguridad — el contrato real es el array de arriba.
+    const cuerpo = cuerpoGraph({
+      telefono: CLIENTE,
+      tipo: 'plantilla',
+      plantilla: 'recordatorio_turno',
+      variables: { nombre: 'Carla', fecha_hora_local: 'jueves 10:30', negocio: 'Rotisería' },
+    });
+    expect(cuerpo.template.components[0].parameters.map((p) => p.text))
+      .toEqual(['Carla', 'jueves 10:30', 'Rotisería']);
   });
 
   it('plantilla sin variables no manda components vacíos rotos', () => {

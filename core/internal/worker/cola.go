@@ -25,18 +25,27 @@ const (
 	PlantillaHuecoLiberado = "hueco_liberado"
 )
 
+// Orden de las variables por plantilla. Las plantillas de WhatsApp toman
+// parámetros POSICIONALES ({{1}}, {{2}}, ...): el gateway los manda en el orden
+// exacto en que vienen en la lista, así que este orden ES el contrato. No es un
+// map justamente porque Go serializa los maps en orden alfabético y el gateway
+// los consumía posicional → salían permutados (H2). El orden acá manda:
+//
+//	recordatorio_turno → {{1}} nombre, {{2}} fecha_hora_local, {{3}} negocio
+//	hueco_liberado     → {{1}} nombre, {{2}} servicio, {{3}} fecha_hora_local, {{4}} negocio
+
 // MensajeSalida es EL contrato con el gateway de WhatsApp (E5). Los nombres de
 // los campos son parte del protocolo: renombrar uno rompe el otro lado en
 // silencio, porque nadie compila los dos juntos.
 type MensajeSalida struct {
-	NegocioID    string            `json:"negocio_id"`
-	WaPhoneID    string            `json:"wa_phone_id"`
-	Telefono     string            `json:"telefono"`
-	Tipo         string            `json:"tipo"` // texto | plantilla
-	Texto        string            `json:"texto,omitempty"`
-	Plantilla    string            `json:"plantilla,omitempty"`
-	Variables    map[string]string `json:"variables,omitempty"`
-	CompromisoID string            `json:"compromiso_id,omitempty"`
+	NegocioID    string   `json:"negocio_id"`
+	WaPhoneID    string   `json:"wa_phone_id"`
+	Telefono     string   `json:"telefono"`
+	Tipo         string   `json:"tipo"` // texto | plantilla
+	Texto        string   `json:"texto,omitempty"`
+	Plantilla    string   `json:"plantilla,omitempty"`
+	Variables    []string `json:"variables,omitempty"` // POSICIONAL: {{1}},{{2}},... ver orden por plantilla arriba
+	CompromisoID string   `json:"compromiso_id,omitempty"`
 }
 
 // Publicador encola mensajes salientes. Es una interfaz para que los tests

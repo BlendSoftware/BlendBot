@@ -127,10 +127,11 @@ func (w *Recordatorios) Tick(ctx context.Context) (int, error) {
 			Telefono:  t.Telefono,
 			Tipo:      TipoPlantilla,
 			Plantilla: PlantillaRecordatorio,
-			Variables: map[string]string{
-				"nombre":           nombreOSaludo(t.ClienteNombre),
-				"fecha_hora_local": fechaHoraLocal(t.Inicio, t.Timezone),
-				"negocio":          t.NegocioNombre,
+			// Posicional: {{1}} nombre, {{2}} fecha_hora_local, {{3}} negocio.
+			Variables: []string{
+				nombreOSaludo(t.ClienteNombre),
+				fechaHoraLocal(t.Inicio, t.Timezone),
+				t.NegocioNombre,
 			},
 			CompromisoID: t.CompromisoID,
 		}

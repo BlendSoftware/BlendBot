@@ -119,6 +119,54 @@ func RequireRole(roles ...string) gin.HandlerFunc {
 	}
 }
 
+// rutasAgente es la allowlist del token de agente (RolAgente, cop_...): lo
+// único que el agente MCP necesita para atender WhatsApp — leer
+// negocio/catálogo/disponibilidad, obtener-o-crear cliente, y crear/consultar/
+// cancelar compromisos (incluidos los holds del borrador). Todo lo demás
+// —cobros, cierre, reportes, jornada, precios, horarios, lista de espera— le
+// da 403. La clave es "METODO ruta-patrón" con el patrón de gin (c.FullPath).
+var rutasAgente = map[string]bool{
+	"GET /api/negocio":                    true,
+	"GET /api/servicios":                  true,
+	"GET /api/servicios/:id/precios":      true, // leer precio (para cotizar); escribirlo, no
+	"GET /api/categorias":                 true,
+	"GET /api/recursos":                   true,
+	"GET /api/coberturas":                 true,
+	"POST /api/disponibilidad/consultar":  true,
+	"GET /api/clientes/por-telefono/:tel": true,
+	"POST /api/clientes":                  true,
+	"PATCH /api/clientes/:id":             true,
+	"POST /api/holds":                     true,
+	"DELETE /api/holds/:id":               true,
+	"POST /api/compromisos":               true,
+	"GET /api/compromisos/:id":            true,
+	"PATCH /api/compromisos/:id/estado":   true,
+}
+
+// RestringirAgente aplica la allowlist de RolAgente sobre el grupo del tenant.
+// Para los demás roles (dueno/operador/admin) es transparente: el control de
+// esas rutas lo hacen RequireNegocio y RequireRole. Debe correr después de que
+// el claim ya esté en el contexto (después de la autenticación) y dentro del
+// grupo con rutas, para que c.FullPath ya tenga el patrón resuelto.
+func RestringirAgente() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		claims, ok := c.MustGet(ClaimsKey).(*JWTClaims)
+		if !ok {
+			c.AbortWithStatusJSON(http.StatusForbidden, apierror.New("Permisos insuficientes"))
+			return
+		}
+		if claims.Rol != RolAgente {
+			c.Next()
+			return
+		}
+		if !rutasAgente[c.Request.Method+" "+c.FullPath()] {
+			c.AbortWithStatusJSON(http.StatusForbidden, apierror.New("Permisos insuficientes"))
+			return
+		}
+		c.Next()
+	}
+}
+
 // RequireNegocio rejects tokens that don't carry a tenant. Tenant-scoped
 // routes (everything except the platform admin) must pass through this.
 func RequireNegocio() gin.HandlerFunc {

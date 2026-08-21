@@ -186,13 +186,17 @@ func TestRecordatorioSeEncolaUnaSolaVez(t *testing.T) {
 	if m.CompromisoID != turno.ID {
 		t.Errorf("compromiso_id: esperaba %s, obtuvo %s", turno.ID, m.CompromisoID)
 	}
-	for _, v := range []string{"nombre", "fecha_hora_local", "negocio"} {
-		if m.Variables[v] == "" {
-			t.Errorf("la plantilla necesita la variable %q y vino vacía: %+v", v, m.Variables)
+	// recordatorio_turno es posicional: {{1}} nombre, {{2}} fecha_hora_local, {{3}} negocio.
+	if len(m.Variables) != 3 {
+		t.Fatalf("recordatorio_turno espera 3 variables posicionales, vinieron %d: %+v", len(m.Variables), m.Variables)
+	}
+	for i, v := range m.Variables {
+		if v == "" {
+			t.Errorf("la variable {{%d}} de la plantilla vino vacía: %+v", i+1, m.Variables)
 		}
 	}
-	if m.Variables["negocio"] != e.negocio.Nombre {
-		t.Errorf("variable negocio: esperaba %q, obtuvo %q", e.negocio.Nombre, m.Variables["negocio"])
+	if m.Variables[2] != e.negocio.Nombre {
+		t.Errorf("variable {{3}} (negocio): esperaba %q, obtuvo %q", e.negocio.Nombre, m.Variables[2])
 	}
 }
 
@@ -384,8 +388,12 @@ func TestCancelarTurnoFuturoOfreceElHueco(t *testing.T) {
 	if m.CompromisoID != turno.ID {
 		t.Errorf("compromiso_id: esperaba %s, obtuvo %s", turno.ID, m.CompromisoID)
 	}
-	if m.Variables["servicio"] != e.servicio.Nombre {
-		t.Errorf("variable servicio: esperaba %q, obtuvo %q", e.servicio.Nombre, m.Variables["servicio"])
+	// hueco_liberado es posicional: {{1}} nombre, {{2}} servicio, {{3}} fecha_hora_local, {{4}} negocio.
+	if len(m.Variables) != 4 {
+		t.Fatalf("hueco_liberado espera 4 variables posicionales, vinieron %d: %+v", len(m.Variables), m.Variables)
+	}
+	if m.Variables[1] != e.servicio.Nombre {
+		t.Errorf("variable {{2}} (servicio): esperaba %q, obtuvo %q", e.servicio.Nombre, m.Variables[1])
 	}
 
 	if releerEspera(t, e.db, lePrimero.ID).NotificadoEn == nil {

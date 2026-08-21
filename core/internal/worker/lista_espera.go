@@ -77,11 +77,12 @@ func (w *ListaEsperaNotificador) TurnoCancelado(ctx context.Context, ev service.
 		Telefono:  datos.Telefono,
 		Tipo:      TipoPlantilla,
 		Plantilla: PlantillaHuecoLiberado,
-		Variables: map[string]string{
-			"nombre":           nombreOSaludo(datos.ClienteNombre),
-			"servicio":         datos.ServicioNombre,
-			"fecha_hora_local": fechaHoraLocal(ev.Inicio, datos.Timezone),
-			"negocio":          datos.NegocioNombre,
+		// Posicional: {{1}} nombre, {{2}} servicio, {{3}} fecha_hora_local, {{4}} negocio.
+		Variables: []string{
+			nombreOSaludo(datos.ClienteNombre),
+			datos.ServicioNombre,
+			fechaHoraLocal(ev.Inicio, datos.Timezone),
+			datos.NegocioNombre,
 		},
 		CompromisoID: ev.CompromisoID,
 	})

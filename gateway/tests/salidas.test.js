@@ -21,7 +21,8 @@ const RECORDATORIO = {
   telefono: CLIENTE,
   tipo: 'plantilla',
   plantilla: 'recordatorio_turno',
-  variables: { nombre: 'Carla', fecha_hora_local: 'jueves 10:30', negocio: 'Rotisería' },
+  // Contrato E7: array POSICIONAL {{1}} nombre, {{2}} fecha_hora_local, {{3}} negocio.
+  variables: ['Carla', 'jueves 10:30', 'Rotisería'],
   compromiso_id: 'c0ffee00-0000-4000-8000-000000000009',
 };
 
