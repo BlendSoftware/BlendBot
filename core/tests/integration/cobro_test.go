@@ -361,11 +361,37 @@ func TestCobrarSinConfigFiscalNoRompeElCobro(t *testing.T) {
 	if cobro.Comprobante != nil {
 		t.Errorf("se creó un comprobante sin config fiscal: %+v", cobro.Comprobante)
 	}
-	if cobro.Facturacion == "" {
-		t.Error("el response tiene que explicar por qué no hay factura")
+	if !strings.Contains(cobro.Facturacion, "configuracion fiscal") {
+		t.Errorf("el response tiene que decir que falta la config fiscal, dijo %q", cobro.Facturacion)
 	}
 	if n := contarCobros(t, e.db, e.negocio.ID); n != 1 {
 		t.Errorf("el cobro tiene que quedar registrado igual (hay %d)", n)
+	}
+}
+
+// TestCobroEnCeroNoCulpaALaConfigFiscal: una prestación bonificada tampoco
+// tiene comprobante, pero por un motivo distinto — ARCA no acepta un
+// comprobante en cero. Con el mismo texto para los dos casos, el dueño leía que
+// le faltaba cargar el CUIT que ya tenía cargado y se iba a buscar un problema
+// que no existía (H15).
+func TestCobroEnCeroNoCulpaALaConfigFiscal(t *testing.T) {
+	ctx, e := montar(t, model.VerticalSalud)
+	svc := cobroService(t, e.db)
+	configFiscal(t, ctx, svc, e.negocio.ID) // el CUIT SÍ está cargado
+
+	bonificado := crearCompromisoDirecto(t, e.db, e.negocio.ID, e.cliente.ID, e.servicio.ID,
+		nil, nil, nil, model.CompromisoTurno, model.EstadoCompletado, "0.00")
+
+	cobro := cobrar(t, ctx, svc, e.negocio.ID, bonificado.ID, model.MedioEfectivo)
+
+	if cobro.Comprobante != nil {
+		t.Errorf("ARCA no acepta un comprobante en cero: %+v", cobro.Comprobante)
+	}
+	if strings.Contains(cobro.Facturacion, "configuracion fiscal") {
+		t.Errorf("el negocio tiene config fiscal: el motivo es el monto, no el CUIT. Dijo %q", cobro.Facturacion)
+	}
+	if !strings.Contains(cobro.Facturacion, "cero") {
+		t.Errorf("el response tiene que decir que el cobro fue en cero, dijo %q", cobro.Facturacion)
 	}
 }
 
@@ -561,7 +587,7 @@ func TestElCobroEsDelTenant(t *testing.T) {
 
 	// Y el cierre del día tampoco cruza tenants.
 	hoy := time.Now().In(zonaDelNegocio(t))
-	cierreB, err := svc.CierreDelDia(ctx, negB.ID, hoy)
+	cierreB, err := svc.CierreDelDia(ctx, negB.ID, &hoy)
 	if err != nil {
 		t.Fatalf("cierre de B: %v", err)
 	}
@@ -569,7 +595,7 @@ func TestElCobroEsDelTenant(t *testing.T) {
 		t.Errorf("el cierre de B trae el día de A: %+v", cierreB)
 	}
 
-	cierreA, err := svc.CierreDelDia(ctx, negA.ID, hoy)
+	cierreA, err := svc.CierreDelDia(ctx, negA.ID, &hoy)
 	if err != nil {
 		t.Fatalf("cierre de A: %v", err)
 	}
@@ -1046,7 +1072,7 @@ func TestCierreDelDiaAgregaEnLaZonaDelNegocio(t *testing.T) {
 		t.Fatalf("alinear cobrado_en: %v", err)
 	}
 
-	cierre, err := svc.CierreDelDia(ctx, e.negocio.ID, dia)
+	cierre, err := svc.CierreDelDia(ctx, e.negocio.ID, &dia)
 	if err != nil {
 		t.Fatalf("cierre del día: %v", err)
 	}
@@ -1106,7 +1132,8 @@ func TestCierreDeUnDiaVacio(t *testing.T) {
 	ctx, e := montar(t, model.VerticalSalud)
 	svc := cobroService(t, e.db)
 
-	cierre, err := svc.CierreDelDia(ctx, e.negocio.ID, time.Date(2026, 8, 24, 0, 0, 0, 0, time.UTC))
+	dia := time.Date(2026, 8, 24, 0, 0, 0, 0, time.UTC)
+	cierre, err := svc.CierreDelDia(ctx, e.negocio.ID, &dia)
 	if err != nil {
 		t.Fatalf("cierre de un día sin nada: %v", err)
 	}
@@ -1118,5 +1145,57 @@ func TestCierreDeUnDiaVacio(t *testing.T) {
 	}
 	if len(cierre.PorMedioPago) != 0 || len(cierre.PorOrigen) != 0 {
 		t.Errorf("un día sin movimiento no inventa cortes: %+v / %+v", cierre.PorMedioPago, cierre.PorOrigen)
+	}
+}
+
+// TestCierreSinFechaUsaElDiaDelNegocio: el "hoy" del cierre es el día del
+// LOCAL, no el del proceso. En el contenedor el core corre en UTC, así que
+// resolver la fecha con time.Now() antes de conocer la zona le cambiaba el día
+// al negocio durante las últimas tres horas de cada jornada — el dueño de
+// Mendoza abría el cierre a las 22:30 y veía el día siguiente en cero (H11).
+//
+// Se prueban dos zonas separadas por 25 horas (Kiritimati +14 / Midway −11):
+// nunca están en el mismo día calendario, así que si el cierre resolviera el
+// día con el reloj del proceso, ambos negocios devolverían la MISMA fecha.
+func TestCierreSinFechaUsaElDiaDelNegocio(t *testing.T) {
+	ctx, db := nuevoCaso(t)
+	svc := cobroService(t, db)
+
+	adelante := crearNegocio(t, db, "Kiritimati", model.VerticalGastronomia)
+	atras := crearNegocio(t, db, "Midway", model.VerticalGastronomia)
+	setTimezone(t, db, adelante.ID, "Pacific/Kiritimati") // UTC+14
+	setTimezone(t, db, atras.ID, "Pacific/Midway")        // UTC−11
+
+	cierreAdelante, err := svc.CierreDelDia(ctx, adelante.ID, nil)
+	if err != nil {
+		t.Fatalf("cierre sin fecha (Kiritimati): %v", err)
+	}
+	cierreAtras, err := svc.CierreDelDia(ctx, atras.ID, nil)
+	if err != nil {
+		t.Fatalf("cierre sin fecha (Midway): %v", err)
+	}
+
+	if cierreAdelante.Fecha == cierreAtras.Fecha {
+		t.Fatalf("dos negocios a 25 horas de distancia cerraron el mismo día (%s): "+
+			"el día se está resolviendo con el reloj del proceso, no con la zona del negocio",
+			cierreAdelante.Fecha)
+	}
+
+	// Y cada uno tiene que dar exactamente su propio hoy.
+	for _, caso := range []struct {
+		nombre string
+		tz     string
+		fecha  string
+	}{
+		{"Kiritimati", "Pacific/Kiritimati", cierreAdelante.Fecha},
+		{"Midway", "Pacific/Midway", cierreAtras.Fecha},
+	} {
+		loc, err := time.LoadLocation(caso.tz)
+		if err != nil {
+			t.Fatalf("zona %s: %v", caso.tz, err)
+		}
+		if esperado := time.Now().In(loc).Format("2006-01-02"); caso.fecha != esperado {
+			t.Errorf("%s cerró %s, esperaba su hoy local %s", caso.nombre, caso.fecha, esperado)
+		}
 	}
 }

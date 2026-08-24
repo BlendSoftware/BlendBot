@@ -58,6 +58,54 @@ export function duracionCorta(minutos: number): string {
   return m === 0 ? `${h} h` : `${h} h ${m}`
 }
 
+/**
+ * Offset de una zona IANA en una fecha dada, como '-03:00'. Se calcula con
+ * Intl y no a mano: el offset depende del día (horario de verano) y de la zona.
+ */
+function offsetDe(tz: string, diaISO: string): string {
+  try {
+    const instante = new Date(`${diaISO}T12:00:00Z`)
+    const partes = new Intl.DateTimeFormat('en-US', {
+      timeZone: tz,
+      timeZoneName: 'longOffset',
+    }).formatToParts(instante)
+    const nombre = partes.find((p) => p.type === 'timeZoneName')?.value ?? ''
+    const m = /GMT([+-]\d{2}:\d{2})/.exec(nombre)
+    if (m?.[1]) return m[1]
+    if (nombre === 'GMT') return '+00:00'
+  } catch {
+    // Zona desconocida para el navegador: mejor el offset local que romper.
+  }
+  const min = -new Date(`${diaISO}T12:00:00`).getTimezoneOffset()
+  const signo = min < 0 ? '-' : '+'
+  const abs = Math.abs(min)
+  return `${signo}${String(Math.floor(abs / 60)).padStart(2, '0')}:${String(abs % 60).padStart(2, '0')}`
+}
+
+/**
+ * Medianoche de ese día EN LA ZONA DEL NEGOCIO, como RFC3339.
+ *
+ * `new Date('2026-08-21T00:00:00')` se interpreta en la zona del NAVEGADOR: el
+ * dueño cargando una ausencia desde otro huso (o desde un celular con la zona
+ * mal puesta) la guardaba corrida varias horas.
+ */
+export function inicioDelDiaEnZona(diaISO: string, tz: string): string {
+  return `${diaISO}T00:00:00${offsetDe(tz, diaISO)}`
+}
+
+/**
+ * Fin de ese día en la zona del negocio: la medianoche del día SIGUIENTE.
+ *
+ * Los rangos del core son semiabiertos [desde, hasta), así que 00:00 del día
+ * siguiente cubre el día entero sin invadirlo. Cerrar a las 23:59 —como se
+ * hacía— dejaba el último minuto afuera: un turno a las 23:59:30 se colaba
+ * dentro de una ausencia cargada (H12).
+ */
+export function finDelDiaEnZona(diaISO: string, tz: string): string {
+  const siguiente = sumarDias(diaISO, 1)
+  return `${siguiente}T00:00:00${offsetDe(tz, siguiente)}`
+}
+
 export function fechaISO(d: Date = new Date()): string {
   const mes = String(d.getMonth() + 1).padStart(2, '0')
   const dia = String(d.getDate()).padStart(2, '0')

@@ -46,6 +46,13 @@ type Servicio struct {
 	PrecioBase  decimal.Decimal `gorm:"type:numeric(12,2);not null;default:0" json:"precio_base"`
 	Disponible  bool            `gorm:"not null;default:true" json:"disponible"`
 	Activo      bool            `gorm:"not null;default:true" json:"activo"`
+
+	// PrecioEfectivo es el precio que se le va a CONGELAR a este cliente: el de
+	// su cobertura si tiene una fila propia, si no precio_base. No es una
+	// columna — se calcula al listar con ?cobertura_id=. Existe porque el
+	// agente cotizaba precio_base mientras el motor congelaba el de cobertura:
+	// el cliente confirmaba un número y se le cobraba otro (H4).
+	PrecioEfectivo *decimal.Decimal `gorm:"-" json:"precio_efectivo,omitempty"`
 }
 
 func (Servicio) TableName() string { return "servicio" }

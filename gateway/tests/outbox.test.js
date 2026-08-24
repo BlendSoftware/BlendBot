@@ -1,33 +1,42 @@
 import { describe, it, expect, vi } from 'vitest';
 
-import { crearOutbox, cuerpoGraph, enviarPorGraph, colaDe, COLA_MUERTOS } from '../src/outbox.js';
+import { crearOutbox, cuerpoGraph, enviarPorGraph, colaDe, COLA_MUERTOS, COLA_REINTENTOS } from '../src/outbox.js';
 import { crearRedisFalso } from './ayudas/redis-falso.js';
 import { PHONE_ID, CLIENTE } from './ayudas/payloads.js';
 
-/** Scheduler determinístico: junta los reintentos y los corre cuando yo quiero. */
-function programador() {
-  const pendientes = [];
-  const programar = (fn, ms) => { pendientes.push({ fn, ms }); };
+/**
+ * Reloj determinístico. Los reintentos ya no viven en un setTimeout sino en un
+ * sorted set de redis con score = cuándo toca (H13), así que para hacerlos
+ * efectivos se adelanta el reloj y se barre: `prog.correr()`.
+ */
+function programador(redis) {
+  let t = 1_000_000;
+  const outboxRef = { actual: null };
   return {
-    programar,
-    esperas: () => pendientes.map((p) => p.ms),
+    ahora: () => t,
+    usar: (o) => { outboxRef.actual = o; },
+    /** Cuánto falta para cada reintento pendiente, en ms. */
+    esperas: () => redis.zsetJson(COLA_REINTENTOS).map((e) => e.score - t),
+    /** Adelanta el reloj hasta el reintento más lejano y los devuelve a la cola. */
     async correr() {
-      const copia = pendientes.splice(0);
-      for (const p of copia) await p.fn();
+      const pendientes = redis.zsetJson(COLA_REINTENTOS);
+      if (pendientes.length) t = Math.max(...pendientes.map((e) => e.score));
+      return outboxRef.actual.rescatar();
     },
   };
 }
 
 function armar({ enviar, maxIntentos } = {}) {
   const redis = crearRedisFalso();
-  const prog = programador();
+  const prog = programador(redis);
   const outbox = crearOutbox({
     redis,
     enviar: enviar || vi.fn(async () => ({ messages: [{ id: 'wamid.OK' }] })),
     colas: () => [colaDe(PHONE_ID)],
-    programar: prog.programar,
+    ahora: prog.ahora,
     maxIntentos,
   });
+  prog.usar(outbox);
   return { redis, outbox, prog };
 }
 
@@ -157,6 +166,81 @@ describe('entrega y reintentos', () => {
     const [muerto] = redis.listaJson(COLA_MUERTOS);
     expect(muerto).toMatchObject({ texto: TEXTO.texto, telefono: CLIENTE, intentos: 3 });
     expect(muerto.ultimo_error).toContain('400');
+  });
+
+  it('el que espera su reintento vive en redis, no en el proceso', async () => {
+    const { redis, outbox } = armar({ enviar: async () => { throw new Error('ETIMEDOUT'); } });
+    await outbox.encolar(TEXTO);
+    await outbox.tick();
+
+    // Salió de su cola, pero NO se evaporó: está en el sorted set con la hora
+    // en la que hay que volver a intentar.
+    expect(await redis.lLen(colaDe(PHONE_ID))).toBe(0);
+    const [pendiente] = redis.zsetJson(COLA_REINTENTOS);
+    expect(pendiente.item).toMatchObject({ texto: TEXTO.texto, intentos: 1 });
+    expect(pendiente.score).toBeGreaterThan(0);
+  });
+
+  it('un SIGTERM durante el backoff no se come el mensaje', async () => {
+    // Este es el bug: el reintento vivía adentro de un setTimeout. Si el
+    // proceso moría en esa ventana —deploy, OOM, SIGTERM— el mensaje no llegaba
+    // ni a la DLQ: desaparecía y sólo se notaba porque el cliente nunca
+    // recibió la respuesta (H13).
+    const redis = crearRedisFalso();
+    let t = 1_000_000;
+    const caido = crearOutbox({
+      redis,
+      enviar: async () => { throw new Error('Graph 503'); },
+      colas: () => [colaDe(PHONE_ID)],
+      ahora: () => t,
+    });
+    await caido.encolar(TEXTO);
+    await caido.tick();          // falla y programa el reintento
+    await caido.detener();       // ...y acá se muere el proceso
+
+    // Arranca un gateway nuevo: memoria en cero, mismo redis.
+    const entregados = [];
+    const revivido = crearOutbox({
+      redis,
+      enviar: async (m) => { entregados.push(m.texto); },
+      colas: () => [colaDe(PHONE_ID)],
+      ahora: () => t,
+    });
+    t += 5000; // pasó el backoff
+    expect(await revivido.rescatar()).toBe(1);
+    expect((await revivido.tick()).resultado).toBe('entregado');
+    expect(entregados).toEqual([TEXTO.texto]);
+  });
+
+  it('el barrido no devuelve el que todavía no cumplió su espera', async () => {
+    const { redis, outbox } = armar({ enviar: async () => { throw new Error('ETIMEDOUT'); } });
+    await outbox.encolar(TEXTO);
+    await outbox.tick();
+
+    expect(await outbox.rescatar()).toBe(0); // el reloj no avanzó
+    expect(await redis.lLen(colaDe(PHONE_ID))).toBe(0);
+    expect(await redis.zCard(COLA_REINTENTOS)).toBe(1);
+  });
+
+  it('dos gateways sobre el mismo redis no reencolan el mismo mensaje dos veces', async () => {
+    const redis = crearRedisFalso();
+    let t = 1_000_000;
+    const opciones = {
+      redis,
+      enviar: async () => { throw new Error('Graph 503'); },
+      colas: () => [colaDe(PHONE_ID)],
+      ahora: () => t,
+    };
+    const uno = crearOutbox(opciones);
+    const otro = crearOutbox(opciones);
+
+    await uno.encolar(TEXTO);
+    await uno.tick();
+    t += 5000;
+
+    const rescatados = (await uno.rescatar()) + (await otro.rescatar());
+    expect(rescatados).toBe(1);
+    expect(await redis.lLen(colaDe(PHONE_ID))).toBe(1);
   });
 
   it('un maxIntentos de 1 muere al primer fallo', async () => {

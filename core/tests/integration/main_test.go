@@ -69,6 +69,16 @@ func crearNegocio(t *testing.T, db *gorm.DB, nombre string, vertical model.Verti
 	return n
 }
 
+// setTimezone mueve un negocio de huso. Sirve para probar que el día
+// calendario se resuelve con la zona del local y no con la del proceso.
+func setTimezone(t *testing.T, db *gorm.DB, negocioID, tz string) {
+	t.Helper()
+	if err := db.Model(&model.Negocio{}).Where("id = ?", negocioID).
+		Update("timezone", tz).Error; err != nil {
+		t.Fatalf("setTimezone %s: %v", tz, err)
+	}
+}
+
 func crearRecurso(t *testing.T, db *gorm.DB, negocioID, nombre string, tipo model.TipoRecurso) *model.Recurso {
 	t.Helper()
 	r := &model.Recurso{

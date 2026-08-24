@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"strings"
 
 	"copiloto/core/internal/dto"
 	"copiloto/core/internal/middleware"
@@ -52,7 +53,11 @@ func (h *CatalogoHandler) ListarServicios(c *gin.Context) {
 		SoloDisponibles:  c.Query("solo_disponibles") == "true",
 		IncluirInactivos: c.Query("incluir_inactivos") == "true",
 	}
-	servicios, err := h.svc.ListarServicios(c.Request.Context(), middleware.NegocioID(c), f)
+	// ?cobertura_id= agrega precio_efectivo: el precio que se le va a congelar a
+	// ese cliente. Sin el parámetro el listado sale igual que siempre (H4).
+	servicios, err := h.svc.ListarServiciosParaCobertura(
+		c.Request.Context(), middleware.NegocioID(c), f, strings.TrimSpace(c.Query("cobertura_id")),
+	)
 	if err != nil {
 		errorDeServicio(c, err)
 		return

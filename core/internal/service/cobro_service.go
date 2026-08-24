@@ -21,7 +21,9 @@ import (
 type CobroService interface {
 	Cobrar(ctx context.Context, negocioID string, usuarioID *string, in dto.CobrarInput) (*dto.CobroResponse, error)
 	PorCompromiso(ctx context.Context, negocioID, compromisoID string) (*dto.CobroResponse, error)
-	CierreDelDia(ctx context.Context, negocioID string, fecha time.Time) (*dto.CierreResponse, error)
+	// CierreDelDia con fecha nil es "hoy": el día se resuelve en la timezone
+	// del negocio, no en la del proceso (H11).
+	CierreDelDia(ctx context.Context, negocioID string, fecha *time.Time) (*dto.CierreResponse, error)
 
 	// Fiscal: sólo admin de la plataforma. El negocio llega por la URL, no por
 	// el token, porque un admin no tiene tenant.
@@ -149,7 +151,12 @@ func (s *cobroService) PorCompromiso(ctx context.Context, negocioID, compromisoI
 // fecha se trata como día calendario: se toman año, mes y día tal cual vienen
 // y se los planta en la timezone del negocio. Un cierre calculado en UTC le
 // mete al negocio de Mendoza las tres primeras horas del día siguiente.
-func (s *cobroService) CierreDelDia(ctx context.Context, negocioID string, fecha time.Time) (*dto.CierreResponse, error) {
+//
+// fecha nil es "hoy", y ese hoy se resuelve DESPUÉS de tener la zona del
+// negocio: el proceso corre en UTC dentro del contenedor, así que un
+// time.Now() del handler devuelve el día siguiente durante las últimas tres
+// horas de cada jornada (H11).
+func (s *cobroService) CierreDelDia(ctx context.Context, negocioID string, fecha *time.Time) (*dto.CierreResponse, error) {
 	neg, err := s.negocios.Negocio(ctx, negocioID)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, ErrNoEncontrado
@@ -162,7 +169,8 @@ func (s *cobroService) CierreDelDia(ctx context.Context, negocioID string, fecha
 		return nil, ErrTimezoneInvalida
 	}
 
-	desde := time.Date(fecha.Year(), fecha.Month(), fecha.Day(), 0, 0, 0, 0, loc)
+	dia := diaCalendario(fecha, loc)
+	desde := time.Date(dia.Year(), dia.Month(), dia.Day(), 0, 0, 0, 0, loc)
 	hasta := desde.AddDate(0, 0, 1)
 
 	r, err := s.repo.Cierre(ctx, negocioID, desde, hasta)

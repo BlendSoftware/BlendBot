@@ -12,6 +12,9 @@
  *    comercio con Graph enojado no le tapa la salida a los otros
  *  - los que agotan reintentos caen en `outbox:muertos` (DLQ) en vez de al log
  *  - el envío es una función inyectable: los tests no tocan la red
+ *  - el mensaje que espera su reintento vive en un sorted set de redis
+ *    (`outbox:reintentos`, con score = cuándo toca), no en un setTimeout: un
+ *    SIGTERM durante el backoff se lo comía sin dejarlo ni en la DLQ (H13)
  */
 
 const MAX_INTENTOS = 3;
@@ -19,6 +22,13 @@ const BASE_BACKOFF_MS = 1000;
 const IDIOMA_PLANTILLA = 'es_AR';
 
 export const COLA_MUERTOS = 'outbox:muertos';
+
+/**
+ * Los que esperan su reintento. Sorted set: el score es el epoch en ms en que
+ * toca reintentar, así el barrido pide sólo los vencidos y el resto sigue
+ * esperando en redis — sobrevive a un restart, a un deploy y a un OOM.
+ */
+export const COLA_REINTENTOS = 'outbox:reintentos';
 
 export function colaDe(phoneNumberId) {
   return `outbox:${phoneNumberId}`;
@@ -90,7 +100,7 @@ export function enviarPorGraph(config, fetchFn = fetch) {
  * @param {(mensaje: object) => Promise<any>} opts.enviar  inyectable
  * @param {() => string[]} [opts.colas]  qué colas escucha el worker
  * @param {number} [opts.maxIntentos]
- * @param {(fn: Function, ms: number) => any} [opts.programar]  setTimeout inyectable
+ * @param {() => number} [opts.ahora]  reloj inyectable (epoch ms)
  */
 export function crearOutbox({
   redis,
@@ -101,7 +111,7 @@ export function crearOutbox({
   colas = () => [],
   maxIntentos = MAX_INTENTOS,
   baseBackoffMs = BASE_BACKOFF_MS,
-  programar = setTimeout,
+  ahora = () => Date.now(),
 } = {}) {
   let corriendo = false;
   let bucle = null;
@@ -169,14 +179,42 @@ export function crearOutbox({
         '[outbox] intento %d/%d falló para %s (%s) — reintento en %dms',
         intentos, maxIntentos, item.telefono, siguiente.ultimo_error, espera,
       );
-      // rPush: vuelve al frente de la cola (se consume con brPop del extremo
-      // derecho), así el reintento no espera detrás de todo lo que entró después.
-      programar(() => {
-        redis.rPush(colaDe(item.phone_number_id), JSON.stringify(siguiente))
-          .catch((e) => console.error('[outbox] no pude reencolar: %s', e.message));
-      }, espera);
+      // El que espera su turno queda EN REDIS, no en un timer del proceso.
+      // Antes vivía adentro de un setTimeout: si el proceso se moría en esa
+      // ventana —un deploy, un SIGTERM, un OOM— el mensaje desaparecía sin
+      // quedar siquiera en la DLQ (H13). El barrido lo devuelve a su cola.
+      await redis.zAdd(COLA_REINTENTOS, {
+        score: ahora() + espera,
+        value: JSON.stringify(siguiente),
+      });
       return 'reintenta';
     }
+  }
+
+  /**
+   * Devuelve a su cola los reintentos que ya vencieron. Idempotente entre
+   * procesos: el rPush lo hace sólo el que ganó el ZREM, así dos gateways
+   * apuntando al mismo redis no mandan el mensaje dos veces.
+   * @returns {Promise<number>} cuántos se rescataron
+   */
+  async function rescatar() {
+    const vencidos = await redis.zRangeByScore(COLA_REINTENTOS, 0, ahora());
+    let devueltos = 0;
+    for (const crudo of vencidos) {
+      if ((await redis.zRem(COLA_REINTENTOS, crudo)) !== 1) continue; // se lo llevó otro
+      let item;
+      try {
+        item = JSON.parse(crudo);
+      } catch (err) {
+        console.error('[outbox] reintento ilegible descartado: %s', err.message);
+        continue;
+      }
+      // rPush: vuelve al frente de la cola (se consume con brPop del extremo
+      // derecho), así el reintento no espera detrás de todo lo que entró después.
+      await redis.rPush(colaDe(item.phone_number_id), crudo);
+      devueltos++;
+    }
+    return devueltos;
   }
 
   /** Un ciclo del worker: espera un mensaje y lo entrega. Para tests. */
@@ -201,6 +239,10 @@ export function crearOutbox({
     bucle = (async () => {
       while (corriendo) {
         try {
+          // Antes de mirar la cola, devolver lo que ya cumplió su espera. El
+          // brPop de tick() tiene timeout de 1s, así que el barrido corre al
+          // menos una vez por segundo sin necesitar su propio timer.
+          await rescatar();
           await tick();
         } catch (err) {
           if (!corriendo) break;
@@ -217,5 +259,5 @@ export function crearOutbox({
     bucle = null;
   }
 
-  return { encolar, entregar, tick, arrancar, detener, colaDe, COLA_MUERTOS };
+  return { encolar, entregar, rescatar, tick, arrancar, detener, colaDe, COLA_MUERTOS, COLA_REINTENTOS };
 }

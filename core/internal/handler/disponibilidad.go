@@ -3,7 +3,6 @@ package handler
 import (
 	"errors"
 	"net/http"
-	"time"
 
 	"copiloto/core/internal/apierror"
 	"copiloto/core/internal/dto"
@@ -46,14 +45,9 @@ func (h *DisponibilidadHandler) Agenda(c *gin.Context) {
 	if !ok {
 		return
 	}
-	// Sin fecha: hoy. El día calendario lo termina de resolver el service en la
-	// timezone del negocio.
-	dia := time.Now()
-	if fecha != nil {
-		dia = *fecha
-	}
-
-	resp, err := h.svc.AgendaDelDia(c.Request.Context(), middleware.NegocioID(c), dia)
+	// Sin fecha va nil: el "hoy" lo resuelve el service en la timezone del
+	// negocio. Resolverlo acá con time.Now() daba el día del contenedor (H11).
+	resp, err := h.svc.AgendaDelDia(c.Request.Context(), middleware.NegocioID(c), fecha)
 	if err != nil {
 		responderErrorDisponibilidad(c, err)
 		return

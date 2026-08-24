@@ -37,8 +37,10 @@ type ComprobanteResponse struct {
 }
 
 // CobroResponse es lo que devuelve POST /api/cobros y GET /api/cobros/:id.
-// Comprobante nil + FacturaPendiente false significa que el negocio todavía no
-// cargó su configuración fiscal: se cobró igual, pero no se factura.
+// Comprobante nil significa que se cobró sin factura, y Facturacion dice por
+// qué: el negocio no tiene configuración fiscal, o el cobro fue en cero y ARCA
+// no acepta un comprobante así. Son dos cosas distintas y el dueño necesita
+// distinguirlas — una es un trámite pendiente suyo, la otra es normal (H15).
 type CobroResponse struct {
 	ID           string               `json:"id"`
 	CompromisoID string               `json:"compromiso_id"`
@@ -63,7 +65,7 @@ func CobroDesdeModel(c *model.Cobro, comp *model.Comprobante) *CobroResponse {
 		Monto:        c.Monto,
 		CobradoEn:    c.CobradoEn,
 		Comprobante:  ComprobanteDesdeModel(comp),
-		Facturacion:  "Este negocio todavia no tiene configuracion fiscal, asi que no se emite factura.",
+		Facturacion:  motivoSinFactura(c),
 	}
 	if comp != nil {
 		switch comp.Estado {
@@ -76,6 +78,16 @@ func CobroDesdeModel(c *model.Cobro, comp *model.Comprobante) *CobroResponse {
 		}
 	}
 	return out
+}
+
+// motivoSinFactura explica por qué un cobro no tiene comprobante. Sin esto los
+// dos motivos salían con el mismo texto y un cobro bonificado le decía al dueño
+// que le faltaba cargar el CUIT que ya tenía cargado (H15).
+func motivoSinFactura(c *model.Cobro) string {
+	if !c.Monto.IsPositive() {
+		return "Cobro en cero: no hay factura que emitir."
+	}
+	return "Este negocio todavia no tiene configuracion fiscal, asi que no se emite factura."
 }
 
 // ComprobanteDesdeModel mapea el comprobante; nil devuelve nil.

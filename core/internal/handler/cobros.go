@@ -59,17 +59,19 @@ func (h *CobrosHandler) PorCompromiso(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
-// Cierre acepta ?fecha=YYYY-MM-DD. Sin fecha, hoy: el día se resuelve en la
-// timezone del negocio dentro del service.
+// Cierre acepta ?fecha=YYYY-MM-DD. Sin fecha va nil, y el "hoy" lo resuelve el
+// service con la timezone del negocio: el handler no la conoce, y decidir acá
+// con time.Now() significaba cerrar el día del contenedor (UTC) en vez del día
+// del local (H11).
 func (h *CobrosHandler) Cierre(c *gin.Context) {
-	fecha := time.Now()
+	var fecha *time.Time
 	if raw := strings.TrimSpace(c.Query("fecha")); raw != "" {
 		t, err := time.Parse("2006-01-02", raw)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, apierror.New("Fecha invalida: se espera YYYY-MM-DD"))
 			return
 		}
-		fecha = t
+		fecha = &t
 	}
 
 	resp, err := h.svc.CierreDelDia(c.Request.Context(), middleware.NegocioID(c), fecha)

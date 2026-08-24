@@ -18,7 +18,7 @@ import {
 import type { Excepcion, Horario, Recurso } from '../api/tipos'
 import { Switch } from '../componentes/Switch'
 import { Aviso, BotonConfirmar, Esqueleto, Vacio, useAvisoBien } from '../componentes/basicos'
-import { DIAS_CORTOS } from '../dominio/formato'
+import { DIAS_CORTOS, finDelDiaEnZona, inicioDelDiaEnZona } from '../dominio/formato'
 import { useSesion } from '../contexto'
 import { ElLocal } from './ElLocal'
 
@@ -153,6 +153,10 @@ function Semana({
   alFallar: (m: string) => void
   alExito: (m: string) => void
 }) {
+  const { negocio } = useSesion()
+  // Las ausencias se guardan en la zona del negocio. Si todavía no cargó la
+  // ficha, cae a la del navegador: es lo que hacía siempre, no un dato peor.
+  const timezone = negocio?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone
   const [horarios, setHorarios] = useState<Horario[] | null>(null)
   const [excepciones, setExcepciones] = useState<Excepcion[] | null>(null)
 
@@ -267,6 +271,7 @@ function Semana({
             setExcepciones((l) => [...(l ?? []), e])
           }}
           alFallar={alFallar}
+          timezone={timezone}
         />
       </section>
     </div>
@@ -342,9 +347,11 @@ function AltaFranja({
 function AltaExcepcion({
   alCrear,
   alFallar,
+  timezone,
 }: {
   alCrear: (desde: string, hasta: string, motivo: string | null) => Promise<void>
   alFallar: (m: string) => void
+  timezone: string
 }) {
   const [abierta, setAbierta] = useState(false)
   const [desde, setDesde] = useState('')
@@ -366,9 +373,13 @@ function AltaExcepcion({
         e.preventDefault()
         if (!desde || !hasta) return
         try {
+          // La ausencia se construye en la zona del NEGOCIO, no en la del
+          // navegador, y cierra a la medianoche del día siguiente: el rango
+          // del core es [desde, hasta), así que 23:59 dejaba el último minuto
+          // del día sin cubrir (H12).
           await alCrear(
-            new Date(`${desde}T00:00:00`).toISOString(),
-            new Date(`${hasta}T23:59:00`).toISOString(),
+            inicioDelDiaEnZona(desde, timezone),
+            finDelDiaEnZona(hasta, timezone),
             motivo.trim() || null,
           )
           setDesde('')

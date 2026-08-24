@@ -43,7 +43,11 @@ archivos y contratos. **Un agente sólo toca los archivos de su workstream.**
 | E6 | Panel web (React: agenda, catálogo, profesionales, ficha) | **✔ hecho** (38 tests) |
 | E7 | Anti-ausentismo (recordatorio 24h, liberación, lista de espera) | **✔ hecho** (migración 000003, workers, hook y endpoints cableados) |
 | E8 | Cobro + sidecar ARCA (Factura C) | **✔ hecho** (commit 4e67b3e) |
-| E9 | Compose integrado + smoke e2e + revisión final | **en curso** |
+| E9 | Compose integrado + smoke e2e + revisión adversarial | **✔ hecho** (commit a4d67ef; hallazgos en `HARDENING.md`) |
+| E10 | Vertical gastronomía: pedidos, cocina, delivery, board | **✔ hecho** (commit 567121e) |
+| E11 | Dogfooding 1: cierre del día real y cliente en el pedido | **✔ hecho** (commit d9c7ce2) |
+| E12 | Dogfooding 2: consultas, info del local, descripción de platos | **✔ hecho** (commit 025f4f5) |
+| — | Hardening de la revisión adversarial (H1–H17) | **16 de 17 cerrados** (24/08/2026); H17 abierto por decisión de diseño |
 
 ---
 

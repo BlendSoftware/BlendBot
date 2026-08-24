@@ -30,6 +30,10 @@ type CatalogoService interface {
 
 	// Servicios
 	ListarServicios(ctx context.Context, negocioID string, f repository.FiltroServicios) ([]model.Servicio, error)
+	// ListarServiciosParaCobertura es el mismo listado con PrecioEfectivo
+	// resuelto: lo que el agente tiene que cotizar para ESE cliente. Con
+	// coberturaID vacío es idéntico a ListarServicios.
+	ListarServiciosParaCobertura(ctx context.Context, negocioID string, f repository.FiltroServicios, coberturaID string) ([]model.Servicio, error)
 	ObtenerServicio(ctx context.Context, negocioID, id string) (*model.Servicio, error)
 	CrearServicio(ctx context.Context, negocioID string, req dto.CrearServicioRequest) (*model.Servicio, error)
 	ActualizarServicio(ctx context.Context, negocioID, id string, req dto.ActualizarServicioRequest) (*model.Servicio, error)
@@ -161,6 +165,43 @@ func (s *catalogoService) ActualizarRecurso(ctx context.Context, negocioID, id s
 
 func (s *catalogoService) ListarServicios(ctx context.Context, negocioID string, f repository.FiltroServicios) ([]model.Servicio, error) {
 	return s.servicios.List(ctx, negocioID, f)
+}
+
+// ListarServiciosParaCobertura resuelve el precio que se le va a congelar a un
+// cliente con esa cobertura. El agente cotizaba precio_base y el motor congelaba
+// el precio de cobertura: el cliente cerraba el pedido con un número y en la
+// caja le aparecía otro (H4). Ahora quien cotiza pide el precio de la cobertura
+// y los dos lados dicen lo mismo.
+func (s *catalogoService) ListarServiciosParaCobertura(ctx context.Context, negocioID string, f repository.FiltroServicios, coberturaID string) ([]model.Servicio, error) {
+	servicios, err := s.servicios.List(ctx, negocioID, f)
+	if err != nil {
+		return nil, err
+	}
+	if coberturaID == "" || len(servicios) == 0 {
+		return servicios, nil
+	}
+	// La cobertura tiene que ser de ESTE negocio: precio_cobertura no lleva
+	// negocio_id, así que el tenant se valida acá o no se valida en ningún lado.
+	if _, err := s.coberturas.GetByID(ctx, negocioID, coberturaID); err != nil {
+		return nil, traducirNoEncontrado(err)
+	}
+
+	ids := make([]string, 0, len(servicios))
+	for _, sv := range servicios {
+		ids = append(ids, sv.ID)
+	}
+	precios, err := s.coberturas.PreciosDeCobertura(ctx, coberturaID, ids)
+	if err != nil {
+		return nil, err
+	}
+	for i := range servicios {
+		efectivo := servicios[i].PrecioBase
+		if p, hay := precios[servicios[i].ID]; hay {
+			efectivo = p
+		}
+		servicios[i].PrecioEfectivo = &efectivo
+	}
+	return servicios, nil
 }
 
 func (s *catalogoService) ObtenerServicio(ctx context.Context, negocioID, id string) (*model.Servicio, error) {

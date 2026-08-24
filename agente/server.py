@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import functools
 from datetime import datetime
+from decimal import Decimal
 from typing import Any, Awaitable, Callable
 from zoneinfo import ZoneInfo
 
@@ -74,14 +75,44 @@ async def _negocio() -> dict[str, Any]:
 
 
 async def _catalogo(categoria: str | None = None) -> list[dict[str, Any]]:
-    """Siempre `solo_disponibles=true`: lo apagado en el panel no existe para el agente."""
+    """Siempre `solo_disponibles=true`: lo apagado en el panel no existe para el agente.
+
+    Los precios se piden CON la cobertura del cliente: el core congela el precio
+    de la cobertura y nosotros cotizábamos precio_base, así que el cliente
+    cerraba el pedido con un número y en la caja le salía otro (H4). Si la
+    cobertura de la ficha cambió, el cache se descarta.
+    """
     s = sesion()
-    if categoria or not s.catalogo:
-        servicios = await core().servicios(categoria)
+    cobertura_id = _cobertura_del_cliente()
+    if categoria or not s.catalogo or s.catalogo_cobertura != cobertura_id:
+        servicios = await core().servicios(categoria, cobertura_id)
         if not categoria:
             s.catalogo = servicios
+            s.catalogo_cobertura = cobertura_id
         return servicios
     return s.catalogo
+
+
+def _cobertura_del_cliente() -> str | None:
+    """La cobertura de la ficha del que escribe, si tiene una. None es lo normal
+    en gastronomía (nadie pide hamburguesas con obra social).
+
+    Se lee de la sesión y NO se va a buscar al core: `datos_del_negocio` —la
+    primera tool de toda conversación— ya trajo la ficha, así que para cuando se
+    cotiza está en memoria. Cotizar no puede depender de una llamada más.
+    """
+    cliente = sesion().cliente
+    if not cliente:
+        return None
+    cobertura_id = cliente.get("cobertura_id")
+    return str(cobertura_id) if cobertura_id else None
+
+
+def _precio_de(servicio: dict[str, Any]) -> Decimal:
+    """El precio con el que hay que cotizar: el efectivo de la cobertura del
+    cliente si el core lo resolvió, si no el de lista."""
+    efectivo = servicio.get("precio_efectivo")
+    return a_decimal(efectivo if efectivo is not None else servicio.get("precio_base"))
 
 
 async def _recursos() -> list[dict[str, Any]]:
@@ -210,7 +241,7 @@ def _sin_encontrar(que: str, r: Resolucion, campo: str = "nombre") -> dict[str, 
 
 
 def _servicio_visible(s: dict[str, Any]) -> dict[str, Any]:
-    precio = a_decimal(s.get("precio_base"))
+    precio = _precio_de(s)
     visible = {
         "nombre": s.get("nombre"),
         "precio": str(precio),
@@ -460,7 +491,7 @@ async def armar_compromiso(
                 servicio_id=str(sv.get("id")),
                 nombre=str(sv.get("nombre")),
                 cantidad=pedida.cantidad,
-                precio_unit=a_decimal(sv.get("precio_base")),
+                precio_unit=_precio_de(sv),
                 duracion_min=sv.get("duracion_min"),
                 nota=pedida.nota,
             )
@@ -677,6 +708,11 @@ async def confirmar(
         if cambios:
             cliente = await core().actualizar_cliente(str(cliente.get("id")), **cambios)
     s.cliente = cliente
+    # Si recién ahora supimos la cobertura, el catálogo cacheado tiene los
+    # precios de otra: que la próxima cotización lo vuelva a pedir (H4).
+    if s.catalogo_cobertura != _cobertura_del_cliente():
+        s.catalogo = []
+        s.catalogo_cobertura = None
 
     # 2) el compromiso. `sesion` va para que el hold propio no cuente como solape.
     cuerpo: dict[str, Any] = {
@@ -716,6 +752,20 @@ async def confirmar(
     cuando = await _humanizar(s.bloqueo.inicio) if s.bloqueo else {}
     recurso_asignado = s.bloqueo.recurso if s.bloqueo else None
     total = a_decimal(compromiso.get("total") or borrador.total)
+
+    # El core congela el precio de la cobertura del cliente. Si la cobertura se
+    # declaró recién en esta llamada, el borrador que el cliente aceptó tenía el
+    # precio de lista y el total real es otro: hay que DECÍRSELO, no dejar que
+    # se entere en la caja (H4).
+    cotizado = borrador.total
+    aviso_precio = None
+    if total != cotizado:
+        aviso_precio = (
+            f"OJO: el total final es {plata(total)} y vos le habías dicho {plata(cotizado)} "
+            "(cambió el precio al aplicar su cobertura). Decíselo con el número nuevo, "
+            "no repitas el viejo."
+        )
+
     s.limpiar_compromiso()
 
     if tipo == "pedido":
@@ -758,6 +808,7 @@ async def confirmar(
         "recurso": recurso_asignado,
         "aviso": mensaje,
         **({"aviso_cobertura": aviso_cobertura} if aviso_cobertura else {}),
+        **({"aviso_precio": aviso_precio} if aviso_precio else {}),
     }
 
 

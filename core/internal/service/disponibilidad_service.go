@@ -37,8 +37,9 @@ const (
 type DisponibilidadService interface {
 	Consultar(ctx context.Context, negocioID string, in dto.ConsultarDisponibilidadInput) (*dto.HuecosResponse, error)
 	// AgendaDelDia trata fecha como día calendario: se usan su año, mes y día
-	// tal cual vienen y se los planta en la timezone del negocio.
-	AgendaDelDia(ctx context.Context, negocioID string, fecha time.Time) (*dto.AgendaResponse, error)
+	// tal cual vienen y se los planta en la timezone del negocio. fecha nil es
+	// "hoy" en la zona del negocio, no en la del proceso (H11).
+	AgendaDelDia(ctx context.Context, negocioID string, fecha *time.Time) (*dto.AgendaResponse, error)
 }
 
 type disponibilidadService struct {
@@ -193,7 +194,7 @@ func (s *disponibilidadService) Consultar(ctx context.Context, negocioID string,
 }
 
 // ── AgendaDelDia ──────────────────────────────────────────────────────────
-func (s *disponibilidadService) AgendaDelDia(ctx context.Context, negocioID string, fecha time.Time) (*dto.AgendaResponse, error) {
+func (s *disponibilidadService) AgendaDelDia(ctx context.Context, negocioID string, fecha *time.Time) (*dto.AgendaResponse, error) {
 	neg, err := s.repo.Negocio(ctx, negocioID)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, ErrNoEncontrado
@@ -206,7 +207,8 @@ func (s *disponibilidadService) AgendaDelDia(ctx context.Context, negocioID stri
 		return nil, err
 	}
 
-	dia := time.Date(fecha.Year(), fecha.Month(), fecha.Day(), 0, 0, 0, 0, loc)
+	hoy := diaCalendario(fecha, loc)
+	dia := time.Date(hoy.Year(), hoy.Month(), hoy.Day(), 0, 0, 0, 0, loc)
 	finDia := dia.AddDate(0, 0, 1)
 
 	recursos, err := s.repo.RecursosActivos(ctx, negocioID)
@@ -355,6 +357,20 @@ func diaInicial(raw string, loc *time.Location) (time.Time, error) {
 		return time.Date(l.Year(), l.Month(), l.Day(), 0, 0, 0, 0, loc), nil
 	}
 	return time.Time{}, fmt.Errorf("fecha invalida en desde: se espera YYYY-MM-DD")
+}
+
+// diaCalendario resuelve qué día calendario hay que mirar. Con fecha nil es
+// "hoy" EN LA ZONA DEL NEGOCIO: el proceso corre en UTC dentro del contenedor,
+// así que preguntarle la fecha a time.Now() sin convertir devuelve el día
+// siguiente durante las últimas horas de cada jornada — el cierre y la agenda
+// se vaciaban justo cuando el local está laburando (H11). Con fecha != nil se
+// respeta tal cual vino: es un día calendario puro (YYYY-MM-DD parseado), no
+// un instante.
+func diaCalendario(fecha *time.Time, loc *time.Location) time.Time {
+	if fecha == nil {
+		return time.Now().In(loc)
+	}
+	return *fecha
 }
 
 // ubicacionDe carga la timezone del negocio. Una timezone rota es un dato mal

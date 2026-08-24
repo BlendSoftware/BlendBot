@@ -5,6 +5,8 @@ import (
 
 	"copiloto/core/internal/dto"
 	"copiloto/core/internal/model"
+	"copiloto/core/internal/repository"
+	"copiloto/core/internal/service"
 )
 
 // TestPrecioSeCongelaAlCrear: subir la lista de precios no puede reescribir lo
@@ -110,4 +112,107 @@ func TestTotalConVariasLineas(t *testing.T) {
 		t.Fatalf("se esperaban 2 líneas, hay %d", len(c.Lineas))
 	}
 	igualDecimal(t, c.Total, "2751.50", "2×1000 + 3×250.50")
+}
+
+// TestLoQueCotizaElCatalogoEsLoQueCongelaElMotor: las dos puntas del precio
+// tienen que dar el MISMO número. El agente cotizaba con precio_base mientras
+// el motor congelaba el precio de la cobertura del cliente, así que el paciente
+// con obra social confirmaba $1000 y en la caja le aparecían $700 — y con un
+// aumento cargado sólo en la lista general, al revés (H4).
+func TestLoQueCotizaElCatalogoEsLoQueCongelaElMotor(t *testing.T) {
+	ctx, e := montar(t, model.VerticalSalud) // servicio a 1000.00
+	catalogo := service.NewCatalogoService(
+		repository.NewCategoriaRepository(e.db),
+		repository.NewRecursoRepository(e.db),
+		repository.NewServicioRepository(e.db),
+		repository.NewCoberturaRepository(e.db),
+	)
+
+	cob := crearCobertura(t, e.db, e.negocio.ID, "OSEP")
+	crearPrecioCobertura(t, e.db, e.servicio.ID, cob.ID, "700.00")
+	paciente := crearCliente(t, e.db, e.negocio.ID, "5492611000777", "Paciente", &cob.ID)
+
+	// Lo que ve quien cotiza, pidiendo el catálogo con la cobertura del cliente.
+	servicios, err := catalogo.ListarServiciosParaCobertura(
+		ctx, e.negocio.ID, repository.FiltroServicios{SoloDisponibles: true}, cob.ID)
+	if err != nil {
+		t.Fatalf("listar con cobertura: %v", err)
+	}
+	var cotizado *model.Servicio
+	for i := range servicios {
+		if servicios[i].ID == e.servicio.ID {
+			cotizado = &servicios[i]
+		}
+	}
+	if cotizado == nil {
+		t.Fatal("el servicio no salió en el catálogo")
+	}
+	if cotizado.PrecioEfectivo == nil {
+		t.Fatal("con ?cobertura_id= el listado tiene que traer precio_efectivo")
+	}
+	igualDecimal(t, *cotizado.PrecioEfectivo, "700.00", "precio cotizado")
+	igualDecimal(t, cotizado.PrecioBase, "1000.00", "precio_base sigue siendo el de lista")
+
+	// Lo que congela el motor para ese mismo cliente.
+	c, err := e.motor.Crear(ctx, e.negocio.ID, dto.CrearCompromisoInput{
+		ClienteID: paciente.ID,
+		Tipo:      model.CompromisoTurno,
+		Origen:    model.OrigenWhatsApp,
+		Lineas:    []dto.LineaCompromisoInput{{ServicioID: e.servicio.ID, Cantidad: 1}},
+	})
+	if err != nil {
+		t.Fatalf("crear: %v", err)
+	}
+	if !c.Lineas[0].PrecioUnit.Equal(*cotizado.PrecioEfectivo) {
+		t.Errorf("se cotizó %s y se congeló %s: el cliente confirma un número y paga otro",
+			cotizado.PrecioEfectivo, c.Lineas[0].PrecioUnit)
+	}
+}
+
+// TestCatalogoSinCoberturaNoTraePrecioEfectivo: sin ?cobertura_id= el listado
+// sale como siempre. En gastronomía nadie pide una hamburguesa con obra social
+// y el panel no tiene que ver un campo de más.
+func TestCatalogoSinCoberturaNoTraePrecioEfectivo(t *testing.T) {
+	ctx, e := montar(t, model.VerticalGastronomia)
+	catalogo := service.NewCatalogoService(
+		repository.NewCategoriaRepository(e.db),
+		repository.NewRecursoRepository(e.db),
+		repository.NewServicioRepository(e.db),
+		repository.NewCoberturaRepository(e.db),
+	)
+
+	servicios, err := catalogo.ListarServiciosParaCobertura(
+		ctx, e.negocio.ID, repository.FiltroServicios{SoloDisponibles: true}, "")
+	if err != nil {
+		t.Fatalf("listar sin cobertura: %v", err)
+	}
+	for _, sv := range servicios {
+		if sv.PrecioEfectivo != nil {
+			t.Errorf("%s trajo precio_efectivo sin cobertura pedida", sv.Nombre)
+		}
+	}
+}
+
+// TestCatalogoConCoberturaDeOtroTenant: precio_cobertura no tiene negocio_id,
+// así que si el listado no valida la cobertura contra el negocio del token, un
+// tenant cotiza con la lista de precios de otro.
+func TestCatalogoConCoberturaDeOtroTenant(t *testing.T) {
+	ctx, db := nuevoCaso(t)
+	catalogo := service.NewCatalogoService(
+		repository.NewCategoriaRepository(db),
+		repository.NewRecursoRepository(db),
+		repository.NewServicioRepository(db),
+		repository.NewCoberturaRepository(db),
+	)
+
+	mio := crearNegocio(t, db, "Mío", model.VerticalSalud)
+	ajeno := crearNegocio(t, db, "Ajeno", model.VerticalSalud)
+	crearServicio(t, db, mio.ID, "Consulta", "1000.00")
+	cobAjena := crearCobertura(t, db, ajeno.ID, "OSDE del vecino")
+
+	_, err := catalogo.ListarServiciosParaCobertura(
+		ctx, mio.ID, repository.FiltroServicios{SoloDisponibles: true}, cobAjena.ID)
+	if err == nil {
+		t.Fatal("se aceptó una cobertura de otro negocio para cotizar")
+	}
 }

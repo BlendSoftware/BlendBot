@@ -148,7 +148,7 @@ func TestAgendaYTokenAgente(t *testing.T) {
 
 	// La fecha llega como día calendario (así la parsea el handler).
 	fecha, _ := time.Parse("2006-01-02", "2026-09-15")
-	ag, err := svc.AgendaDelDia(ctx, neg.ID, fecha)
+	ag, err := svc.AgendaDelDia(ctx, neg.ID, &fecha)
 	if err != nil {
 		t.Fatalf("agenda: %v", err)
 	}

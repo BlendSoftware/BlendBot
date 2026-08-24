@@ -224,10 +224,19 @@ class CoreClient:
     async def negocio(self) -> dict[str, Any]:
         return await self._pedir("GET", "/api/negocio", contexto="negocio") or {}
 
-    async def servicios(self, categoria: str | None = None) -> list[dict[str, Any]]:
+    async def servicios(
+        self, categoria: str | None = None, cobertura_id: str | None = None
+    ) -> list[dict[str, Any]]:
+        """El catálogo disponible. Con `cobertura_id`, cada servicio trae además
+        `precio_efectivo`: el precio que el core le va a CONGELAR a ese cliente.
+        Sin eso cotizábamos precio_base mientras el motor congelaba el de la
+        cobertura, y el cliente cerraba con un número distinto al de la caja (H4).
+        """
         params: dict[str, Any] = {"solo_disponibles": "true"}
         if categoria:
             params["categoria"] = categoria
+        if cobertura_id:
+            params["cobertura_id"] = cobertura_id
         datos = await self._pedir("GET", "/api/servicios", contexto="catalogo", params=params)
         return list(datos or [])
 

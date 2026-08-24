@@ -5,6 +5,7 @@ import (
 
 	"copiloto/core/internal/model"
 
+	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -23,6 +24,10 @@ type CoberturaRepository interface {
 	Update(ctx context.Context, negocioID string, c *model.Cobertura) error
 
 	PrecioDe(ctx context.Context, servicioID, coberturaID string) (*model.PrecioCobertura, error)
+	// PreciosDeCobertura trae de una sola vez los precios de esa cobertura para
+	// los servicios pedidos. Los servicios sin fila propia no aparecen: para
+	// esos manda precio_base.
+	PreciosDeCobertura(ctx context.Context, coberturaID string, servicioIDs []string) (map[string]decimal.Decimal, error)
 	ListPrecios(ctx context.Context, servicioID string) ([]model.PrecioCobertura, error)
 	UpsertPrecio(ctx context.Context, p *model.PrecioCobertura) error
 }
@@ -81,6 +86,24 @@ func (r *coberturaRepository) PrecioDe(ctx context.Context, servicioID, cobertur
 		return nil, err
 	}
 	return &p, nil
+}
+
+func (r *coberturaRepository) PreciosDeCobertura(ctx context.Context, coberturaID string, servicioIDs []string) (map[string]decimal.Decimal, error) {
+	if len(servicioIDs) == 0 {
+		return map[string]decimal.Decimal{}, nil
+	}
+	var filas []model.PrecioCobertura
+	err := r.db.WithContext(ctx).
+		Where("cobertura_id = ? AND servicio_id IN ?", coberturaID, servicioIDs).
+		Find(&filas).Error
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[string]decimal.Decimal, len(filas))
+	for _, f := range filas {
+		out[f.ServicioID] = f.Precio
+	}
+	return out, nil
 }
 
 func (r *coberturaRepository) ListPrecios(ctx context.Context, servicioID string) ([]model.PrecioCobertura, error) {
