@@ -196,9 +196,10 @@ titulo "Salud de los servicios"
 esperar_http "http://localhost:${CORE_PORT}/health"      90 "core sano"    '"status":"ok"'
 esperar_http "http://localhost:${ARCA_PORT}/health"      60 "sidecar ARCA sano"
 esperar_http "http://localhost:${GATEWAY_PORT}/salud"    60 "gateway sano" '"ok":true'
-esperar_http "http://localhost:${PANEL_PORT}/"           60 "panel sirviendo el bundle" 'id="raiz"'
-esperar_http "http://localhost:${PANEL_PORT}/api-health" 30 "panel proxya /api al core" '"status":"ok"'
-esperar_http "http://localhost:${PANEL_PORT}/cierre"     15 "el panel resuelve rutas del SPA" 'id="raiz"'
+esperar_http "http://localhost:${PANEL_PORT}/"                 60 "landing servida en la raíz" '<!doctype html'
+esperar_http "http://localhost:${PANEL_PORT}/panel/"           60 "panel sirviendo el bundle" 'id="raiz"'
+esperar_http "http://localhost:${PANEL_PORT}/api-health"       30 "panel proxya /api al core" '"status":"ok"'
+esperar_http "http://localhost:${PANEL_PORT}/panel/cierre"     15 "el panel resuelve rutas del SPA" 'id="raiz"'
 
 # El gateway sin credenciales de Meta arranca igual, pero tiene que decirlo.
 curl -sS "http://localhost:${GATEWAY_PORT}/salud" -o "$CUERPO"
