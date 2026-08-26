@@ -40,10 +40,14 @@ export function mensajeHumano(estado: number, detalle: string): string {
     // cosas distintas del otro lado del mostrador.
     if (d.includes('cobrad')) return 'Este turno ya lo cobraron.'
     if (d.includes('cobrar')) return 'Para cobrarlo, primero marcá el turno como terminado.'
+    // El cupo del día: se acabó mientras el pedido estaba sin confirmar.
+    if (d.includes('cupo')) return 'Se acabó el cupo de alguno de esos platos.'
+    if (d.includes('jornada')) return 'Abrí la caja del día para poder hacer eso.'
     return 'Alguien lo movió antes que vos. Actualizá la pantalla.'
   }
   if (estado === 422) {
     if (d.includes('medio de pago')) return 'Elegí de nuevo con qué te pagaron.'
+    if (d.includes('cupo')) return 'No podés dejar el cupo por debajo de lo que ya vendiste.'
     return 'Ese servicio está apagado en el catálogo.'
   }
   if (estado === 503) return 'Ese servicio no está disponible ahora. Probá más tarde.'

@@ -12,24 +12,25 @@ export const FaqSection: React.FC = () => {
   };
 
   return (
-    <section className="py-24 sm:py-36 bg-dark border-b border-dark-border">
-      <div className="max-w-4xl mx-auto px-6 sm:px-10">
+    <section className="py-16 sm:py-36 bg-dark border-b border-dark-border">
+      <div className="max-w-4xl mx-auto px-4 sm:px-8 lg:px-10">
         
         {/* Header */}
-        <div className="mb-16">
-          <div className="font-mono text-[10px] sm:text-xs text-terracota uppercase tracking-widest-editorial mb-3 font-bold">
-            [ 06 // PREGUNTAS DEL MOSTRADOR ]
+        <div className="mb-10 sm:mb-16">
+          <div className="font-mono text-[9px] sm:text-xs text-terracota uppercase tracking-widest-editorial mb-2 sm:mb-3 font-bold flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-terracota" />
+            <span>[ 06 // PREGUNTAS DEL MOSTRADOR ]</span>
           </div>
-          <h2 className="font-serif italic font-normal text-paper-pure text-3xl sm:text-5xl font-bold tracking-tight">
+          <h2 className="font-serif italic font-normal text-paper-pure text-2xl xs:text-3xl sm:text-5xl font-bold tracking-tight">
             Respuestas sin vueltas.
           </h2>
-          <p className="mt-3 text-sm text-bone-muted font-sans font-light">
-            Todo lo necesario antes de incorporar BlendBot a la rutina de tu cocina.
+          <p className="mt-2 sm:mt-3 text-xs sm:text-sm text-bone-muted font-sans font-light">
+            Todo lo necesario para equipar tu restaurante o bodega en Mendoza con BlendBot.
           </p>
         </div>
 
         {/* Accordion List */}
-        <div className="space-y-4 font-sans">
+        <div className="space-y-3 sm:space-y-4 font-sans">
           {FAQ_DATA.map((faq, idx) => {
             const isOpen = openIndex === idx;
             return (
@@ -39,11 +40,11 @@ export const FaqSection: React.FC = () => {
               >
                 <button
                   onClick={() => toggleAccordion(idx)}
-                  className="w-full p-5 sm:p-6 text-left flex items-center justify-between gap-4 font-serif italic font-bold text-base sm:text-lg text-paper-pure hover:text-terracota transition-colors"
+                  className="w-full p-4 sm:p-6 text-left flex items-center justify-between gap-3 font-serif italic font-bold text-sm sm:text-lg text-paper-pure hover:text-terracota transition-colors min-h-[48px]"
                   aria-expanded={isOpen}
                 >
-                  <span className="flex items-center gap-4">
-                    <span className="font-mono text-xs text-terracota font-normal not-italic font-bold">0{idx + 1}</span>
+                  <span className="flex items-center gap-3 sm:gap-4">
+                    <span className="font-mono text-[11px] sm:text-xs text-terracota font-normal not-italic font-bold">0{idx + 1}</span>
                     <span>{faq.question}</span>
                   </span>
                   <ChevronDown className={`w-4 h-4 text-bone-muted transition-transform duration-300 flex-shrink-0 ${
@@ -52,7 +53,7 @@ export const FaqSection: React.FC = () => {
                 </button>
 
                 {isOpen && (
-                  <div className="px-5 pb-6 sm:px-6 sm:pb-6 text-xs sm:text-sm text-bone-muted leading-relaxed border-t border-dark-border pt-4 font-sans font-light bg-dark-card/50">
+                  <div className="px-4 pb-4 sm:px-6 sm:pb-6 text-xs sm:text-sm text-bone-muted leading-relaxed border-t border-dark-border pt-3 sm:pt-4 font-sans font-light bg-dark-card/50">
                     <p>{faq.answer}</p>
                   </div>
                 )}

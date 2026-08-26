@@ -21,6 +21,7 @@ const VACIO_COLUMNA: Record<Columna, string> = {
   pendientes: 'Nada sin confirmar. El WhatsApp está al día.',
   cocina: 'La cocina está libre.',
   listos: 'Nada esperando para salir.',
+  cobrar: 'Nada entregado todavía hoy.',
 }
 
 const trazoColumna = {
@@ -46,6 +47,13 @@ const ICONO_COLUMNA: Record<Columna, ReactNode> = {
   listos: (
     <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" {...trazoColumna}>
       <path d="M5 12.5 9.5 17 19 7" />
+    </svg>
+  ),
+  cobrar: (
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" {...trazoColumna}>
+      <rect x="2.5" y="6" width="19" height="12" rx="2" />
+      <circle cx="12" cy="12" r="2.5" />
+      <path d="M6 10v4M18 10v4" />
     </svg>
   ),
 }

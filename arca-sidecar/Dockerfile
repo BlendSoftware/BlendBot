@@ -44,7 +44,12 @@ urllib.request.urlretrieve(\
 
 COPY *.py ./
 COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+# El `sed` saca los \r por si el archivo llegó con fin de línea de Windows: el
+# kernel lee la shebang literal y busca "/bin/sh\r", que no existe, y el
+# contenedor muere en loop con "exec /entrypoint.sh: no such file or
+# directory". El arreglo de fondo es .gitattributes (*.sh eol=lf); esto es el
+# cinturón, porque el síntoma no se parece en nada a la causa.
+RUN sed -i 's/\r$//' /entrypoint.sh && chmod +x /entrypoint.sh
 
 # NO hay directorio de certificados en la imagen, ni certs en variables de
 # entorno: cada request trae el par cert/key del negocio y el sidecar los

@@ -13,6 +13,7 @@ import type {
   Cobertura,
   Cobro,
   Compromiso,
+  CupoStock,
   ConfigFiscal,
   Consulta,
   Estado,
@@ -96,6 +97,11 @@ export function listarCompromisos(filtro: {
   return pedir<Compromiso[]>(`/api/compromisos${cola ? `?${cola}` : ''}`)
 }
 
+/** Un compromiso solo, con sus líneas: lo que el comprobante detalla. */
+export function traerCompromiso(id: string): Promise<Compromiso> {
+  return pedir<Compromiso>(`/api/compromisos/${id}`)
+}
+
 export function transicionar(id: string, input: TransicionarInput): Promise<Compromiso> {
   return pedir<Compromiso>(`/api/compromisos/${id}/estado`, {
     metodo: 'PATCH',
@@ -145,6 +151,27 @@ export function traerCobro(compromisoID: string): Promise<Cobro> {
 
 export function traerCierre(fecha: string): Promise<Cierre> {
   return pedir<Cierre>(`/api/cierre?fecha=${encodeURIComponent(fecha)}`)
+}
+
+// ─── Stock: el cupo del día ──────────────────────────────────────────────────
+//
+// Todo cuelga de la jornada abierta: sin caja abierta el core contesta 409, y
+// la pantalla lo dice en criollo en vez de mostrar una lista vacía.
+
+export function listarStock(): Promise<CupoStock[]> {
+  return pedir<CupoStock[]>('/api/stock')
+}
+
+export function setCupo(servicioID: string, asignado: number): Promise<CupoStock> {
+  return pedir<CupoStock>('/api/stock/cupos', {
+    metodo: 'PUT',
+    cuerpo: { servicio_id: servicioID, asignado },
+  })
+}
+
+/** Sacar el cupo devuelve el plato a "sin límite", que es el default. */
+export function quitarCupo(servicioID: string): Promise<void> {
+  return pedir<void>(`/api/stock/cupos/${servicioID}`, { metodo: 'DELETE' })
 }
 
 // ─── Jornada (la caja del día) ───────────────────────────────────────────────
@@ -377,6 +404,15 @@ export function rotarTokenAgente(negocioID: string): Promise<TokenAgente> {
 
 export function obtenerConfigFiscal(negocioID: string): Promise<ConfigFiscal> {
   return pedir<ConfigFiscal>(`/api/admin/negocios/${negocioID}/fiscal`)
+}
+
+/**
+ * La cabecera fiscal del PROPIO negocio, para imprimir el comprobante. Misma
+ * vista que la del admin (sin nada del certificado), pero el tenant sale del
+ * token. 404 = todavía no cargó sus datos de ARCA.
+ */
+export function miConfigFiscal(): Promise<ConfigFiscal> {
+  return pedir<ConfigFiscal>('/api/negocio/fiscal')
 }
 
 export function guardarConfigFiscal(

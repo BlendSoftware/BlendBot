@@ -26,6 +26,25 @@ func (h *CobrosHandler) Register(rg *gin.RouterGroup) {
 	rg.POST("/cobros", h.Cobrar)
 	rg.GET("/cobros/:compromiso_id", h.PorCompromiso)
 	rg.GET("/cierre", h.Cierre)
+	rg.GET("/negocio/fiscal", h.MiFiscal)
+}
+
+// MiFiscal es la cabecera fiscal del PROPIO negocio: razón social, CUIT, punto
+// de venta, condición y modo. Es la misma vista que ya usa el admin
+// (ConfigFiscalResponse, sin nada del certificado), pero con el tenant salido
+// del token en vez de la URL.
+//
+// Existe porque el dueño necesita sus propios datos para imprimir el
+// comprobante, y hasta acá el único camino era GET /admin/negocios/:id/fiscal,
+// que es sólo del admin de la plataforma. Cuelga del grupo `plata`: el
+// operador no la ve y el agente tampoco.
+func (h *CobrosHandler) MiFiscal(c *gin.Context) {
+	resp, err := h.svc.ObtenerFiscal(c.Request.Context(), middleware.NegocioID(c))
+	if err != nil {
+		responderErrorMotor(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, resp)
 }
 
 func (h *CobrosHandler) Cobrar(c *gin.Context) {
@@ -51,7 +70,11 @@ func (h *CobrosHandler) Cobrar(c *gin.Context) {
 }
 
 func (h *CobrosHandler) PorCompromiso(c *gin.Context) {
-	resp, err := h.svc.PorCompromiso(c.Request.Context(), middleware.NegocioID(c), c.Param("compromiso_id"))
+	id, ok := idDeRuta(c, "compromiso_id")
+	if !ok {
+		return
+	}
+	resp, err := h.svc.PorCompromiso(c.Request.Context(), middleware.NegocioID(c), id)
 	if err != nil {
 		responderErrorMotor(c, err)
 		return

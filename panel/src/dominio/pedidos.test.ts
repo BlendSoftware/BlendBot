@@ -46,9 +46,13 @@ describe('columnas del tablero', () => {
     expect(columnaDe('listo')).toBe('listos')
   })
 
-  it('un estado terminal no cae en ninguna columna', () => {
-    expect(columnaDe('completado')).toBeNull()
+  it('entregado va a "Para cobrar": todavía falta la plata', () => {
+    expect(columnaDe('completado')).toBe('cobrar')
+  })
+
+  it('lo que murió sin cobrarse no cae en ninguna columna', () => {
     expect(columnaDe('cancelado')).toBeNull()
+    expect(columnaDe('rechazado')).toBeNull()
   })
 
   it('agrupa y ordena la cocina por demora que se vence primero', () => {

@@ -12,110 +12,108 @@ export const EditorialPillars: React.FC = () => {
   };
 
   return (
-    <section id="rituales" className="py-24 sm:py-36 bg-dark border-b border-dark-border">
-      <div className="max-w-7xl mx-auto px-6 sm:px-10">
+    <section id="rituales" className="py-16 sm:py-36 bg-dark border-b border-dark-border">
+      <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-10">
         
         {/* Section Header */}
-        <div className="max-w-3xl mb-20 sm:mb-28">
-          <div className="font-mono text-[10px] sm:text-xs text-terracota uppercase tracking-widest-editorial mb-3 font-bold">
-            [ 02 // LA ARQUITECTURA DEL SERVICIO ]
+        <div className="max-w-3xl mb-12 sm:mb-28">
+          <div className="font-mono text-[9px] sm:text-xs text-terracota uppercase tracking-widest-editorial mb-2 sm:mb-3 font-bold flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-terracota" />
+            <span>[ 02 // EL CIRCUITO OPERATIVO ]</span>
           </div>
-          <h2 className="font-serif italic font-normal text-paper-pure text-3xl sm:text-5xl lg:text-6xl leading-[1.05] tracking-tight">
-            Tres rituales continuos. <br />
+          <h2 className="font-serif italic font-normal text-paper-pure text-2xl xs:text-3xl sm:text-5xl lg:text-6xl leading-[1.05] tracking-tight">
+            Tres engranajes en sintonía. <br />
             <span className="font-display font-bold not-italic uppercase tracking-tightest">
-              Cero gritos en el salón.
+              Tu restaurante funcionando solo.
             </span>
           </h2>
-          <p className="mt-4 text-base sm:text-lg text-bone-muted font-sans font-light">
-            La síntesis perfecta entre hospitalidad, despacho táctil y rigor fiscal.
+          <p className="mt-3 sm:mt-4 text-sm sm:text-lg text-bone-muted font-sans font-light">
+            La atención por chat, el pase de cocina y la facturación fiscal sincronizados en tiempo real.
           </p>
         </div>
 
-        {/* Pillars Stack (Editorial Asymmetric Magazine Spreads) */}
-        <div className="space-y-28 sm:space-y-40">
+        {/* Pillars Stack */}
+        <div className="space-y-16 sm:space-y-40">
           
           {/* =========================================================================
               RITUAL 01: LA CONVERSACIÓN
              ========================================================================= */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-16 items-center">
             
             {/* Left: Editorial Text (6 cols) */}
-            <div className="lg:col-span-6 space-y-6">
-              <div className="flex items-center gap-4">
-                <span className="font-mono text-4xl sm:text-5xl font-light text-terracota">01</span>
+            <div className="lg:col-span-6 space-y-4 sm:space-y-6">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <span className="font-mono text-3xl sm:text-5xl font-light text-terracota">01</span>
                 <div className="h-px flex-1 bg-dark-border" />
-                <span className="font-mono text-[10px] uppercase tracking-widest text-bone-muted font-semibold">
-                  El Anfitrión
+                <span className="font-mono text-[9px] sm:text-[10px] uppercase tracking-widest text-bone-muted font-semibold">
+                  El Asistente Inteligente
                 </span>
               </div>
 
-              <h3 className="font-serif italic font-semibold text-2xl sm:text-4xl text-paper-pure leading-tight">
-                Una conversación que comprende el apetito.
+              <h3 className="font-serif italic font-semibold text-xl sm:text-4xl text-paper-pure leading-tight">
+                Atención 24/7 en tu WhatsApp oficial.
               </h3>
 
-              <p className="text-sm sm:text-base text-bone-muted leading-relaxed font-sans font-light">
-                No hay menús mecánicos con opciones numeradas ni árboles rígidos. 
-                BlendBot atiende con tono rioplatense, comprende audios con ruido de fondo, 
-                toma modificaciones complejas («la hamburguesa sin cebolla y las papas bien crocantes») 
-                y confirma mesas según la capacidad real del salón.
+              <p className="text-xs sm:text-base text-bone-muted leading-relaxed font-sans font-light">
+                No hay menús numéricos rígidos ni bots que confunden.
+                BlendBot atiende consultas de carta y vinos, toma reservas para almuerzos, cenas o degustaciones
+                y arma los pedidos con todo lo que el cliente necesita aclarar.
               </p>
 
-              <div className="space-y-2.5 pt-2 font-mono text-xs text-paper-pure">
-                <div className="flex items-center gap-2">
-                  <Check className="w-3.5 h-3.5 text-terracota" />
-                  <span>Entiende notas dietarias, puntos de cocción y alérgenos</span>
+              <div className="space-y-2 pt-1 sm:pt-2 font-mono text-xs text-paper-pure">
+                <div className="flex items-start gap-2">
+                  <Check className="w-3.5 h-3.5 text-terracota mt-0.5 flex-shrink-0" />
+                  <span>Entiende audios de WhatsApp y consultas de carta de vinos</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Check className="w-3.5 h-3.5 text-terracota" />
-                  <span>Calcula envíos por geolocalización en menos de 2 segundos</span>
+                <div className="flex items-start gap-2">
+                  <Check className="w-3.5 h-3.5 text-terracota mt-0.5 flex-shrink-0" />
+                  <span>Confirma reservas según los turnos y capacidad real de tus mesas</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Check className="w-3.5 h-3.5 text-terracota" />
-                  <span>Capacidad para atender 40 mesas simultáneas sin demoras</span>
+                <div className="flex items-start gap-2">
+                  <Check className="w-3.5 h-3.5 text-terracota mt-0.5 flex-shrink-0" />
+                  <span>Atiende múltiples comensales en simultáneo en segundos</span>
                 </div>
               </div>
 
-              <blockquote className="p-4 bg-dark-surface border-l-2 border-terracota font-serif italic text-sm text-bone-muted">
-                "El comensal no busca una aplicación: busca cenar bien y que lo atiendan rápido."
+              <blockquote className="p-3 sm:p-4 bg-dark-surface border-l-2 border-terracota font-serif italic text-xs sm:text-sm text-bone-muted">
+                "El comensal local y el turista reciben respuesta inmediata sin hacer esperar a nadie."
               </blockquote>
             </div>
 
             {/* Right: Editorial Dialogue Card (Crisp White Paper, 6 cols) */}
             <div className="lg:col-span-6">
-              <div className="bg-paper-pure text-tinta border border-paper-border p-6 sm:p-8 shadow-2xl font-sans rounded-sm relative">
+              <div className="bg-paper-pure text-tinta border border-paper-border p-4 sm:p-8 shadow-2xl font-sans rounded-sm relative">
                 
-                <div className="flex items-center justify-between border-b border-paper-border pb-3 mb-4 font-mono text-[11px] text-tinta-muted">
-                  <span className="text-tinta font-bold uppercase">Diálogo // Servicio Noche</span>
-                  <span>21:14 hs</span>
+                <div className="flex items-center justify-between border-b border-paper-border pb-2.5 sm:pb-3 mb-3 sm:mb-4 font-mono text-[10px] sm:text-[11px] text-tinta-muted">
+                  <span className="text-tinta font-bold uppercase">WhatsApp // Servicio Noche</span>
+                  <span>Mendoza · 21:14 hs</span>
                 </div>
 
-                <div className="space-y-4 text-xs sm:text-sm">
+                <div className="space-y-3 sm:space-y-4 text-xs sm:text-sm">
                   {/* Guest Message */}
-                  <div className="pl-4 border-l-2 border-paper-border text-tinta-muted">
-                    <span className="font-mono text-[10px] uppercase block mb-0.5 text-tinta-muted">Comensal</span>
-                    <p className="font-serif italic text-tinta text-sm sm:text-base">
-                      «Hola! Me mandás dos dobles de asado con queso ahumado? A una no le pongas cebolla por favor. Es para Thames 1840, 3° B.»
+                  <div className="pl-3 sm:pl-4 border-l-2 border-paper-border text-tinta-muted">
+                    <span className="font-mono text-[9px] uppercase block mb-0.5 text-tinta-muted">Cliente</span>
+                    <p className="font-serif italic text-tinta text-xs sm:text-base">
+                      «Hola! Tienen mesa para 4 hoy tipo 21:30? Quisiéramos cenar adentro y probar la carta de fuegos.»
                     </p>
                   </div>
 
                   {/* Host Message */}
-                  <div className="pl-4 border-l-2 border-terracota text-tinta bg-paper-warm p-4 rounded-sm">
-                    <div className="flex items-center gap-1.5 font-mono text-[10px] uppercase text-terracota font-bold mb-1.5">
+                  <div className="pl-3 sm:pl-4 border-l-2 border-terracota text-tinta bg-paper-warm p-3 sm:p-4 rounded-sm">
+                    <div className="flex items-center gap-1.5 font-mono text-[9px] sm:text-[10px] uppercase text-terracota font-bold mb-1">
                       <ShieldCheck className="w-3.5 h-3.5" />
-                      <span>Respuesta en 1.4s · Comanda Marchada</span>
+                      <span>Respuesta en 1.2s · Mesa Asignada</span>
                     </div>
                     <p className="font-sans leading-relaxed text-xs sm:text-sm text-tinta">
-                      ¡Marchando para Thames 1840, 3° B! 🍔 <br />
-                      • 1x Doble Asado completa<br />
-                      • 1x Doble Asado <strong className="text-terracota">SIN CEBOLLA</strong><br />
-                      <span className="font-mono font-bold text-tinta block mt-1.5">Total: $24.800 (Envío bonificado)</span>
+                      ¡Buenas noches! Sí, tenemos la <strong className="text-terracota">Mesa 4</strong> disponible en el salón principal para 4 personas a las 21:30 hs. 🍷<br />
+                      Ya te la reservo a tu nombre. ¿Les dejamos una copa de bienvenida reservada?
                     </p>
                   </div>
                 </div>
 
-                <div className="mt-4 pt-3 border-t border-paper-border flex justify-between items-center font-mono text-[10px] text-tinta-muted">
-                  <span>CANAL OFICIAL WHATSAPP</span>
-                  <span className="text-terracota font-bold">CERO ERRORES DE COCINA</span>
+                <div className="mt-3 sm:mt-4 pt-2.5 sm:pt-3 border-t border-paper-border flex justify-between items-center font-mono text-[9px] sm:text-[10px] text-tinta-muted">
+                  <span>NÚMERO OFICIAL DE TU LOCAL</span>
+                  <span className="text-terracota font-bold">RESERVAS EN VIVO</span>
                 </div>
 
               </div>
@@ -127,27 +125,27 @@ export const EditorialPillars: React.FC = () => {
           {/* =========================================================================
               RITUAL 02: EL PULSO DEL DESPACHO & SWITCH "SE ACABÓ"
              ========================================================================= */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-16 items-center">
             
-            {/* Visual Column (Order 2 on Mobile, Order 1 on Desktop) */}
+            {/* Visual Column */}
             <div className="lg:col-span-6 order-2 lg:order-1">
-              <div className="bg-dark-surface border border-dark-border p-6 sm:p-8 shadow-2xl rounded-sm">
+              <div className="bg-dark-surface border border-dark-border p-4 sm:p-8 shadow-2xl rounded-sm">
                 
-                <div className="flex items-center justify-between border-b border-dark-border pb-3 mb-6 font-mono text-[11px] text-bone-muted">
-                  <span className="text-paper-pure font-bold uppercase">Tablet de Pase // Control de Stock</span>
+                <div className="flex items-center justify-between border-b border-dark-border pb-2.5 sm:pb-3 mb-4 sm:mb-6 font-mono text-[10px] sm:text-[11px] text-bone-muted">
+                  <span className="text-paper-pure font-bold uppercase">Comandera // Stock en Vivo</span>
                   <span className="text-terracota font-bold">TOUCH ≥48PX</span>
                 </div>
 
                 {/* Interactive Stock Switch */}
-                <div className="bg-dark-card border border-dark-border p-4 sm:p-5 space-y-4 rounded-sm">
+                <div className="bg-dark-card border border-dark-border p-3.5 sm:p-5 space-y-3 sm:space-y-4 rounded-sm">
                   <div>
-                    <span className="font-mono text-[10px] text-bone-muted uppercase tracking-wider block">PLATO EMBLEMÁTICO</span>
-                    <div className="font-serif italic font-bold text-lg sm:text-xl text-paper-pure">
-                      Ojo de Bife Madurado 80 Días (600g)
+                    <span className="font-mono text-[9px] sm:text-[10px] text-bone-muted uppercase tracking-wider block">PLATO DE COCINA</span>
+                    <div className="font-serif italic font-bold text-base sm:text-xl text-paper-pure">
+                      Ojo de Bife a la Brasa de Quebracho (600g)
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between pt-3 border-t border-dark-border">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-3 border-t border-dark-border">
                     <div className="font-mono text-xs">
                       {meatStock ? (
                         <span className="text-verde font-semibold flex items-center gap-1.5">
@@ -162,7 +160,7 @@ export const EditorialPillars: React.FC = () => {
 
                     <button
                       onClick={toggleStock}
-                      className={`px-4 py-2.5 font-mono text-xs uppercase font-bold tracking-wider transition-all duration-200 active:scale-95 flex items-center gap-2 rounded-sm ${
+                      className={`w-full sm:w-auto px-4 py-3 font-mono text-xs uppercase font-bold tracking-wider transition-all duration-200 active:scale-95 flex items-center justify-center gap-2 rounded-sm min-h-[44px] sm:min-h-[40px] ${
                         meatStock 
                           ? 'border border-dark-border text-paper-pure hover:border-terracota hover:text-terracota bg-dark' 
                           : 'bg-terracota text-white shadow-lg'
@@ -174,45 +172,41 @@ export const EditorialPillars: React.FC = () => {
                   </div>
                 </div>
 
-                <p className="mt-4 font-mono text-[11px] text-bone-muted text-center">
-                  Tocá el botón para comprobar cómo conmuta el sistema en tiempo real.
+                <p className="mt-3 sm:mt-4 font-mono text-[10px] sm:text-[11px] text-bone-muted text-center">
+                  Probá tocar el botón: el bot deja de ofrecer el plato en WhatsApp al instante.
                 </p>
 
               </div>
             </div>
 
-            {/* Text Column (Order 1 on Mobile, Order 2 on Desktop) */}
-            <div className="lg:col-span-6 order-1 lg:order-2 space-y-6">
-              <div className="flex items-center gap-4">
-                <span className="font-mono text-4xl sm:text-5xl font-light text-terracota">02</span>
+            {/* Text Column */}
+            <div className="lg:col-span-6 order-1 lg:order-2 space-y-4 sm:space-y-6">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <span className="font-mono text-3xl sm:text-5xl font-light text-terracota">02</span>
                 <div className="h-px flex-1 bg-dark-border" />
-                <span className="font-mono text-[10px] uppercase tracking-widest text-bone-muted font-semibold">
-                  El Pase de Cocina
+                <span className="font-mono text-[9px] sm:text-[10px] uppercase tracking-widest text-bone-muted font-semibold">
+                  La Comandera Táctil
                 </span>
               </div>
 
-              <h3 className="font-serif italic font-semibold text-2xl sm:text-4xl text-paper-pure leading-tight">
-                El interruptor sagrado: saber qué hay de verdad.
+              <h3 className="font-serif italic font-semibold text-xl sm:text-4xl text-paper-pure leading-tight">
+                El interruptor que evita vender lo que no hay.
               </h3>
 
-              <p className="text-sm sm:text-base text-bone-muted leading-relaxed font-sans font-light">
-                En el fragor de la cocina, si se termina el último corte, nadie tiene tiempo de editar una página web. 
-                En la tablet del mostrador, un solo toque en "SE ACABÓ" apaga el plato en WhatsApp al instante. 
-                El bot deja de ofrecerlo y sugiere una alternativa noble sin que se caiga la venta.
+              <p className="text-xs sm:text-base text-bone-muted leading-relaxed font-sans font-light">
+                En pleno despacho de cocina, si se termina un plato o corte especial, 
+                un solo toque en "SE ACABÓ" apaga el ítem en WhatsApp al segundo. 
+                El bot sugiere alternativas y no tenés que ir a avisarle a los clientes que su pedido se canceló.
               </p>
 
-              <div className="space-y-2.5 pt-2 font-mono text-xs text-paper-pure">
-                <div className="flex items-center gap-2">
-                  <Check className="w-3.5 h-3.5 text-terracota" />
-                  <span>Diseñado para operarse con el pulgar con grasa o harina</span>
+              <div className="space-y-2 pt-1 sm:pt-2 font-mono text-xs text-paper-pure">
+                <div className="flex items-start gap-2">
+                  <Check className="w-3.5 h-3.5 text-terracota mt-0.5 flex-shrink-0" />
+                  <span>Se opera con el pulgar en cualquier tablet de cocina o barra</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Check className="w-3.5 h-3.5 text-terracota" />
-                  <span>Estados cromáticos visibles a dos metros de distancia con reflejos</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="w-3.5 h-3.5 text-terracota" />
-                  <span>Ajuste de demora global con un solo toque (+15 min)</span>
+                <div className="flex items-start gap-2">
+                  <Check className="w-3.5 h-3.5 text-terracota mt-0.5 flex-shrink-0" />
+                  <span>Ajuste de demora general en cocina con un solo toque</span>
                 </div>
               </div>
             </div>
@@ -223,84 +217,84 @@ export const EditorialPillars: React.FC = () => {
           {/* =========================================================================
               RITUAL 03: EL ACTO FISCAL
              ========================================================================= */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-16 items-center">
             
             {/* Left: Text Column (6 cols) */}
-            <div className="lg:col-span-6 space-y-6">
-              <div className="flex items-center gap-4">
-                <span className="font-mono text-4xl sm:text-5xl font-light text-terracota">03</span>
+            <div className="lg:col-span-6 space-y-4 sm:space-y-6">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <span className="font-mono text-3xl sm:text-5xl font-light text-terracota">03</span>
                 <div className="h-px flex-1 bg-dark-border" />
-                <span className="font-mono text-[10px] uppercase tracking-widest text-bone-muted font-semibold">
-                  El Cierre Impecable
+                <span className="font-mono text-[9px] sm:text-[10px] uppercase tracking-widest text-bone-muted font-semibold">
+                  Facturación Fiscal ARCA
                 </span>
               </div>
 
-              <h3 className="font-serif italic font-semibold text-2xl sm:text-4xl text-paper-pure leading-tight">
-                Cobrás la mesa y el comprobante de ARCA sale solo.
+              <h3 className="font-serif italic font-semibold text-xl sm:text-4xl text-paper-pure leading-tight">
+                Cobrás la cuenta y la factura fiscal sale sola.
               </h3>
 
-              <p className="text-sm sm:text-base text-bone-muted leading-relaxed font-sans font-light">
-                Desde julio de 2026 la factura electrónica es obligatoria para todo el sector gastronómico en Argentina. 
-                BlendBot se integra de forma directa con el servicio oficial de ARCA: 
-                al tocar "Cobrar", se emite la Factura con CAE homologado y código QR en menos de 1 segundo.
+              <p className="text-xs sm:text-base text-bone-muted leading-relaxed font-sans font-light">
+                Cumplimiento obligatorio 2026 de factura electrónica para gastronomía en Argentina. 
+                Conectado directo al web service oficial de ARCA: 
+                al tocar "Cobrar", se emite la Factura A, B o C con CAE homologado y código QR en menos de 1 segundo.
               </p>
 
-              <div className="space-y-2.5 pt-2 font-mono text-xs text-paper-pure">
-                <div className="flex items-center gap-2">
-                  <Check className="w-3.5 h-3.5 text-terracota" />
-                  <span>Cumplimiento tributario automático según normativa 2026</span>
+              <div className="space-y-2 pt-1 sm:pt-2 font-mono text-xs text-paper-pure">
+                <div className="flex items-start gap-2">
+                  <Check className="w-3.5 h-3.5 text-terracota mt-0.5 flex-shrink-0" />
+                  <span>Factura A, B y C automática sin entrar a la web de AFIP</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Check className="w-3.5 h-3.5 text-terracota" />
-                  <span>Cero planillas manuales a la madrugada después del cierre</span>
+                <div className="flex items-start gap-2">
+                  <Check className="w-3.5 h-3.5 text-terracota mt-0.5 flex-shrink-0" />
+                  <span>Cierre de caja diario X y Z con consolidación de medios de pago</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Check className="w-3.5 h-3.5 text-terracota" />
-                  <span>Envío opcional del ticket digital al WhatsApp del comensal</span>
+                <div className="flex items-start gap-2">
+                  <Check className="w-3.5 h-3.5 text-terracota mt-0.5 flex-shrink-0" />
+                  <span>Envío digital directo al WhatsApp del comensal</span>
                 </div>
               </div>
             </div>
 
             {/* Right: Thermal Receipt Artwork (Crisp White Paper, 6 cols) */}
             <div className="lg:col-span-6">
-              <div className="max-w-md mx-auto bg-paper-pure text-tinta border border-paper-border p-6 sm:p-8 font-mono text-xs shadow-2xl rounded-sm relative">
+              <div className="max-w-md mx-auto bg-paper-pure text-tinta border border-paper-border p-4 sm:p-8 font-mono text-xs shadow-2xl rounded-sm relative">
                 
-                <div className="text-center border-b border-dashed border-paper-border pb-4 mb-4">
-                  <div className="flex items-center justify-center gap-1.5 text-terracota font-bold text-xs uppercase mb-1">
+                <div className="text-center border-b border-dashed border-paper-border pb-3 sm:pb-4 mb-3 sm:mb-4">
+                  <div className="flex items-center justify-center gap-1.5 text-terracota font-bold text-[11px] sm:text-xs uppercase mb-0.5 sm:mb-1">
                     <Receipt className="w-3.5 h-3.5" />
-                    <span>BLEND GASTRONOMÍA S.R.L.</span>
+                    <span>BLEND GASTRONOMÍA MENDOZA</span>
                   </div>
-                  <div className="text-[10px] text-tinta-muted">
-                    CUIT 30-71849201-9 · CABA
+                  <div className="text-[9px] sm:text-[10px] text-tinta-muted">
+                    CUIT 30-71849201-9 · Arístides Villanueva, Mendoza
                   </div>
-                  <div className="mt-2 inline-block px-2.5 py-0.5 bg-dark text-white text-[10px] font-bold uppercase rounded-sm">
+                  <div className="mt-1.5 sm:mt-2 inline-block px-2.5 py-0.5 bg-dark text-white text-[9px] sm:text-[10px] font-bold uppercase rounded-sm">
                     COMPROBANTE FISCAL CON CAE
                   </div>
                 </div>
 
-                <div className="space-y-1.5 text-[11px] text-tinta border-b border-dashed border-paper-border pb-3 mb-3">
+                <div className="space-y-1 text-[10px] sm:text-[11px] text-tinta border-b border-dashed border-paper-border pb-2.5 sm:pb-3 mb-2.5 sm:mb-3">
                   <div className="flex justify-between">
-                    <span>2x DOBLE ASADO MADURADO</span>
-                    <span>$19.600,00</span>
+                    <span>2x MENÚ PASOS DEGUSTACIÓN</span>
+                    <span>$38.000,00</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>1x PAPAS TRUFADAS</span>
-                    <span>$5.800,00</span>
+                    <span>1x BOTELLA MALBEC VALLE DE UCO</span>
+                    <span>$16.500,00</span>
                   </div>
-                  <div className="flex justify-between text-tinta font-bold pt-1 text-xs">
+                  <div className="flex justify-between text-tinta font-bold pt-1 text-[11px] sm:text-xs">
                     <span>TOTAL FACTURADO:</span>
-                    <span className="text-terracota font-bold">$25.400,00</span>
+                    <span className="text-terracota font-bold">$54.500,00</span>
                   </div>
                 </div>
 
-                <div className="bg-paper-warm p-3 border border-paper-border text-[10px] space-y-0.5 text-tinta-muted rounded-sm">
+                <div className="bg-paper-warm p-2.5 sm:p-3 border border-paper-border text-[9px] sm:text-[10px] space-y-0.5 text-tinta-muted rounded-sm">
                   <div className="flex justify-between text-tinta font-bold">
                     <span>CAE N°: 74391829304859</span>
                     <span className="text-verde font-bold">APROBADO ARCA</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Vencimiento: 31/08/2026</span>
-                    <span>Pto. Vta: 0004</span>
+                    <span>Pto. Vta: 0004 · Mendoza</span>
                   </div>
                 </div>
 

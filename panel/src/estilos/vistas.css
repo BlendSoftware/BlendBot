@@ -158,6 +158,13 @@
   color: var(--acento);
 }
 
+/* La portada es oscura siempre, tenga el sistema el tema que tenga: viene de
+   una landing oscura y el fogonazo blanco en el medio se nota. Su paleta se
+   define junto a la del tema oscuro (tokens.css): es la misma, una sola vez. */
+.portada {
+  color: var(--tinta);
+}
+
 /* ── Barra del día ───────────────────────────────────────────────────────── */
 
 .barra-dia {
@@ -299,7 +306,7 @@
 .agenda__libre-total {
   font-size: var(--t-mini);
   font-weight: 600;
-  color: oklch(0.45 0.06 140);
+  color: var(--tinta-libre);
 }
 
 .agenda__hora {
@@ -1699,7 +1706,7 @@
 
 .columna--pendientes .columna__icono {
   background: color-mix(in oklch, var(--pendiente) 32%, var(--superficie));
-  color: color-mix(in oklch, var(--pendiente) 75%, black);
+  color: var(--tinta-pendiente);
 }
 
 .columna--cocina .columna__icono {
@@ -1710,6 +1717,12 @@
 .columna--listos .columna__icono {
   background: color-mix(in oklch, var(--listo) 24%, var(--superficie));
   color: var(--listo);
+}
+
+/* Para cobrar es la plata: va del color de la marca, no de un estado. */
+.columna--cobrar .columna__icono {
+  background: var(--acento-suave);
+  color: var(--acento);
 }
 
 .columna__titulo {
@@ -1735,7 +1748,7 @@
 
 .columna--pendientes .columna__cuenta {
   background: color-mix(in oklch, var(--pendiente) 30%, var(--superficie));
-  color: color-mix(in oklch, var(--pendiente) 75%, black);
+  color: var(--tinta-pendiente);
 }
 
 .columna--cocina .columna__cuenta {
@@ -1746,6 +1759,11 @@
 .columna--listos .columna__cuenta {
   background: color-mix(in oklch, var(--listo) 22%, var(--superficie));
   color: var(--listo);
+}
+
+.columna--cobrar .columna__cuenta {
+  background: var(--acento-suave);
+  color: var(--acento);
 }
 
 .columna__lista {
@@ -1799,7 +1817,7 @@
   padding: 3px var(--e2);
   border-radius: 999px;
   background: var(--acento-suave);
-  color: color-mix(in oklch, var(--acento) 85%, black);
+  color: var(--acento);
   font-size: var(--t-mini);
   font-weight: 700;
 }
@@ -1835,7 +1853,10 @@
   padding: 0 3px;
   border-radius: var(--radio-chico);
   background: color-mix(in oklch, var(--turno-color) 26%, var(--superficie));
-  color: color-mix(in oklch, var(--turno-color) 100%, black 22%);
+  /* La tinta va por token y no mezclada con negro: mezclar contra black sólo
+     se lee sobre fondo claro, y en el tema oscuro la cantidad quedaba oscura
+     sobre oscuro. --tinta se da vuelta sola con el tema. */
+  color: var(--tinta);
   font-size: var(--t-mini);
   font-weight: 800;
 }
@@ -1849,7 +1870,7 @@
   padding: 0 var(--e1);
   border-radius: var(--radio-chico);
   background: var(--acento-suave);
-  color: color-mix(in oklch, var(--acento) 85%, black);
+  color: var(--acento);
   font-size: var(--t-mini);
   font-weight: 700;
 }
@@ -1986,5 +2007,270 @@
 @media (max-width: 560px) {
   .consulta__forma .boton {
     flex: 1 1 100%;
+  }
+}
+
+/* ── Comprobante ─────────────────────────────────────────────────────────── */
+
+/*
+ * El único papel del sistema. En pantalla es una hoja centrada sobre el fondo;
+ * al imprimir desaparece todo lo demás (barra, botones, encabezado) y queda
+ * sólo la hoja, en blanco y negro: una impresora térmica de local no tiene
+ * tinta de color y el terracota sale gris sucio.
+ */
+.papel {
+  width: min(680px, 100%);
+  margin: 0 auto;
+  padding: var(--e5);
+  border-radius: var(--radio);
+  background: var(--superficie);
+  box-shadow: var(--sombra-tarjeta);
+}
+
+.papel__prueba {
+  margin-bottom: var(--e4);
+  padding: var(--e2) var(--e3);
+  border: 1px dashed var(--vencido);
+  border-radius: var(--radio-chico);
+  color: var(--tinta-error);
+  font-size: var(--t-mini);
+  font-weight: 700;
+}
+
+.papel__cabeza {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--e4);
+  flex-wrap: wrap;
+  padding-bottom: var(--e3);
+  margin-bottom: var(--e3);
+  border-bottom: 2px solid var(--tinta);
+}
+
+.papel__negocio {
+  font-size: var(--t-grande);
+  font-weight: 800;
+  letter-spacing: -0.015em;
+}
+
+.papel__fiscal,
+.papel__fecha {
+  color: var(--tinta-suave);
+  font-size: var(--t-mini);
+}
+
+.papel__tipo {
+  text-align: right;
+}
+
+.papel__tipo-nombre {
+  font-weight: 800;
+}
+
+.papel__numero {
+  font-size: var(--t-medio);
+  font-weight: 800;
+}
+
+.papel__cliente {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: var(--e4);
+  font-size: var(--t-mini);
+}
+
+.papel__etiqueta {
+  color: var(--tinta-suave);
+  font-weight: 700;
+}
+
+.papel__items {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: var(--e3);
+  font-size: var(--t-mini);
+}
+
+.papel__items th {
+  padding: var(--e1) var(--e2);
+  border-bottom: 1px solid var(--borde);
+  color: var(--tinta-suave);
+  font-size: var(--t-mini);
+  font-weight: 700;
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.papel__items td {
+  padding: var(--e2);
+  border-bottom: 1px solid var(--borde);
+  vertical-align: top;
+}
+
+.papel__num {
+  text-align: right;
+}
+
+.papel__nota {
+  color: var(--tinta-suave);
+}
+
+.papel__total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding-top: var(--e2);
+  font-weight: 800;
+}
+
+.papel__total-monto {
+  font-size: var(--t-grande);
+}
+
+.papel__medio {
+  margin-top: var(--e1);
+  color: var(--tinta-suave);
+  font-size: var(--t-mini);
+}
+
+.papel__pie {
+  margin-top: var(--e4);
+  padding-top: var(--e3);
+  border-top: 1px solid var(--borde);
+  font-size: var(--t-mini);
+}
+
+.papel__cae {
+  display: flex;
+  align-items: center;
+  gap: var(--e3);
+}
+
+.papel__sin-cae {
+  color: var(--tinta-suave);
+}
+
+@media print {
+  /* Fuera todo lo que no es la hoja. */
+  .barra-inferior,
+  .comprobante__volver,
+  .aviso {
+    display: none !important;
+  }
+
+  .marco__cuerpo {
+    padding: 0;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  /*
+   * La hoja se imprime en tinta negra sobre papel, no con la paleta de
+   * pantalla: se pisan las variables acá adentro en vez de repetir cada regla.
+   */
+  .papel {
+    --superficie: #fff;
+    --tinta: #000;
+    --tinta-suave: #444;
+    --borde: #999;
+    width: 100%;
+    max-width: none;
+    padding: 0;
+    border-radius: 0;
+    box-shadow: none;
+    color: #000;
+  }
+
+  .papel__prueba {
+    --tinta-error: #000;
+    border-color: #000;
+  }
+
+  @page {
+    margin: 14mm;
+  }
+}
+
+/* ── Stock: el cupo del día ──────────────────────────────────────────────── */
+
+.stock__lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stock__fila {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--e3);
+  padding: var(--e2) var(--e3);
+  margin-bottom: var(--e1);
+  border-radius: var(--radio-chico);
+  background: var(--superficie);
+  box-shadow: var(--sombra-baja);
+  transition: background-color var(--transicion);
+}
+
+/* El agotado se lee de lejos, como todo el resto del sistema: color de fondo,
+   no un texto que haya que leer (DESIGN.md). */
+.stock__fila--agotado {
+  background: color-mix(in oklch, var(--vencido) 12%, var(--superficie));
+}
+
+.stock__datos {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.stock__nombre {
+  font-size: var(--t-medio);
+  font-weight: 700;
+}
+
+.stock__estado {
+  color: var(--tinta-suave);
+  font-size: var(--t-mini);
+}
+
+.stock__fila--agotado .stock__estado {
+  color: var(--tinta-error);
+  font-weight: 700;
+}
+
+.stock__controles {
+  display: flex;
+  align-items: center;
+  gap: var(--e2);
+  flex-shrink: 0;
+}
+
+/* Botones grandes: se tocan con el pulgar y con las manos ocupadas. */
+.stock__paso {
+  min-width: var(--tacto);
+  padding: 0;
+  font-size: var(--t-grande);
+  line-height: 1;
+}
+
+.stock__restante {
+  min-width: 3ch;
+  text-align: center;
+  font-size: var(--t-grande);
+  font-weight: 800;
+}
+
+@media (max-width: 560px) {
+  .stock__controles {
+    flex: 1 1 100%;
+    justify-content: space-between;
   }
 }

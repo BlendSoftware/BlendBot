@@ -6,10 +6,9 @@ export const PILLARS_DATA: PillarData[] = [
     tag: 'EL AGENTE CONVERSACIONAL',
     title: 'Tu WhatsApp atiende como el mejor mozo del salón.',
     subtitle: 'Cero menús rígidos de árbol. Entiende lenguaje natural rioplatense, audios, errores de tipeo y gustos del cliente.',
-    description: 'No le hace perder tiempo al comensal con "Presione 1 para ver la carta". Responde preguntas de ingredientes, coordina envíos con geolocalización, sugiere maridajes y toma reservas de mesa según la ocupación real.',
+    description: 'No le hace perder tiempo al comensal con "Presione 1 para ver la carta". Responde preguntas de ingredientes, sugiere maridajes y toma reservas de mesa según la ocupación real.',
     bulletPoints: [
       'Entiende audios de WhatsApp con ruido ambiente de fondo',
-      'Calcula costos de envío por dirección y zona en segundos',
       'Confirma alérgenos, puntos de cocción y notas a cocina ("sin cebolla", "bien cocido")',
       'Atiende 50 conversaciones en simultáneo a las 21:30 hs sin demorarse un segundo'
     ],

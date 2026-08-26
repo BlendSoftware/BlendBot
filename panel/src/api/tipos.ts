@@ -326,6 +326,22 @@ export interface AnotadoEnEspera {
 // medios son los del CHECK de la tabla `cobro`: si allá se agrega uno, entra
 // acá y la botonera del popover lo muestra sola.
 
+// ─── Stock: el cupo del día ──────────────────────────────────────────────────
+//
+// Espejo de dto.CupoResponse. `disponible` (el interruptor manual) y `agotado`
+// (el cupo en cero) son dos motivos distintos por los que un plato no se vende,
+// y la cocina necesita distinguirlos: el interruptor le gana al cupo.
+
+export interface CupoStock {
+  servicio_id: string
+  servicio_nombre: string
+  asignado: number
+  consumido: number
+  restante: number
+  agotado: boolean
+  disponible: boolean
+}
+
 export type MedioPago = 'efectivo' | 'transferencia' | 'debito' | 'credito' | 'qr'
 
 export type EstadoComprobante = 'pendiente' | 'emitido' | 'error'

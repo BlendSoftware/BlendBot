@@ -9,10 +9,26 @@
  */
 
 import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { cobrar, traerCobro } from '../api/endpoints'
 import type { Cobro, EstadoCobroTurno, MedioPago } from '../api/tipos'
+import { useSesion } from '../contexto'
 import { MEDIOS_PAGO, estadoFactura, estadoFacturaDe, etiquetaMedio } from '../dominio/cobros'
 import { plata } from '../dominio/formato'
+
+/**
+ * El comprobante es plata: sólo el dueño (docs/PANEL.md → Roles), que es
+ * además quien tiene la ruta. Al operador no le aparece el enlace.
+ */
+function EnlaceComprobante({ compromisoID }: { compromisoID: string }) {
+  const { vePlata } = useSesion()
+  if (!vePlata) return null
+  return (
+    <Link to={`/comprobante/${compromisoID}`} className="cobro__comprobante">
+      Ver comprobante
+    </Link>
+  )
+}
 
 interface Props {
   compromisoID: string
@@ -133,6 +149,7 @@ export function BotonCobrar({
         </p>
         <p className="cobro__factura">{factura.texto}</p>
         {factura.detalle && <p className="cobro__detalle">{factura.detalle}</p>}
+        <EnlaceComprobante compromisoID={compromisoID} />
       </div>
     )
   }
@@ -146,6 +163,7 @@ export function BotonCobrar({
       <div className={`cobro cobro--${yaEstaba.tono}`}>
         <p className="cobro__hecho">Cobrado</p>
         <p className="cobro__factura">{yaEstaba.texto}</p>
+        <EnlaceComprobante compromisoID={compromisoID} />
       </div>
     )
   }

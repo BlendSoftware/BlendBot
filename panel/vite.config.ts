@@ -13,7 +13,9 @@ export default defineConfig(({ command }) => ({
   base: command === 'build' ? '/panel/' : '/',
   plugins: [react()],
   server: {
-    port: 5173,
+    // La landing corre en el 5173 en dev; el botón "Ingresar" de ahí manda
+    // acá al 5174 (Header.tsx), así que no pueden compartir puerto.
+    port: 5174,
     proxy: {
       '/api': { target: CORE_LOCAL, changeOrigin: true },
     },

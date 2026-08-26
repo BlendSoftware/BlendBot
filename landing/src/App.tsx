@@ -4,7 +4,7 @@ import { Header } from './components/Header';
 import { Hero } from './components/Hero';
 import { KitchenManifesto } from './components/KitchenManifesto';
 import { EditorialPillars } from './components/EditorialPillars';
-import { FeaturedDishes } from './components/FeaturedDishes';
+import { FullSystemEquip } from './components/FullSystemEquip';
 import { AtmosphereGallery } from './components/AtmosphereGallery';
 import { MembershipSection } from './components/MembershipSection';
 import { FaqSection } from './components/FaqSection';
@@ -30,7 +30,7 @@ export function App() {
   };
 
   return (
-    <div className="relative min-h-screen bg-dark text-bone selection:bg-gold selection:text-dark font-sans">
+    <div className="relative min-h-screen bg-dark text-bone selection:bg-terracota selection:text-white font-sans">
       {/* Subtle dark film grain overlay */}
       <GrainOverlay />
 
@@ -44,14 +44,14 @@ export function App() {
           onOpenDemo={handleOpenDemo}
         />
 
-        {/* 02: Kitchen Reality Manifesto */}
+        {/* 02: Mendoza Kitchen Reality Manifesto */}
         <KitchenManifesto />
 
-        {/* 03: The 3 Hospitality & Kitchen Rituals */}
+        {/* 03: The 3 Operational Circuit Pillars */}
         <EditorialPillars />
 
-        {/* 04: Author Dishes Collection */}
-        <FeaturedDishes />
+        {/* 04: Full Restaurant System Equipment in Mendoza (Replaces mock individual dishes) */}
+        <FullSystemEquip onOpenDemo={handleOpenDemo} />
 
         {/* 05: 35mm Atmosphere Photo Essay */}
         <AtmosphereGallery />

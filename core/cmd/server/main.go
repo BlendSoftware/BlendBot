@@ -126,6 +126,7 @@ func main() {
 	cobroRepo := repository.NewCobroRepository(db)
 	jornadaRepo := repository.NewJornadaRepository(db)
 	reporteRepo := repository.NewReporteRepository(db)
+	cupoRepo := repository.NewCupoRepository(db)
 
 	// ── Cifrado fiscal ──────────────────────────────────────────────
 	// Sin FISCAL_CIPHER_KEY el módulo fiscal queda apagado: no se pueden
@@ -185,6 +186,7 @@ func main() {
 			service.NewMotorService(compromisoRepo, holdRepo, service.ConNotificador(huecoLiberado)),
 			negDatosRepo,
 			service.ConAvisadorPedido(worker.NewAvisadorPedido(publicador)),
+			service.ConControlDeCupos(cupoRepo, jornadaRepo),
 		),
 		HoldSvc:      service.NewHoldService(holdRepo, compromisoRepo),
 		DispoSvc:     service.NewDisponibilidadService(dispoRepo),
@@ -193,6 +195,7 @@ func main() {
 		ConsultaSvc:  service.NewConsultaService(consultaRepo, worker.NewAvisadorConsulta(publicador)),
 		CobroSvc:     service.NewCobroService(cobroRepo, negDatosRepo, cifrador),
 		JornadaSvc:   service.NewJornadaService(jornadaRepo),
+		CupoSvc:      service.NewCupoService(cupoRepo, jornadaRepo, servicioRepo),
 		ReporteSvc:   service.NewReporteService(reporteRepo, negDatosRepo),
 		NegDatosRepo: negDatosRepo,
 		HorarioH:     handler.NewHorariosHandler(horarioRepo),

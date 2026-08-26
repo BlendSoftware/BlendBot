@@ -155,7 +155,6 @@ describe('guard de rutas', () => {
       'Catálogo',
       'Equipo',
       'Clientes',
-      'Espera',
     ])
   })
 

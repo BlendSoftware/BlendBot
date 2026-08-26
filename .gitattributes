@@ -1,0 +1,19 @@
+# Normalización de fin de línea.
+#
+# Los scripts de shell y los archivos que Linux ejecuta SIEMPRE van con LF, sin
+# importar el core.autocrlf de quien clone. En Windows, `git checkout` con
+# autocrlf=true los reescribe con CRLF; adentro del contenedor el kernel lee la
+# shebang `#!/bin/sh\r` y busca un intérprete llamado "/bin/sh\r", que no
+# existe. El síntoma es un contenedor que arranca y muere en loop con
+#
+#     exec /entrypoint.sh: no such file or directory
+#
+# que no dice nada de saltos de línea y manda a buscar el error donde no está.
+# (Así estuvo caído el sidecar de ARCA.)
+*.sh text eol=lf
+Dockerfile text eol=lf
+*.Dockerfile text eol=lf
+Makefile text eol=lf
+
+# Los .env de ejemplo los leen tanto Docker como los scripts: mismo criterio.
+*.example text eol=lf

@@ -13,7 +13,24 @@ import (
 	"copiloto/core/internal/service"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	"github.com/rs/zerolog/log"
 )
+
+// idDeRuta devuelve el :param de la ruta si es un uuid, y corta con 404 si no.
+//
+// Sin esto el id viajaba crudo hasta Postgres, que lo rechazaba con
+// `invalid input syntax for type uuid (SQLSTATE 22P02)` — un 400 con el error
+// de la base adentro. Un id que no es un id es, desde afuera, indistinguible
+// de uno que no existe: 404 y listo.
+func idDeRuta(c *gin.Context, param string) (string, bool) {
+	v := c.Param(param)
+	if _, err := uuid.Parse(v); err != nil {
+		c.JSON(http.StatusNotFound, apierror.New("no encontrado"))
+		return "", false
+	}
+	return v, true
+}
 
 // CompromisosHandler expone el motor: crear, ver el tablero y transicionar.
 type CompromisosHandler struct{ svc service.MotorService }
@@ -80,7 +97,11 @@ func (h *CompromisosHandler) Listar(c *gin.Context) {
 }
 
 func (h *CompromisosHandler) Obtener(c *gin.Context) {
-	resp, err := h.svc.Obtener(c.Request.Context(), middleware.NegocioID(c), c.Param("id"))
+	id, ok := idDeRuta(c, "id")
+	if !ok {
+		return
+	}
+	resp, err := h.svc.Obtener(c.Request.Context(), middleware.NegocioID(c), id)
 	if err != nil {
 		responderErrorMotor(c, err)
 		return
@@ -89,12 +110,16 @@ func (h *CompromisosHandler) Obtener(c *gin.Context) {
 }
 
 func (h *CompromisosHandler) Transicionar(c *gin.Context) {
+	id, ok := idDeRuta(c, "id")
+	if !ok {
+		return
+	}
 	var in dto.TransicionarInput
 	if !bindMotorJSON(c, &in) {
 		return
 	}
-	estado, ok := estadoValido(string(in.Estado))
-	if !ok {
+	estado, valido := estadoValido(string(in.Estado))
+	if !valido {
 		c.JSON(http.StatusBadRequest, apierror.New("Estado invalido: "+string(in.Estado)))
 		return
 	}
@@ -102,7 +127,7 @@ func (h *CompromisosHandler) Transicionar(c *gin.Context) {
 	resp, err := h.svc.Transicionar(
 		c.Request.Context(),
 		middleware.NegocioID(c),
-		c.Param("id"),
+		id,
 		estado,
 		service.OpcionesTransicion{DemoraMin: in.DemoraMin, RecursoID: in.RecursoID},
 	)
@@ -140,6 +165,12 @@ func responderErrorMotor(c *gin.Context, err error) {
 		c.JSON(http.StatusUnprocessableEntity, apierror.New(err.Error()))
 	case errors.Is(err, service.ErrYaCobrado), errors.Is(err, service.ErrNoCobrable):
 		c.JSON(http.StatusConflict, apierror.New(err.Error()))
+	case errors.Is(err, service.ErrSinCupo):
+		// 409: el pedido es válido, lo que pasó es que otro se llevó la última
+		// porción. Es una carrera perdida, no un body mal armado.
+		c.JSON(http.StatusConflict, apierror.New(err.Error()))
+	case errors.Is(err, service.ErrCupoMenorAlConsumido):
+		c.JSON(http.StatusUnprocessableEntity, apierror.New(err.Error()))
 	case errors.Is(err, service.ErrJornadaYaAbierta), errors.Is(err, service.ErrSinJornadaAbierta):
 		c.JSON(http.StatusConflict, apierror.New(err.Error()))
 	case errors.Is(err, service.ErrMedioPagoInvalido),
@@ -154,7 +185,12 @@ func responderErrorMotor(c *gin.Context, err error) {
 		// para que se note en el monitoreo y no se confunda con un body malo.
 		c.JSON(http.StatusServiceUnavailable, apierror.New(err.Error()))
 	default:
-		c.JSON(http.StatusBadRequest, apierror.New(err.Error()))
+		// Lo que no está mapeado es una falla nuestra, no del que llamó: 500 y
+		// un mensaje genérico. Antes salía 400 con el err.Error() adentro, y
+		// por ahí se escapaban los errores de Postgres (SQLSTATE incluido) —
+		// justo lo que apierror dice existir para evitar. El detalle va al log.
+		log.Error().Err(err).Str("ruta", c.FullPath()).Msg("error no mapeado")
+		c.JSON(http.StatusInternalServerError, apierror.New("Error interno"))
 	}
 }
 

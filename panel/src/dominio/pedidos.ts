@@ -9,14 +9,15 @@
 
 import type { Compromiso, Estado, TipoEntrega } from '../api/tipos'
 
-export type Columna = 'pendientes' | 'cocina' | 'listos'
+export type Columna = 'pendientes' | 'cocina' | 'listos' | 'cobrar'
 
-export const COLUMNAS: Columna[] = ['pendientes', 'cocina', 'listos']
+export const COLUMNAS: Columna[] = ['pendientes', 'cocina', 'listos', 'cobrar']
 
 export const TITULO_COLUMNA: Record<Columna, string> = {
   pendientes: 'Pendientes',
   cocina: 'En cocina',
   listos: 'Listos',
+  cobrar: 'Para cobrar',
 }
 
 const COLUMNA_DE_ESTADO: Partial<Record<Estado, Columna>> = {
@@ -24,6 +25,10 @@ const COLUMNA_DE_ESTADO: Partial<Record<Estado, Columna>> = {
   confirmado: 'cocina',
   en_curso: 'cocina',
   listo: 'listos',
+  // Entregado no es el final: falta la plata. Sin esta columna la tarjeta
+  // desaparecía del tablero sin haberse cobrado nunca, y no había desde dónde
+  // llegar al comprobante.
+  completado: 'cobrar',
 }
 
 export function columnaDe(estado: Estado): Columna | null {
@@ -129,7 +134,12 @@ function porCreado(a: PedidoVista, b: PedidoVista): number {
  * El resto, por orden de llegada: primero el que espera hace más.
  */
 export function agruparPorColumna(pedidos: PedidoVista[]): Record<Columna, PedidoVista[]> {
-  const grupos: Record<Columna, PedidoVista[]> = { pendientes: [], cocina: [], listos: [] }
+  const grupos: Record<Columna, PedidoVista[]> = {
+    pendientes: [],
+    cocina: [],
+    listos: [],
+    cobrar: [],
+  }
   for (const p of pedidos) {
     const col = columnaDe(p.estado)
     if (col) grupos[col].push(p)
@@ -137,5 +147,8 @@ export function agruparPorColumna(pedidos: PedidoVista[]): Record<Columna, Pedid
   grupos.pendientes.sort(porCreado)
   grupos.listos.sort(porCreado)
   grupos.cocina.sort((a, b) => plazoLimite(a) - plazoLimite(b) || porCreado(a, b))
+  // Para cobrar va al revés que el resto: el que se acaba de entregar es el que
+  // se está cobrando ahora, así que va arriba.
+  grupos.cobrar.sort((a, b) => porCreado(b, a))
   return grupos
 }

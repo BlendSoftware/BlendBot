@@ -11,7 +11,7 @@
     --paper-warm: #FAF7F2;
   }
 
-  body {
+  html, body {
     background-color: #0D0D0F;
     color: #F5F2EB;
     font-family: 'Space Grotesk', sans-serif;
@@ -19,6 +19,18 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  /* Prevent iOS zoom on input focus by ensuring at least 16px font size on mobile */
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+  @media (min-width: 640px) {
+    input, select, textarea {
+      font-size: 0.75rem !important; /* 12px on desktop */
+    }
   }
 
   /* Custom subtle dark scrollbar */
@@ -43,21 +55,21 @@
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 300 300' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.025'/%3E%3C/svg%3E");
 }
 
-/* Editorial display typography clamps */
-.text-display-giant {
-  font-size: clamp(3rem, 10.5vw, 12rem);
-  line-height: 0.88;
-  letter-spacing: -0.045em;
+/* Responsive Editorial display typography clamps */
+.text-display-hero {
+  font-size: clamp(2.4rem, 8.5vw, 6.8rem);
+  line-height: 0.92;
+  letter-spacing: -0.04em;
 }
 
 .text-title-editorial {
-  font-size: clamp(2.2rem, 5.5vw, 6rem);
-  line-height: 0.94;
-  letter-spacing: -0.035em;
+  font-size: clamp(1.8rem, 5.5vw, 4.5rem);
+  line-height: 1.02;
+  letter-spacing: -0.03em;
 }
 
 .text-manifesto-large {
-  font-size: clamp(1.6rem, 4vw, 4.4rem);
-  line-height: 1.08;
-  letter-spacing: -0.025em;
+  font-size: clamp(1.4rem, 4.2vw, 3.8rem);
+  line-height: 1.12;
+  letter-spacing: -0.02em;
 }

@@ -10,9 +10,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { listarCompromisos, listarServicios, transicionar } from '../api/endpoints'
 import type { Compromiso, Estado, Servicio } from '../api/tipos'
+import { hoyISO } from '../dominio/formato'
 import { aVista, type PedidoVista } from '../dominio/pedidos'
 
 const REFRESCO_MS = 15000
+/** Los que están en juego: van sin filtro de fecha porque un pedido de anoche
+ *  sin confirmar tiene que seguir a la vista. */
 const ESTADOS_TABLERO: Estado[] = ['pendiente', 'confirmado', 'en_curso', 'listo']
 
 export interface Tablero {
@@ -40,12 +43,16 @@ export function usarPedidos(ahora: () => Date = () => new Date()): Tablero {
   const cargar = useCallback(async (silencioso = false) => {
     if (!silencioso) setCargando(true)
     try {
-      const [lista, carta] = await Promise.all([
+      // Los entregados van en una consulta aparte y acotados a hoy: son la
+      // columna "Para cobrar", y sin el corte por fecha arrastrarían todo el
+      // histórico del negocio al tablero.
+      const [lista, entregados, carta] = await Promise.all([
         listarCompromisos({ estados: ESTADOS_TABLERO }),
+        listarCompromisos({ estados: ['completado'], desde: hoyISO() }),
         listarServicios({ incluirInactivos: true }),
       ])
       if (!montado.current) return
-      setCompromisos(lista.filter((c) => c.tipo === 'pedido'))
+      setCompromisos([...lista, ...entregados].filter((c) => c.tipo === 'pedido'))
       setServicios(carta)
       setProblema('')
     } catch (e) {

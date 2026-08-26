@@ -32,7 +32,7 @@
   width: 60px;
   height: 34px;
   border-radius: 999px;
-  background: oklch(0.86 0.01 60);
+  background: var(--pista);
   box-shadow: inset 0 1px 3px oklch(0.24 0.012 55 / 0.15);
   transition: background-color var(--transicion);
 }
@@ -55,7 +55,7 @@
 
 .interruptor--si {
   border-color: var(--confirmado);
-  color: oklch(0.38 0.09 155);
+  color: var(--tinta-ok);
 }
 
 .interruptor--si .interruptor__pista {
@@ -67,9 +67,9 @@
 }
 
 .interruptor--no {
-  border-color: oklch(0.78 0.06 40);
-  color: oklch(0.45 0.12 35);
-  background: oklch(0.96 0.02 40);
+  border-color: var(--apagado-borde);
+  color: var(--apagado-tinta);
+  background: var(--apagado-fondo);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -202,7 +202,7 @@
   border-radius: var(--radio-chico);
   border-left: 3px solid oklch(0.42 0.16 25 / 0.6);
   background: var(--superficie);
-  color: oklch(0.42 0.16 25);
+  color: var(--tinta-error);
   font-size: var(--t-mini);
   font-weight: 600;
   animation: aparecer 180ms var(--curva);
@@ -267,7 +267,7 @@
 }
 
 .pedido .turno__accion:hover:not(:disabled) {
-  background: oklch(0.94 0.008 60);
+  background: var(--panel-hover);
 }
 
 .pedido .turno__accion--primario {
@@ -336,7 +336,7 @@
 }
 
 .cobro--bien .cobro__factura {
-  color: oklch(0.38 0.09 155);
+  color: var(--tinta-ok);
 }
 
 .cobro--problema {
@@ -344,7 +344,7 @@
 }
 
 .cobro--problema .cobro__factura {
-  color: oklch(0.42 0.16 25);
+  color: var(--tinta-error);
 }
 
 .cobro--espera {
@@ -352,18 +352,33 @@
 }
 
 .cobro--espera .cobro__factura {
-  color: oklch(0.42 0.08 250);
+  color: var(--tinta-espera);
 }
 
 .cobro__detalle {
   color: var(--tinta-suave);
 }
 
+.cobro__comprobante {
+  align-self: flex-start;
+  margin-top: var(--e1);
+  color: var(--acento);
+  font-size: var(--t-mini);
+  font-weight: 700;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color var(--transicion);
+}
+
+.cobro__comprobante:hover {
+  border-bottom-color: var(--acento);
+}
+
 .cobro__problema {
   padding: var(--e1) var(--e2);
   border-radius: var(--radio-chico);
   background: var(--superficie);
-  color: oklch(0.42 0.16 25);
+  color: var(--tinta-error);
   font-size: var(--t-mini);
   font-weight: 600;
 }
@@ -519,6 +534,42 @@
   color: var(--acento-tinta);
   box-shadow: var(--sombra-baja);
   transform: translateY(-2px);
+}
+
+/*
+ * El sol/luna no es un destino: no lleva flex:1 ni etiqueta, y va separado por
+ * una línea para que no se lea como una sección más de la barra.
+ */
+.barra-inferior__tema {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  min-height: 60px;
+  margin-left: var(--e2);
+  padding-left: var(--e2);
+  border: 0;
+  border-left: 1px solid var(--borde);
+  border-radius: var(--radio);
+  background: none;
+  color: var(--tinta-suave);
+  transition:
+    background-color var(--transicion),
+    color var(--transicion);
+}
+
+.barra-inferior__tema:hover {
+  background: var(--acento-suave);
+  color: var(--acento);
+}
+
+.barra-inferior__tema svg {
+  transition: transform 300ms var(--curva);
+}
+
+.barra-inferior__tema:hover svg {
+  transform: rotate(-18deg) scale(1.08);
 }
 
 /* ── Fila de servicio ────────────────────────────────────────────────────── */

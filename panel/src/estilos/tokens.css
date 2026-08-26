@@ -30,6 +30,30 @@
 
   /* Superficie secundaria: barras, encabezados pegajosos */
   --panel: oklch(0.955 0.008 60);
+  --panel-hover: oklch(0.94 0.008 60);
+
+  /* Neutros derivados. Estaban sueltos por las hojas; viven acá para que el
+     tema oscuro los pise en un solo lugar. */
+  --borde-fuerte: oklch(0.75 0.04 50); /* borde de un input con el mouse encima */
+  --scroll: oklch(0.8 0.012 60);
+  --scroll-hover: oklch(0.7 0.014 60);
+  --esqueleto-brillo: oklch(0.93 0.008 60);
+  --pista: oklch(0.86 0.01 60); /* riel del interruptor apagado */
+
+  /* Interruptor en "no": el rojo tenue que avisa que algo está apagado. */
+  --apagado-fondo: oklch(0.96 0.02 40);
+  --apagado-borde: oklch(0.78 0.06 40);
+  --apagado-tinta: oklch(0.45 0.12 35);
+
+  /* Tintas semánticas: el mismo rojo/verde/azul de los estados, pero en
+     versión TEXTO (más oscura, para leerse sobre una superficie clara). */
+  --tinta-error: oklch(0.42 0.16 25);
+  --tinta-ok: oklch(0.38 0.09 155);
+  --tinta-espera: oklch(0.42 0.08 250);
+  --tinta-libre: oklch(0.45 0.06 140);
+  /* El ámbar de "pendiente" es demasiado claro para usarlo como TEXTO sobre
+     fondo claro: acá va su versión leíble. En el oscuro se da vuelta. */
+  --tinta-pendiente: oklch(0.45 0.12 70);
 
   /* Ritmo 4 / 8 / 16 / 24 / 40 */
   --e1: 4px;
@@ -67,4 +91,65 @@
   /* Mismo --acento, diluido: para hovers, selección y badges. Cálido, no
      gris. */
   --acento-suave: oklch(0.58 0.13 40 / 0.18);
+}
+
+/*
+ * ── Tema oscuro ───────────────────────────────────────────────────────────
+ * DESIGN.md fija el claro para la escena que manda (tablet en el mostrador a
+ * las 9:30, luz de ventana de frente) y anticipa que "la vista de gastronomía
+ * nocturna llega en v2 y se resolverá con un modo propio": esto es ese modo.
+ * El claro sigue siendo el default; esto entra sólo si lo eligen.
+ *
+ * Se pisan los NEUTROS, no la paleta: el acento sigue siendo el mismo
+ * terracota (apenas más claro para que se lea sobre fondo oscuro) y los
+ * colores de estado no se tocan — un pendiente tiene que seguir siendo ámbar
+ * y leerse de lejos, sea la hora que sea.
+ *
+ * La portada (login) entra siempre acá, tenga el sistema el tema que tenga:
+ * viene de una landing oscura y no queremos el fogonazo blanco en el medio.
+ */
+[data-tema='oscuro'],
+.portada {
+  --fondo: oklch(0.16 0.008 55);
+  --superficie: oklch(0.22 0.01 55);
+  --panel: oklch(0.19 0.009 55);
+  --panel-hover: oklch(0.26 0.01 55);
+  --borde: oklch(0.32 0.012 55);
+  --tinta: oklch(0.95 0.006 55);
+  --tinta-suave: oklch(0.68 0.012 55);
+
+  --borde-fuerte: oklch(0.42 0.016 55);
+  --scroll: oklch(0.38 0.014 55);
+  --scroll-hover: oklch(0.48 0.016 55);
+  --esqueleto-brillo: oklch(0.26 0.01 55);
+  --pista: oklch(0.34 0.012 55);
+
+  --apagado-fondo: oklch(0.28 0.04 40);
+  --apagado-borde: oklch(0.45 0.07 40);
+  --apagado-tinta: oklch(0.78 0.1 40);
+
+  /* Las tintas semánticas se dan vuelta: sobre fondo oscuro tienen que ser
+     CLARAS. Mismo tono, otra luminosidad. */
+  --tinta-error: oklch(0.78 0.14 25);
+  --tinta-ok: oklch(0.75 0.12 155);
+  --tinta-espera: oklch(0.75 0.1 250);
+  --tinta-libre: oklch(0.78 0.08 140);
+  /* Sobre fondo oscuro el ámbar de origen ya se lee: no hace falta bajarlo. */
+  --tinta-pendiente: var(--pendiente);
+
+  /* Un poco más claro que en el tema claro: sobre fondo oscuro, el mismo
+     terracota se apaga. Sigue aguantando tinta blanca encima. */
+  --acento: oklch(0.62 0.14 41);
+  --halo-acento: 0 0 0 5px oklch(0.62 0.14 41 / 0.4);
+  --acento-suave: oklch(0.62 0.14 41 / 0.24);
+
+  /* El hueco libre es un bloque grande: en claro es verde papel, en oscuro
+     tiene que ser verde noche o encandila. */
+  --hueco-libre: oklch(0.27 0.045 150);
+  --sobre-hueco: oklch(0.85 0.06 150);
+
+  /* Sombras negras de verdad: la tinta cálida no se ve sobre fondo oscuro. */
+  --sombra-baja: 0 3px 8px oklch(0 0 0 / 0.5);
+  --sombra-tarjeta: 0 3px 8px oklch(0 0 0 / 0.4), 0 22px 48px oklch(0 0 0 / 0.55);
+  --sombra-flotante: 0 20px 56px oklch(0 0 0 / 0.6);
 }

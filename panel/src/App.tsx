@@ -8,10 +8,12 @@ import { CambiarPassword } from './vistas/CambiarPassword'
 import { Tablero } from './vistas/Tablero'
 import { Comanda } from './vistas/Comanda'
 import { Catalogo } from './vistas/Catalogo'
+import { Stock } from './vistas/Stock'
 import { Equipo } from './vistas/Equipo'
 import { Clientes } from './vistas/Clientes'
 import { ListaEspera } from './vistas/ListaEspera'
 import { Cierre } from './vistas/Cierre'
+import { Comprobante } from './vistas/Comprobante'
 import { Consultas } from './vistas/Consultas'
 import { Admin } from './vistas/Admin'
 
@@ -104,6 +106,14 @@ export function Rutas() {
           }
         />
         <Route
+          path="/stock"
+          element={
+            <Protegida>
+              <Stock />
+            </Protegida>
+          }
+        />
+        <Route
           path="/equipo"
           element={
             <Protegida>
@@ -132,6 +142,14 @@ export function Rutas() {
           element={
             <Protegida soloDueno>
               <Cierre />
+            </Protegida>
+          }
+        />
+        <Route
+          path="/comprobante/:compromisoID"
+          element={
+            <Protegida soloDueno>
+              <Comprobante />
             </Protegida>
           }
         />

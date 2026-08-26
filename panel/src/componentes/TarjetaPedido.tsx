@@ -12,6 +12,7 @@ import type { Estado, TipoEntrega } from '../api/tipos'
 import { COLOR_ESTADO, TINTA_ESTADO, accionesPara, etiquetaEstado } from '../dominio/estados'
 import { nombreVisible, plata } from '../dominio/formato'
 import { contadorDemora, type PedidoVista } from '../dominio/pedidos'
+import { BotonCobrar } from './BotonCobrar'
 import { SelectorDemora } from './SelectorDemora'
 
 interface Props {
@@ -194,6 +195,13 @@ export function TarjetaPedido({
             </button>
           ))}
         </div>
+      )}
+
+      {/* Entregado no es el final: falta cobrarlo. Y una vez cobrado, es desde
+          acá que se llega al comprobante. En la comanda de cocina no va: ahí
+          no se toca plata. */}
+      {!soloCocina && pedido.estado === 'completado' && (
+        <BotonCobrar compromisoID={pedido.id} total={pedido.total} />
       )}
 
       {pidiendoDemora && (

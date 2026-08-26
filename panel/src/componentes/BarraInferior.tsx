@@ -2,15 +2,16 @@
  * Navegación tablet-first: íconos grandes, siempre abajo y a mano del pulgar.
  * La pantalla operativa no tiene más chrome que esto. El cierre del día entró
  * como quinto destino (E8): es la otra pantalla que el dueño abre solo, y por
- * eso al operador no le aparece (docs/PANEL.md → Roles). La lista de espera
- * SÍ está acá: el acceso solo desde el hueco libre de la agenda dejaba sin
- * forma de anotar a alguien justo cuando el día está completo, que es cuando
- * más sirve la cola.
+ * eso al operador no le aparece (docs/PANEL.md → Roles). La lista de espera no
+ * está acá: se entra desde el hueco libre de la agenda, que es cuando importa
+ * (DESIGN.md). Llegó a estar como sexto destino y se sacó: sin nadie usando la
+ * cola todavía, era una pestaña que no se tocaba nunca.
  */
 
 import { NavLink } from 'react-router-dom'
 import { rolVePlata, useSesion } from '../contexto'
 import type { Rol } from '../api/tipos'
+import { BotonTema } from './BotonTema'
 
 interface Props {
   rol: Rol
@@ -80,20 +81,20 @@ function IconoClientes() {
   )
 }
 
-function IconoEspera() {
-  return (
-    <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" {...trazo}>
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 7v5l3.5 2" />
-    </svg>
-  )
-}
-
 function IconoCierre() {
   return (
     <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" {...trazo}>
       <path d="M6 3h12v18l-2.4-1.6L13.2 21 12 19.8 10.8 21 8.4 19.4 6 21z" />
       <path d="M9.5 8h5M9.5 12h5" />
+    </svg>
+  )
+}
+
+function IconoStock() {
+  return (
+    <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" {...trazo}>
+      <path d="M3 7.5 12 3l9 4.5v9L12 21l-9-4.5z" />
+      <path d="M3 7.5 12 12l9-4.5M12 12v9" />
     </svg>
   )
 }
@@ -114,13 +115,15 @@ export function BarraInferior({ rol }: Props) {
     { a: '/', texto: gastro ? 'Pedidos' : 'Agenda', icono: <IconoAgenda /> },
     ...(gastro ? [{ a: '/comanda', texto: 'Comanda', icono: <IconoComanda /> }] : []),
     { a: '/catalogo', texto: gastro ? 'Carta' : 'Catálogo', icono: <IconoCatalogo /> },
+    // El cupo del día es de gastronomía: un consultorio no se queda sin
+    // porciones de nada, su límite es la agenda.
+    ...(gastro ? [{ a: '/stock', texto: 'Stock', icono: <IconoStock /> }] : []),
     {
       a: '/equipo',
       texto: gastro ? 'El local' : 'Equipo',
       icono: gastro ? <IconoLocal /> : <IconoEquipo />,
     },
     { a: '/clientes', texto: 'Clientes', icono: <IconoClientes /> },
-    { a: '/lista-espera', texto: 'Espera', icono: <IconoEspera /> },
   ]
   if (rolVePlata(rol)) {
     delNegocio.push({ a: '/cierre', texto: 'Cierre', icono: <IconoCierre /> })
@@ -142,6 +145,7 @@ export function BarraInferior({ rol }: Props) {
           <span>{d.texto}</span>
         </NavLink>
       ))}
+      <BotonTema />
     </nav>
   )
 }

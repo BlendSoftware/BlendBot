@@ -36,6 +36,7 @@ type Deps struct {
 	ConsultaSvc  service.ConsultaService
 	CobroSvc     service.CobroService
 	JornadaSvc   service.JornadaService
+	CupoSvc      service.CupoService
 	ReporteSvc   service.ReporteService
 	NegDatosRepo repository.NegocioDatosRepository
 	HorarioH     *handler.HorariosHandler
@@ -99,6 +100,9 @@ func New(d Deps) *gin.Engine {
 	handler.NewDisponibilidadHandler(d.DispoSvc).Register(tenant)
 	handler.NewNegocioDatosHandler(d.NegDatosRepo).Register(tenant)
 	handler.NewListaEsperaHandler(d.ListaEspSvc).Register(tenant)
+	// El cupo del día lo toca quien cocina, así que va en el mostrador y no en
+	// el grupo de plata. El agente no lo alcanza: no está en su allowlist.
+	handler.NewStockHandler(d.CupoSvc).Register(tenant)
 	handler.NewConsultasHandler(d.ConsultaSvc).Register(tenant)
 	d.HorarioH.Register(tenant)
 
