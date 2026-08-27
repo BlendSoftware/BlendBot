@@ -8,7 +8,8 @@
 #   make infra && make core-run
 
 .PHONY: up down build logs ps smoke restart \
-        infra infra-down core-run core-build core-test
+        infra infra-down core-run core-build core-test \
+        arnes arnes-todo arnes-libre arnes-dueno arnes-listar arnes-ejemplo
 
 # ── Sistema completo (docker compose) ─────────────────────────────────────────
 
@@ -68,3 +69,48 @@ landing-dev:
 landing-build:
 	cd landing && npm run build
 
+
+# ── Arnés de tres actores (arnes/) ───────────────────────────────────────────
+#
+# Otra pregunta que el smoke. El smoke pregunta "¿el sistema responde?"; el
+# arnés pregunta "¿la conversación termina donde dice el documento?". Ninguno
+# reemplaza al otro y NINGUNO de estos targets se cuelga de `smoke` ni de
+# `core-test`: `go test ./...` tiene que seguir siendo gratis y offline.
+#
+# Necesita el compose arriba (`make up`). NO necesita API key, ni Playwright,
+# ni Chromium. Todo el porqué está en arnes/README.md.
+#
+# Exit codes: 0 verde · 1 PRODUCTO · 2 ARNÉS ROTO (y el 2 NO dice nada del producto).
+
+## Los escenarios @rapido, en modo guion. Es lo que se corre antes de un release.
+arnes:
+	@test -f arnes/escenarios/correr.js || { \
+	  echo "✗ ARNÉS ROTO — falta arnes/escenarios/correr.js (grupo 6 del cambio arnes-tres-agentes)."; \
+	  echo "  Mientras no esté, lo que sí corre:"; \
+	  echo "    node arnes/puerta-andamio.js   el andamio, sin modelo y sin gastar"; \
+	  echo "    node arnes/puerta-bot.js       el bot real y las aserciones deterministas"; \
+	  exit 2; }
+	node arnes/escenarios/correr.js --tag=@rapido
+
+## Todos los escenarios, no sólo los rápidos. Tarda más y encuentra más.
+arnes-todo:
+	@test -f arnes/escenarios/correr.js || { echo "✗ ARNÉS ROTO — falta arnes/escenarios/correr.js. Ver \`make arnes\`."; exit 2; }
+	node arnes/escenarios/correr.js
+
+## Qué escenarios hay, con sus etiquetas. Gratis: no levanta nada.
+arnes-listar:
+	@test -f arnes/escenarios/correr.js || { echo "✗ ARNÉS ROTO — falta arnes/escenarios/correr.js. Ver \`make arnes\`."; exit 2; }
+	node arnes/escenarios/correr.js --listar
+
+## Modo libre: un cliente que improvisa. NUNCA rompe el build; deja candidatos a escenario.
+arnes-libre:
+	node arnes/libre.js
+
+## El guión del dueño en Chrome. Lo ejecuta un AGENTE, no este comando: monta el
+## escenario y lo sostiene vivo mientras alguien maneja el navegador (design §9).
+arnes-dueno:
+	ARNES_DUENO=navegador node arnes/guion-del-dueno.js
+
+## Cómo se lee una falla del arnés, sin levantar nada y sin gastar un peso.
+arnes-ejemplo:
+	node arnes/informe/ejemplo.js rojo

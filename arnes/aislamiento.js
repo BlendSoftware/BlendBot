@@ -207,6 +207,13 @@ export async function crearCorrida(opts = {}) {
     nombreNegocio,
     usuarioDueno,
     passwordDueno,
+    // passwordTemporal viaja aunque acá ya se haya usado y quemado. La necesita
+    // el guión del dueño (arnes/dueno/guion.md, paso 3) para poder aseverar que
+    // el panel NO deja pasar de la pantalla de cambio de contraseña: es una
+    // puerta, no un cartel, y sin la temporal esa pantalla no se ve nunca.
+    // Sin esto el paso queda "no evaluable" para siempre, que es la forma
+    // elegante de no probarlo.
+    passwordTemporal,
     waPhoneId,
     telefonoCliente,
     tokenAdmin,

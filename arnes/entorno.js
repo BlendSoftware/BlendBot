@@ -27,7 +27,7 @@ export const RAIZ = path.resolve(AQUI, '..');
  *
  * Vive acá, en el módulo que importa todo el mundo, porque casi todo lo que
  * rompe el arnés es una afirmación sobre el entorno: falta una credencial, el
- * compose no está arriba, no hay `uv`, no hay Chromium. Un `ErrorArnes` sale
+ * compose no está arriba, no hay `uv`, no está el MCP. Un `ErrorArnes` sale
  * con **exit 2** y NO dice nada sobre el producto (design §15). Confundirlo con
  * un rojo del producto es la forma más rápida de perder una hora arreglando un
  * bug que no existe.
@@ -99,6 +99,32 @@ export function leerEnv(clave, defecto = '') {
 export const MODOS_DUENO = ['navegador', 'api'];
 
 /**
+ * Quién sirve los turnos del bot (design §1, reescrita durante el apply).
+ *
+ * No hay `ANTHROPIC_API_KEY` en esta máquina y el dueño del producto decidió no
+ * poner una. El principio no se movió: **el bot no lo escribe la misma cabeza
+ * que escribió el prompt**. Lo que cambió es quién lo cumple.
+ *
+ *  - `guion`  — respuestas fijas escritas a mano. Sirve para probar **el
+ *               ARNÉS** (que el mensaje cruce el webhook, que las aserciones
+ *               de nivel 2 sepan leer un `tool_use`, que el presupuesto sume).
+ *               **JAMÁS sirve para probar el bot**: un guion comparte los
+ *               puntos ciegos del prompt por construcción — sólo falla donde el
+ *               que lo escribió ya sabía que podía fallar, o sea nunca donde
+ *               importa. Un verde con `guion` NO es un verde del producto.
+ *  - `agente` — un agente Claude leyendo el `SKILL.md` real y llamando las
+ *               tools reales del MCP, por el buzón de
+ *               `actores/proveedor/agente.js`. Es el único que emite veredicto
+ *               sobre el bot.
+ *
+ * Que esto sea explícito y viaje en toda salida no es burocracia: **un arnés
+ * que dice verde sin decir con qué proveedor corrió es peor que no tener
+ * arnés**, porque el verde se lee como "el bot está bien" cuando puede querer
+ * decir "mis respuestas fijas siguen siendo fijas".
+ */
+export const PROVEEDORES_BOT = ['guion', 'agente'];
+
+/**
  * Todo lo que el arnés necesita saber de la máquina, resuelto una vez.
  * No valida nada: de eso se ocupa `preflight.js`, que además sabe explicar.
  */
@@ -136,15 +162,44 @@ export function entorno() {
     adminUsuario: leerEnv('ADMIN_USERNAME', 'admin'),
     adminPassword: leerEnv('ADMIN_PASSWORD', 'cambiame-admin-dev'),
 
+    // Puede estar vacía y es lo normal: el bot del arnés NO va por la API
+    // (design §1). Se lee igual porque `cargarConfig` del gateway la pide y
+    // porque, si alguna vez hay una, el arnés tiene que decir que la había.
     anthropicApiKey: leerEnv('ANTHROPIC_API_KEY'),
     // Vacío = el gateway va a usar su propio default (gateway/src/config.js).
     // No se duplica acá el nombre del modelo: dos defaults es un default que
     // miente, y el arnés tiene que correr con el MISMO cerebro que producción.
     modelo: leerEnv('MODELO'),
 
+    // Quién sirve los turnos del bot. Default `guion` a propósito: es el único
+    // que corre solo, sin nadie en el loop. Que el default NO emita veredicto
+    // sobre el bot es incómodo y es honesto — la alternativa era un default que
+    // se cuelga esperando a una persona.
+    botProveedor: (leerEnv('ARNES_BOT', 'guion')).toLowerCase(),
+    // Dónde vive el buzón del proveedor `agente` (pedidos y respuestas de
+    // turno). Vacío = un temp por corrida, que la corrida imprime.
+    buzon: leerEnv('ARNES_BUZON'),
+    // Cuánto se espera a que el agente conteste un turno por el buzón. Es
+    // grande a propósito: del otro lado hay alguien leyendo un SKILL.md.
+    buzonTimeoutMs: Number(leerEnv('ARNES_BUZON_TIMEOUT_MS', '900000')),
+
+    // Techo de gasto (design §10). Con el proveedor `agente` puede que no haya
+    // costo en dólares que sumar; ver `presupuesto.js`, que NO inventa un cero.
+    topeUsd: Number(leerEnv('ARNES_TOPE_USD', '1.00')),
+
     // Qué implementación del actor dueño se usa. `navegador` es el default
-    // porque es la que prueba el panel; `api` es la salida de emergencia para
-    // una máquina sin Chromium (design §9).
-    duenoModo: (leerEnv('ARNES_DUENO', 'navegador')).toLowerCase(),
+    // porque es la única que prueba el panel; `api` es la que corre
+    // desatendida. Ojo: `navegador` NO es Playwright — Playwright se sacó del
+    // proyecto y lo maneja un agente con su propio Chrome, siguiendo un guión
+    // escrito (design §9). O sea que `navegador` no corre solo.
+    // El default es `api`, no `navegador`, y esto se cambió a propósito: el
+    // default tiene que ser el modo que SÍ puede correr solo. Defaultear a
+    // `navegador` hacía que `make arnes` en una máquina sin nadie mirando
+    // pidiera un modo que necesita a alguien manejando Chrome — o sea, colgarse
+    // o mentir. El costo de `api` es que no mira el panel, y ese costo NO queda
+    // oculto: la corrida imprime al final, con nombre y apellido, las ocho
+    // aserciones que sólo el navegador puede afirmar. Una omisión que se anuncia
+    // es una tarea; el default que se cuelga es una trampa.
+    duenoModo: (leerEnv('ARNES_DUENO', 'api')).toLowerCase(),
   };
 }

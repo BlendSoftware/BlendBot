@@ -32,7 +32,7 @@ Restricción dura: **no se toca ningún componente**. Y no hace falta, porque `g
 
 **Non-Goals:**
 - **Reemplazar el smoke.** El smoke seguirá siendo la respuesta a "¿levanta y opera?", gratis y offline. El arnés no corre sin API key; si fuera el único chequeo, un día sin saldo sería un día sin chequeo.
-- **Cobertura del panel.** Playwright entra por tres gestos del dueño, no a probar la vista Cierre ni el Admin. Eso es de `vitest`, es más rápido y ya existe.
+- **Cobertura del panel.** El navegador entra por unos pocos gestos del dueño, no a probar la vista Cierre ni el Admin. Eso es de `vitest`, es más rápido y ya existe.
 - **Probar la imagen del gateway.** El arnés levanta el gateway **en proceso** desde `gateway/src`. Prueba el código, no el `Dockerfile`. El contenedor lo cubre el smoke (`/salud`).
 - **Medir calidad conversacional.** El arnés no puntúa si el bot fue simpático. Verifica reglas de prohibición y estado. "Sonó bien" no es un assert.
 - **Montar CI.** Hoy no hay `.github/` en el repo. El arnés se escribe para poder correr sin TTY y con exit code, para que el día que haya CI se enchufe; crear el CI es otro cambio.
@@ -40,21 +40,23 @@ Restricción dura: **no se toca ningún componente**. Y no hace falta, porque `g
 
 ## Decisions
 
-### 1. El bot NUNCA se simula. Lo que se scriptea es el cliente
+### 1. El bot NUNCA se scriptea. Lo sirve un modelo leyendo el prompt real
 
-El actor "bot" del arnés no es código nuevo: es `gateway/src` con el `SKILL.md` de gastronomía como system prompt, el MCP de `agente/` con las tools reales y la API de Anthropic con el mismo `MODELO` que corre en producción.
+> **Cambiado por el dueño del producto durante el apply.** La versión original decía "contra la API de Anthropic, siempre". No hay `ANTHROPIC_API_KEY` en esta máquina y el dueño decidió no poner una. El principio se mantiene entero; cambia quién lo cumple.
 
-*Por qué:* un bot simulado no prueba el bot, prueba la simulación — y la simulación la escribe la misma cabeza que escribió el prompt, así que comparte sus puntos ciegos por construcción. Todo el valor de este cambio está en la única pieza que hoy no se verifica: la decisión del modelo. Simularla es tirar el cambio a la basura y quedarse con el envoltorio.
+El `queryFn` que recibe `crearAgente` lo sirve **un agente Claude leyendo el `SKILL.md` de gastronomía y las tools reales del MCP**, no un script con respuestas fijas.
 
-Lo que sí se puede hacer determinista es **el otro lado**: en modo `guion`, el cliente manda texto fijo, sacado literal de `docs/FLUJOS.md`, incluida la tipeada `"te piedo una hhhamburguesa doble cheddar yunas paps"` — que no es color, es el caso de prueba: entender eso *es* la gracia del LLM, y está escrito así en los principios del asistente.
+*Por qué el principio no se toca:* lo que hay que proteger es que el bot no lo escriba la misma cabeza que escribió el prompt. Un mock con `if (mensaje.includes('hamburguesa'))` comparte los puntos ciegos del prompt **por construcción**: sólo falla donde el que lo escribió ya sabía que podía fallar, o sea nunca donde importa. Un modelo leyendo el prompt de verdad tiene los puntos ciegos del *producto*, que es exactamente lo que se viene a medir.
 
-Con la entrada fija, el no-determinismo que queda es el de la salida del modelo. Y ahí entra la decisión 6: la mayoría de los asserts no miran la salida en prosa, miran **estado y tools**, que sí son deterministas aun con un modelo que redacta distinto cada vez.
+*Qué se pierde, sin maquillaje:* no es byte por byte la ruta de producción. El `query` del Agent SDK llega con opciones propias (`tools: []`, `disallowedTools`, `settingSources: []`) y una sesión que persiste en disco. Un agente en el loop reproduce el **prompt** y las **tools**, no el transporte. Entonces:
+- Todo lo que el arnés asevera sobre **qué decidió el bot** —qué tool llamó, con qué argumentos, qué se negó a decir— es válido.
+- Todo lo que dependiera del **transporte** —serialización del stream, reanudación de sesión, límites de tokens del SDK— queda fuera de alcance y hay que decirlo, no dejarlo implícito.
 
-*Alternativa descartada — bot simulado por defecto y bot real "en modo caro":* deja el camino barato como el que se corre siempre, y ese camino no prueba nada de lo que este cambio existe para probar. Se terminaría corriendo el simulado en cada push, viéndolo verde, y la primera regresión real del prompt llegaría igual al cliente. Un chequeo verde que no chequea nada es peor que no tener chequeo: **ocupa el lugar del que sí serviría**.
+*Qué se gana además de no gastar:* el agente puede ser interrogado. Cuando falla, se le puede preguntar por qué eligió esa tool, cosa que un `POST` a la API no ofrece.
 
-*Alternativa descartada — grabar y reproducir (VCR) las respuestas del modelo:* determinista y gratis después de la primera corrida, y es la trampa clásica. Una cinta grabada valida el bot de hace tres semanas; el día que cambia el `SKILL.md` —que es justo cuando querés correr esto— la cinta hay que regrabarla entera, y regrabarla es aceptar como correcto lo que salga. La cinta se vuelve el oráculo y nadie la revisa.
+*Alternativa descartada — pedirle una key al dueño:* la pidió y dijo que no. Un arnés que no se puede correr porque falta un secreto es un arnés que no se corre.
 
-*Costo aceptado:* la corrida cuesta plata y tarda. Se acota con presupuesto (decisión 10) y con dónde corre (decisión 11).
+*Alternativa descartada — grabar y reproducir:* la cinta valida el bot de hace tres semanas y hay que regrabarla justo cuando cambia el `SKILL.md`, o sea aceptando como correcto lo que salga. Sigue descartada por el mismo motivo que antes.
 
 ### 2. Modo `guion` por defecto; modo `libre` existe pero no bloquea nada
 
@@ -139,23 +141,25 @@ Cada regla blanda lleva estado en `arnes/juez/cuarentena.json`. Si una regla fal
 
 *Por qué no automática:* que una regla se auto-silencie porque falló dos veces es exactamente cómo se apagan solas las que sí encontraban algo. Entra a cuarentena una persona, y queda escrito quién y por qué.
 
-### 9. Playwright sí, para tres gestos, con salida de emergencia
+### 9. El dueño se maneja con el Chrome del agente. Playwright NO va
 
-**Se agrega `@playwright/test` a `arnes/`, sólo Chromium.** El dueño se maneja por el browser en: **entrar** (login + cambio de contraseña obligatorio), **confirmar un pedido con demora**, **mover a listo**, y **responder una consulta**. Nada más.
+> **Cambiado por el dueño del producto durante el apply.** La versión original agregaba `@playwright/test`. Decidió no sumar la dependencia y usar el navegador que el agente ya maneja.
 
-*Qué aporta que la API no:*
-- **El campo libre de la demora.** D8: *"Presets sí, pero con campo libre siempre"* — sin él "el producto miente". Por la API, `PATCH /estado {"demora_min": 30}` pasa con o sin campo libre en la pantalla. Es una decisión de producto que sólo el DOM puede defender.
-- **Que el pedido aparezca solo.** `FLUJOS.md` promete que *"la cocina lo ve venir mientras el tipo todavía escribe"*. Eso es render + refresco. Por API se verifica que el registro existe; en el browser, que el dueño lo ve. Son afirmaciones distintas y el producto vende la segunda.
-- **Que se pueda con el pulgar.** El panel promete botones de 48px sobre una tarjeta. Un `PATCH` no tiene tamaño.
-- **Que el panel esté en el circuito.** Es una de las cinco piezas. Un arnés de punta a punta que saltea el panel prueba cuatro quintos y se llama entero.
+El actor dueño tiene **dos implementaciones detrás de la misma interfaz**, igual que antes, pero la segunda cambia de motor:
+- **`api`** — el dueño manejado por la API del core. Es la que corre desatendida, en `make arnes`, sin browser y sin nadie mirando.
+- **`chrome`** — un agente manejando Chrome de verdad, siguiendo un guión escrito (`arnes/dueno/guion.md`). No corre desatendido: lo ejecuta un agente antes de un release y después de tocar el panel.
 
-*Qué cuesta, sin maquillaje:* una devDependency, un Chromium (~150 MB) que bajar una vez, y tests de browser que son la clase más flaky que existe. Se mitiga con **locators por rol y texto** —el panel ya trae `role="group" aria-label="En cuánto sale"`, `aria-label`s y `<label>`s, así que no hace falta un solo selector de CSS frágil— y con las aserciones web-first de Playwright, que esperan solas. **No se usan screenshots como assert**: se guardan como evidencia. Un test de captura de pantalla falla por un antialiasing y enseña a ignorar rojo.
+*Por qué sigue haciendo falta un navegador en algún lado:* no cambió nada de esto. `PATCH /estado {"demora_min": 30}` pasa **con o sin campo libre en la pantalla**, y D8 dice que sin campo libre "el producto miente". Que el pedido aparezca solo mientras el cliente escribe es render, no dato. Un arnés que saltea el panel prueba cuatro de las cinco piezas y se llama entero.
 
-*La salida de emergencia:* `ARNES_DUENO=api` corre **los mismos escenarios** con el dueño manejado por la API del core. Sirve en una máquina sin browser, en un CI futuro sin Chromium, y para separar culpas cuando algo falla: si en modo `api` pasa y en modo browser no, el problema es del panel. Que el actor dueño tenga dos implementaciones detrás de la misma interfaz es lo que hace posible ese diagnóstico, y es la razón principal por la que el arnés se organiza por actores y no por pasos.
+*Qué se pierde:* la regresión del panel deja de correr en cada corrida. Es real y hay que decirlo: un cambio que rompa el campo de demora no se va a caer solo, va a esperar a que alguien corra el guión.
 
-*Alternativa descartada — sólo API para el dueño:* más rápido, más estable, sin dependencia nueva. Y ciega para las cuatro cosas de arriba, incluida la que el dueño del producto pidió por su nombre. Si el panel no está en el circuito, "de punta a punta" es una exageración.
+*Qué se gana, y no es poco:* cero dependencias, cero Chromium de 150 MB, y cero tests de browser —que son la clase más flaky que existe y la que mejor enseña a ignorar el rojo—. Y un actor que **juzga**: Playwright puede afirmar que el campo existe; un agente puede ver que existe pero entra abajo del fold, o que el botón quedó de 20px. Esa diferencia ya pagó sola en este mismo trabajo, cuando mirar la pantalla destapó que el compose corría una imagen vieja del core.
 
-*Alternativa descartada — Playwright para todo el panel:* convierte el arnés en la suite de UI del proyecto, tarda diez minutos y compite con los `vitest` que ya cubren eso mejor y más rápido.
+*Cómo se evita que "no corre solo" se convierta en "no corre nunca":* la corrida automática **nombra lo que no cubrió**. Al final imprime, con nombre y apellido, las aserciones que sólo el guión del dueño puede afirmar. Una omisión silenciosa es una mentira; una omisión que se anuncia es una tarea.
+
+*Alternativa descartada — Playwright igual:* es lo que decía este documento. El dueño evaluó el costo y decidió. Queda escrito para el día que la regresión desatendida del panel valga la dependencia.
+
+*Alternativa descartada — CDP contra el Chrome del usuario:* técnicamente posible con `--remote-debugging-port`, y sería lo peor de los dos mundos: la fragilidad de un browser automatizado más la dependencia de que el usuario tenga su Chrome abierto de una forma particular.
 
 ### 10. Presupuesto explícito: `ARNES_TOPE_USD`, y toda corrida dice qué gastó
 
@@ -170,7 +174,7 @@ El `result` del stream del SDK trae uso y costo. El arnés los suma —bot, clie
 - **`arnes/`**, en la raíz, proyecto Node propio. No dentro de `gateway/` (no es gateway) ni de `panel/` (no es panel): es un quinto consumidor del sistema, como `scripts/`.
 - **Node** porque los tres actores ya lo son: Playwright es Node, el gateway que se levanta en proceso es Node, y el SDK de Anthropic ya es dependencia del gateway. En Python habría que reimplementar el arranque del gateway, que es justo lo que no queremos.
 - **`make arnes`** (modo guion, escenarios `@rapido`), **`make arnes-todo`**, **`make arnes-libre`**.
-- **Fuera de `go test` y de `make smoke`.** Necesita compose arriba, `ANTHROPIC_API_KEY`, `uv` en la máquina y Chromium. `go test ./...` tiene que seguir siendo gratis y offline; colgarle esto lo convierte en un comando que falla por falta de saldo.
+- **Fuera de `go test` y de `make smoke`.** Necesita el compose arriba y `uv` en la máquina, y con el bot en modo `agente` necesita a alguien contestando el buzón. `go test ./...` tiene que seguir siendo gratis y offline; colgarle esto lo convierte en un comando que falla por razones que no son del código.
 - **Cuándo se corre:** antes de un release, y después de tocar `agente/skills/**/SKILL.md`, las tools del MCP, la vista Pedidos o el worker de salidas. **Nunca en cada push.**
 - **CI:** hoy no existe `.github/` en el repo, así que este cambio no configura ninguno. Lo que sí garantiza es que se pueda: sin TTY, sin colores si no hay `isatty`, exit code claro y artefactos en un directorio. El día que haya CI, esto va detrás de un trigger manual y un secreto, nunca en el push.
 
@@ -198,7 +202,7 @@ Por corrida, `arnes/salida/<corrida>/<escenario>/`:
 - **`transcripcion.md`** — turno por turno, con quién habló (👤 cliente · 🤖 bot · 🧑‍🍳 dueño · ⚙️ sistema), el reloj relativo, y debajo de cada turno del bot **las tools que llamó con sus argumentos y lo que devolvieron**; debajo de cada turno del dueño, qué clickeó y la captura.
 - **`estado-core.json`** — el estado al cerrar: compromisos con líneas y totales, stock, consultas, cobros.
 - **`veredictos.json`** — cada regla blanda, sus tres veredictos, la cita.
-- **`trace.zip`** de Playwright y capturas, sólo en el turno que falló.
+- **El turno que falló, sin recortar** (`trace-turno-N.json`: el turno completo más el anterior y el siguiente), con las capturas que el agente de Chrome haya registrado. Sólo del turno que falló.
 
 Y la línea de falla, que es el entregable de verdad:
 
@@ -214,10 +218,16 @@ Y la línea de falla, que es el entregable de verdad:
 
 - **0** — todo verde. Imprime lo gastado.
 - **1 — `PRODUCTO`**: una aserción de nivel 1, 2 o una regla dura del nivel 3 falló. Hay algo que arreglar en el sistema.
-- **2 — `ARNÉS ROTO`**: falta `ANTHROPIC_API_KEY`, el compose no está arriba, no hay `uv`, no hay Chromium, no se pudo parar el gateway, el MCP no levantó, el juez no devolvió cita, o se cortó por presupuesto. **No hay veredicto sobre el producto.**
+- **2 — `ARNÉS ROTO`**: el compose no está arriba, no hay `uv`, el proveedor de bot configurado no está disponible, no se pudo parar el gateway, el MCP no levantó, el juez condenó sin cita verificable contra un turno del bot, o se cortó por presupuesto. **No hay veredicto sobre el producto.**
 
 *Por qué separarlos:* confundirlos es la forma más rápida de perder una hora arreglando un bug que no existe. Un arnés que dice "rojo" cuando en realidad se quedó sin API key entrena a la gente a desconfiar del rojo, y a partir de ahí el rojo no sirve para nada.
 
+
+**Cuando pasan las dos cosas, gana el 2 — pero las fallas del producto se imprimen igual.** El design no fijaba esto y hubo que resolverlo al implementar. El criterio: nunca acusar al producto desde una corrida que no terminó (lo que falta podría explicar lo que falló), y nunca esconder lo determinista que ya se rompió (es información buena, aunque la corrida esté sucia). Además, lo que quedó verde en una corrida cortada se rotula explícitamente como **no aprobado**: un verde parcial leído como verde entero es la peor forma de mentir de un arnés.
+
+**Un veredicto condenatorio sin cita verificable contra la transcripción es exit 2**, y además la regla se marca no evaluable. El spec pedía sólo lo segundo; se hacen las dos. Un juez que condena sin poder mostrar la frase está roto, y un juez roto contamina toda la corrida, no sólo esa regla. Es ruidoso a propósito: la dirección conservadora acá es dudar del arnés, no del producto.
+
+**Una corrida que no corrió ni un escenario es exit 2.** Un filtro de etiquetas que no matchea devuelve cero fallas y se lee como "pasó". Es el modo de falla más silencioso que existe en un arnés y hay que cortarlo de raíz.
 ### 16. El redis del arnés se le pregunta al compose, no se asume
 
 `urlDeRedisDelHost()` resuelve la URL con esta precedencia: `ARNES_REDIS_URL` explícito → `docker compose port redis 6379` → el 6379 de siempre, avisando.
@@ -234,6 +244,34 @@ Se resuelve con `createRequire` apuntado a `gateway/package.json`, en vez de ins
 
 *Por qué:* el cliente de redis que se le pasa a `crearApp` tiene que ser **el que el gateway espera**. Con una copia propia en `arnes/node_modules`, una diferencia de versión convierte al arnés en una prueba de otra cosa — y esa clase de falla aparece meses después, disfrazada.
 
+### 18. El cuarto gotcha: con la ventana atrás, el panel no se refresca — y eso NO es una falla
+
+`usarPedidos` del panel salta el refresco automático cuando `document.hidden` es verdadero. Con la ventana de Chrome minimizada o tapada, **el pedido no aparece nunca**: medido, veinte segundos en segundo plano y el tablero seguía diciendo "Todavía no entró ningún pedido".
+
+*Por qué importa tanto:* la aserción cardinal del guión del dueño es justamente *"el pedido aparece solo, mientras el cliente todavía escribe"*. Si el agente corre con la ventana atrás, esa aserción se cae **en falso, todas las veces**, y manda a buscar un bug de render que no existe. Es el panel haciendo lo correcto — no gastar requests contra una pestaña que nadie mira.
+
+*Cómo se trata:* el guión comprueba `document.visibilityState === 'visible'` **antes** de aseverar, y si no lo es corta con **ARNÉS ROTO (exit 2)**, sin emitir veredicto sobre el producto.
+
+*Por qué va acá y no en una nota al pie:* es el cuarto de la misma familia, y la familia es lo que importa. El gateway del compose robándose la cola (§4), el `message.id` repetido descartándose en silencio, el redis que no está en el 6379 (§16) y esto — **los cuatro se disfrazan de bug del producto**. Un arnés que no los tiene escritos no es un arnés más chico: es uno que va a hacer perder una tarde buscando en el lugar equivocado, y la segunda vez que eso pasa alguien deja de correrlo.
+
+### 19. Deuda conocida: "guion" significa tres cosas distintas
+
+La palabra quedó usada en tres ejes que no tienen nada que ver entre sí:
+
+| dónde | qué quiere decir |
+|---|---|
+| `ARNES_BOT=guion` | el **bot** contesta con respuestas fijas |
+| "modo `guion`" (§2) | el **cliente** sigue un libreto, en vez de improvisar |
+| `arnes/dueno/guion.md` | el checklist que un agente sigue en Chrome |
+
+Ya costó un bug real: un agente escribió un runner cruzando dos de los tres.
+
+*Por qué no se renombró acá:* son ~70 sitios en 15 archivos que cinco agentes acababan de escribir, y un `sed` no puede distinguir los tres sentidos. Renombrar a ciegas código recién landeado y verde rompe más de lo que arregla, y el bug concreto que causó ya está corregido.
+
+*La recomendación, para cuando se toque:* renombrar **sólo** el proveedor del bot, `guion` → **`fijo`**. Es el que colisiona, y "respuestas fijas" es literalmente cómo el README ya lo describe. Los otros dos usos son castellano normal y no molestan una vez que el que colisiona se fue.
+
+*Mientras tanto:* la tabla "Con quién corrió" del `arnes/README.md` los separa explícitamente, y toda corrida imprime qué proveedor usó cada actor. Un nombre ambiguo con la salida desambiguando es incómodo; un nombre ambiguo en silencio es el que muerde.
+
 ## Risks / Trade-offs
 
 - **El juez condena de más y el arnés se vuelve ruido** → tres veredictos con mayoría sobre transcripción fija, cita textual obligatoria (sin cita el veredicto se descarta y marca arnés roto), sólo prohibiciones, sólo las seis reglas duras rompen, y cuarentena manual para lo que grite en falso. Es el riesgo número uno del cambio y se lo ataca por cuatro lados a la vez.
@@ -242,7 +280,7 @@ Se resuelve con `createRequire` apuntado a `gateway/package.json`, en vez de ins
 - **Tests de browser flaky** → locators por rol/texto sobre los `aria-label` que el panel ya trae, aserciones web-first, cero screenshot-as-assert, y `ARNES_DUENO=api` para poder decidir en un minuto si la culpa es del panel o del producto.
 - **El arnés tarda minutos y alguien lo va a querer meter en el push** → no se cuelga de `go test` ni de `make smoke`, y la documentación dice explícitamente cuándo corre. El tope de presupuesto es la última red: si alguien lo automatiza mal, corta solo.
 - **El modelo cambia (versión nueva, `MODELO` distinto) y el arnés cambia de veredicto sin que se toque una línea de código** → la corrida escribe qué modelo usó el bot y cuál el juez. Cambiar `MODELO` obliga a correr el arnés antes de shippear, y esa es una regla de proceso, no de código: ningún test puede protegerte de haber cambiado el cerebro del producto.
-- **`uv` y el MCP en la máquina del que corre** → el arnés chequea `uv`, `docker`, la API key y Chromium **antes de gastar un peso**, y falla con exit 2 y el comando que falta. Nada peor que enterarse de que falta `uv` en el turno 6, con la plata ya gastada.
+- **`uv` y el MCP en la máquina del que corre** → el preflight chequea `uv`, `docker`, el compose y qué proveedor de bot está configurado **antes de empezar**, y falla con exit 2 y el comando que falta. Nada peor que enterarse de que falta `uv` en el turno 6, con media conversación andando.
 - **El modo libre puede gastar mucho si el cliente-modelo no cierra nunca** → techo de 15 turnos y el tope de presupuesto compartido.
 - **El arnés prueba el código del gateway, no su imagen** → aceptado y escrito (decisión 3). El contenedor lo cubre el smoke.
 
@@ -253,7 +291,7 @@ No hay migración: nada de esto existe todavía y nada de lo que existe cambia. 
 Orden de construcción, y cada paso deja algo que sirve solo:
 1. **El andamio sin modelo**: crear el negocio, levantar el gateway en proceso, el Graph falso, mandar un mensaje firmado y ver que el pipeline entero mueve un mensaje — con un `queryFn` de mentira que devuelve `"ok"`. Verifica el arnés, no el bot. Si esto no cierra, nada de lo que sigue tiene sentido.
 2. **El bot real y el nivel 1 y 2** sobre `pedido-feliz`, con el dueño en modo `api`. Acá ya vale la pena aunque no haya juez ni browser.
-3. **El dueño en Playwright** y el círculo completo hasta el aviso al cliente.
+3. **El dueño en Chrome, manejado por un agente** (`arnes/dueno/guion.md`) y el círculo completo hasta el aviso al cliente.
 4. **El juez, las reglas duras y la cuarentena**, con sus casos negativos.
 5. **El resto de los escenarios**, y el modo `libre`.
 

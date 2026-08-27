@@ -96,6 +96,14 @@ Se levanta entero con Docker: `make up && make smoke` (ver el
 producto por la API real). Para desarrollar con el core en la máquina:
 `make infra && make core-run`.
 
+El smoke contesta *"¿el sistema responde?"*. La otra mitad de la pregunta —*"¿la
+conversación termina donde tiene que terminar?"*— la contesta el **arnés**
+(`make arnes`, ver [`arnes/README.md`](arnes/README.md)): una conversación
+entera con el bot real, el panel real y el core real, que es lo único que mira
+qué **decide decir** el bot y la juntura panel → core → redis → gateway →
+WhatsApp. No reemplaza al smoke: el smoke es gratis, offline y de segundos, y
+tiene que seguir siéndolo.
+
 ### Lo que NO está
 
 Nada de esto es código: es trámite, plata o un cliente. Y es lo que separa

@@ -21,7 +21,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 
-import { entorno, ErrorArnes, MODOS_DUENO, RAIZ } from './entorno.js';
+import { entorno, ErrorArnes, MODOS_DUENO, PROVEEDORES_BOT, RAIZ } from './entorno.js';
 
 const AQUI = path.join(RAIZ, 'arnes');
 
@@ -76,7 +76,7 @@ function ejecuta(comando, args) {
 async function chequear(env) {
   const checks = [];
 
-  // 1. El modo del dueño, primero: define si hace falta Chromium.
+  // 1. El modo del dueño, primero: define si la corrida puede ser desatendida.
   const modoValido = MODOS_DUENO.includes(env.duenoModo);
   checks.push({
     nombre: `ARNES_DUENO=${env.duenoModo}`,
@@ -85,9 +85,32 @@ async function chequear(env) {
     porque: 'un typo acá apaga en silencio el único actor que prueba el panel',
     comando: `ARNES_DUENO=${MODOS_DUENO.join(' | ')}`,
   });
+  // 2. **Quién sirve los turnos del bot.** Es el chequeo más importante de
+  //    todos y por eso va arriba de todo lo demás.
+  //
+  //    Este renglón reemplazó al de `ANTHROPIC_API_KEY`, que ya no es un
+  //    requisito: no hay clave en esta máquina y el dueño del producto decidió
+  //    no poner una (design §1, reescrita durante el apply). El principio no se
+  //    movió — el bot no lo escribe la misma cabeza que escribió el prompt —,
+  //    cambió quién lo cumple.
+  //
+  //    Un typo acá no rompe nada: cae al default y la corrida termina en verde.
+  //    Ese es exactamente el problema, porque el verde de `guion` NO es un
+  //    veredicto sobre el bot. Por eso el proveedor se nombra siempre, incluso
+  //    cuando está bien.
+  const proveedorValido = PROVEEDORES_BOT.includes(env.botProveedor);
+  checks.push({
+    nombre: `ARNES_BOT=${env.botProveedor}`,
+    ok: proveedorValido,
+    detalle: proveedorValido ? null : 'no es un proveedor de bot conocido',
+    nota: proveedorValido ? notaDelProveedor(env.botProveedor) : null,
+    porque: 'el proveedor decide si la corrida emite veredicto sobre el bot o solamente sobre el arnés',
+    comando: `ARNES_BOT=${PROVEEDORES_BOT.join(' | ')}`,
+  });
+
   const conNavegador = modoValido && env.duenoModo === 'navegador';
 
-  // 2. Docker con el plugin compose: el arnés para y levanta el gateway del
+  // 3. Docker con el plugin compose: el arnés para y levanta el gateway del
   //    compose durante la corrida (design §4).
   const docker = ejecuta('docker', ['compose', 'version']);
   checks.push({
@@ -99,23 +122,21 @@ async function chequear(env) {
     comando: 'https://docs.docker.com/engine/install/',
   });
 
-  // 3. Las dependencias del arnés. Se chequean por directorio y no importando,
-  //    porque importar `@playwright/test` sin instalar tira un error feo que no
-  //    dice qué hacer.
-  const dependencias = ['@playwright/test', '@anthropic-ai/sdk'];
-  const faltantes = dependencias.filter((d) => !fs.existsSync(path.join(AQUI, 'node_modules', d)));
+  // 4. `redis`, la única dependencia que el arnés importa directo — y sale de
+  //    `gateway/node_modules`, no de una copia propia (design §17). El cliente
+  //    que se le pasa a `crearApp` tiene que ser EXACTAMENTE el que el gateway
+  //    espera: probar contra otro cliente de redis es probar otra cosa, y esa
+  //    clase de falla aparece meses después y disfrazada.
+  const redisDelGateway = path.join(RAIZ, 'gateway', 'node_modules', 'redis');
   checks.push({
-    nombre: 'dependencias de arnes/',
-    ok: faltantes.length === 0,
-    detalle: faltantes.length ? `falta ${faltantes.join(', ')}` : null,
-    porque: 'el arnés es un proyecto Node aparte: no comparte node_modules con el gateway ni con el panel',
-    comando: [
-      'npm --prefix arnes install',
-      ...(conNavegador ? [] : ['# sin navegador alcanza con: PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm --prefix arnes install']),
-    ],
+    nombre: 'redis (de gateway/node_modules)',
+    ok: fs.existsSync(redisDelGateway),
+    detalle: fs.existsSync(redisDelGateway) ? null : 'no está instalado en gateway/',
+    porque: 'el arnés levanta el gateway en proceso y le pasa el cliente de redis que el gateway espera',
+    comando: 'npm --prefix gateway install',
   });
 
-  // 4. El compose entero, servicio por servicio, con las mismas URLs que usa el
+  // 5. El compose entero, servicio por servicio, con las mismas URLs que usa el
   //    smoke. Un fallo acá nombra el servicio: "no responde" a secas manda a
   //    leer logs de cuatro contenedores.
   const core = await responde(`${env.coreUrl}/health`, { buscar: '"status":"ok"' });
@@ -148,68 +169,57 @@ async function chequear(env) {
     comando: 'docker compose up -d panel',
   });
 
-  // 5. La clave. No hay modo "sin gastar": un arnés con el bot simulado no
-  //    prueba nada de lo que este arnés existe para probar (design §1).
-  checks.push({
-    nombre: 'ANTHROPIC_API_KEY',
-    ok: Boolean(env.anthropicApiKey),
-    detalle: env.anthropicApiKey ? null : 'no está ni en el .env de la raíz ni en el entorno',
-    porque: 'el bot del arnés es el bot de producción: sin clave no hay bot, y un bot simulado no prueba el bot',
-    comando: 'export ANTHROPIC_API_KEY=sk-ant-...   (o ponerla en el .env de la raíz)',
-  });
-
   // 6. `uv`: es lo que levanta el server MCP de `agente/`. Sin MCP el bot no
   //    tiene tools y contesta de memoria — o sea, falla todo por una razón que
   //    no es el producto.
-  const uv = ejecuta('uv', ['--version']);
-  checks.push({
-    nombre: 'uv',
-    ok: uv.ok,
-    detalle: uv.detalle,
-    nota: uv.version,
-    porque: 'el MCP de agente/ se levanta con `uv run`; sin él el bot se queda sin tools',
-    comando: 'curl -LsSf https://astral.sh/uv/install.sh | sh',
-  });
-
-  // 7. Chromium, sólo si el dueño va por navegador.
-  if (conNavegador) {
-    checks.push(await chequearChromium(faltantes.includes('@playwright/test')));
-  } else {
-    // No se chequea, y el renglón lo dice con el motivo real: con un
-    // `ARNES_DUENO` inválido esto no es "omitido porque va por API", es
-    // "no se sabe". Un ✓ que miente es peor que un ✗.
+  //
+  //    Sólo hace falta con el proveedor `agente`, que es el único que llama
+  //    tools de verdad. Con `guion` las respuestas ya vienen escritas y el MCP
+  //    no se levanta: exigir `uv` ahí sería un requisito inventado.
+  if (env.botProveedor === 'agente') {
+    const uv = ejecuta('uv', ['--version']);
     checks.push({
-      nombre: 'Chromium de Playwright',
+      nombre: 'uv',
+      ok: uv.ok,
+      detalle: uv.detalle,
+      nota: uv.version,
+      porque: 'el MCP de agente/ se levanta con `uv run`; sin él el bot se queda sin tools y contesta de memoria',
+      comando: 'curl -LsSf https://astral.sh/uv/install.sh | sh',
+    });
+  } else {
+    checks.push({
+      nombre: 'uv',
       ok: true,
-      nota: modoValido
-        ? 'no hace falta: el dueño va por la API del core'
-        : `sin chequear: ARNES_DUENO=${env.duenoModo} no es un modo válido`,
+      nota: proveedorValido
+        ? 'no hace falta: con ARNES_BOT=guion no se levanta el MCP'
+        : `sin chequear: ARNES_BOT=${env.botProveedor} no es un proveedor válido`,
+    });
+  }
+
+  // Nada de Chromium ni de Playwright: se sacaron del proyecto entero
+  // (design §9). El actor dueño por navegador lo maneja un agente con su Chrome
+  // siguiendo un guión escrito, y eso no es un binario que el preflight pueda
+  // chequear — es una persona o un agente que lo corre. Lo único que el arnés
+  // puede hacer al respecto es lo que hace la corrida al final: **nombrar las
+  // aserciones que sólo ese guión cubre** (tarea 3.8), para que "no corre solo"
+  // no se convierta en "no corre nunca".
+  if (conNavegador) {
+    checks.push({
+      nombre: 'actor dueño por navegador',
+      ok: true,
+      nota: 'lo ejecuta un agente con Chrome siguiendo arnes/dueno/guion.md — no corre desatendido',
     });
   }
 
   return checks;
 }
 
-/** ¿Está bajado el Chromium que este Playwright espera? */
-async function chequearChromium(sinPaquete) {
-  const base = {
-    nombre: 'Chromium de Playwright',
-    porque: 'el actor dueño entra al panel por el navegador; es lo único que puede defender el campo libre de la demora',
-    comando: 'npx --prefix arnes playwright install chromium',
-  };
-  if (sinPaquete) {
-    return { ...base, ok: false, detalle: 'no se puede verificar: falta instalar las dependencias de arnes/' };
+/** Qué quiere decir cada proveedor, en una línea, en el renglón del preflight. */
+function notaDelProveedor(proveedor) {
+  if (proveedor === 'agente') {
+    return 'un agente Claude lee el SKILL.md real y llama las tools reales — ESTA corrida juzga al bot';
   }
-  try {
-    const { chromium } = await import('@playwright/test');
-    const ruta = chromium.executablePath();
-    if (!ruta || !fs.existsSync(ruta)) {
-      return { ...base, ok: false, detalle: `el binario no está en ${ruta || '(sin ruta)'}` };
-    }
-    return { ...base, ok: true, nota: ruta };
-  } catch (err) {
-    return { ...base, ok: false, detalle: String(err?.message || err).split('\n')[0].slice(0, 200) };
-  }
+  return 'respuestas fijas: verifica el ARNÉS, no el bot. Un verde acá NO es un verde del producto';
 }
 
 // ── Entrada ──────────────────────────────────────────────────────────────────
@@ -237,6 +247,15 @@ export async function preflight({ silencioso = false } = {}) {
       process.stdout.write(`  ${GRIS}· el bot va a correr con MODELO=${env.modelo}${FIN}\n`);
     } else {
       process.stdout.write(`  ${GRIS}· MODELO sin definir: vale el default de gateway/src/config.js${FIN}\n`);
+    }
+    // El aviso más importante del preflight, y va último para que sea lo último
+    // que se lee. Con `guion` la corrida NO juzga al bot, y eso no puede quedar
+    // escondido en un renglón gris entre otros diez.
+    if (env.botProveedor === 'guion') {
+      process.stdout.write(
+        `\n  ${NEGRITA}⚠ ARNES_BOT=guion${FIN} — esta corrida verifica el ARNÉS, no el bot.\n` +
+        `  ${GRIS}Un guion comparte los puntos ciegos del prompt por construcción. Para juzgar al bot: ARNES_BOT=agente${FIN}\n`,
+      );
     }
   }
 

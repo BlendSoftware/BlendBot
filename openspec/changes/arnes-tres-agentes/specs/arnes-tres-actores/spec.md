@@ -9,7 +9,7 @@ Ninguno de los tres actores SHALL sustituir a un componente del producto. El ún
 #### Scenario: Los tres actores en una corrida
 - **WHEN** se corre un escenario del arnés
 - **THEN** el cliente entra por `POST /webhook/whatsapp` con firma HMAC válida
-- **AND** el bot corre con el `SKILL.md` del vertical, el MCP de `agente/` y la API de Anthropic
+- **AND** el bot corre con el `SKILL.md` del vertical y las tools reales del MCP de `agente/`
 - **AND** el dueño opera el panel servido por el compose
 - **AND** el core, la base y redis son los del compose, sin mocks
 
@@ -20,7 +20,16 @@ Ninguno de los tres actores SHALL sustituir a un componente del producto. El ún
 
 ### Requirement: El bot del arnés es el producto, no una imitación
 
-El actor bot SHALL ser `gateway/src` corriendo con el `SKILL.md` del vertical como system prompt, el servidor MCP de `agente/` con sus tools reales y el modelo de la API de Anthropic. El arnés NO SHALL implementar una versión propia del bot, ni por defecto ni como modo alternativo.
+El actor bot SHALL ser `gateway/src` corriendo con el `SKILL.md` del vertical como system prompt y el servidor MCP de `agente/` con sus tools reales. El arnés NO SHALL implementar una versión propia del bot: ni un mock con respuestas escritas a mano, ni una reimplementación de sus reglas.
+
+Los turnos del bot SHALL servirse por un **proveedor inyectable**, y el arnés SHALL ofrecer al menos dos:
+
+- **`agente`** — un modelo leyendo el `SKILL.md` real y el catálogo de tools real. Es el único proveedor con el que un resultado dice algo del bot.
+- **`guion`** — respuestas fijas. SHALL usarse únicamente para probar el ARNÉS (la puerta del andamio, los tests del propio arnés) y NUNCA para afirmar nada sobre el bot.
+
+Lo que la prohibición protege es que el bot no lo escriba la misma cabeza que escribió el prompt: un mock sólo falla donde el que lo escribió ya sabía que podía fallar. Un modelo leyendo el prompt real tiene los puntos ciegos del **producto**, que es lo que se viene a medir.
+
+Toda corrida SHALL declarar con qué proveedor corrió, y un resultado producido con `guion` SHALL rotularse como verde **del arnés**, nunca del bot.
 
 El modelo del bot SHALL ser el mismo que usa el gateway en producción. Si ese modelo cambia, el veredicto de una corrida anterior deja de ser válido.
 
@@ -33,7 +42,7 @@ El modelo del bot SHALL ser el mismo que usa el gateway en producción. Si ese m
 #### Scenario: No existe un modo con el bot simulado
 - **WHEN** alguien busca correr el arnés sin gastar en la API
 - **THEN** el arnés NO ofrece un modo con el bot simulado
-- **AND** falla con exit 2 si falta `ANTHROPIC_API_KEY`, en vez de correr algo que no prueba el bot
+- **AND** falla con exit 2 si el proveedor de bot configurado no está disponible, en vez de caer en silencio a `guion` y correr algo que no prueba el bot
 
 #### Scenario: La corrida deja escrito con qué cerebro corrió
 - **WHEN** una corrida termina, verde o roja

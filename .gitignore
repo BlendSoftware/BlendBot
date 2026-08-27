@@ -27,12 +27,13 @@ __pycache__/
 *-login.png
 
 # Arnés de tres actores — artefactos de corrida, nunca al repo
+# (Playwright se sacó del proyecto: el dueño por navegador lo maneja un agente
+#  con su Chrome, ver design §9. Por eso ya no hay líneas de playwright-report,
+#  test-results, blob-report ni playwright/.cache. `.playwright-mcp/` de más
+#  arriba es otra cosa y se queda.)
 arnes/node_modules/
 arnes/salida/
-arnes/test-results/
-arnes/playwright-report/
-arnes/blob-report/
-arnes/playwright/.cache/
+arnes/buzon/
 
 # Override local de puertos, por máquina
 docker-compose.override.yml

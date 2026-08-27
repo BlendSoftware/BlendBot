@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "_lea_esto": "Una regla acá adentro se sigue evaluando y se sigue reportando con su cita, pero NO rompe la corrida. Entrar y salir es manual y con motivo: node arnes/juez/cuarentena.js poner <regla> \"<motivo>\" --quien=<nombre>. Nada se auto-silencia.",
+  "entradas": []
+}
