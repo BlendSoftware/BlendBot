@@ -227,10 +227,20 @@ class CoreClient:
     async def servicios(
         self, categoria: str | None = None, cobertura_id: str | None = None
     ) -> list[dict[str, Any]]:
-        """El catálogo disponible. Con `cobertura_id`, cada servicio trae además
-        `precio_efectivo`: el precio que el core le va a CONGELAR a ese cliente.
-        Sin eso cotizábamos precio_base mientras el motor congelaba el de la
-        cobertura, y el cliente cerraba con un número distinto al de la caja (H4).
+        """El catálogo con `solo_disponibles=true`: lo apagado en el panel no existe
+        para el agente, y ese filtro se aplica en la consulta del core.
+
+        `solo_disponibles` filtra el interruptor manual del dueño y NADA más: lo que
+        se agotó hoy sigue viniendo, marcado con `agotado: true` y `restante: 0`. Es
+        a propósito — apagado y agotado son dos estados distintos que merecen dos
+        frases distintas al cliente ("eso no lo tenemos" vs "hoy se nos terminó"), y
+        viniendo marcados el agente los separa en UNA sola lectura
+        (`_catalogo_partido`, server.py) sin resignar el filtrado del servidor.
+
+        Con `cobertura_id`, cada servicio trae además `precio_efectivo`: el precio
+        que el core le va a CONGELAR a ese cliente. Sin eso cotizábamos precio_base
+        mientras el motor congelaba el de la cobertura, y el cliente cerraba con un
+        número distinto al de la caja (H4).
         """
         params: dict[str, Any] = {"solo_disponibles": "true"}
         if categoria:

@@ -54,6 +54,33 @@ async def test_el_catalogo_se_pide_con_la_cobertura_del_cliente(respx_mock, core
 
 
 @respx.mock(base_url=BASE, assert_all_called=False)
+async def test_cada_lectura_fresca_va_con_la_cobertura(respx_mock, core):
+    # El catálogo dejó de cachearse (el stock es volátil y una carta guardada
+    # ofrece el último plato después de vendido). La garantía que el cache
+    # protegía tiene que seguir en pie sin él: TODAS las lecturas —no sólo la
+    # primera— viajan con la cobertura del cliente, así el precio que se cotiza
+    # es el que el core va a congelar (H4).
+    _negocio(respx_mock)
+    respx_mock.get(f"/api/clientes/por-telefono/{TELEFONO}").mock(
+        return_value=httpx.Response(200, json=CLIENTE_CON_CLUB)
+    )
+    ruta = respx_mock.get("/api/servicios").mock(
+        return_value=httpx.Response(200, json=CATALOGO_CLUB_ORO)
+    )
+
+    await server.datos_del_negocio()
+    primera = await server.ver_catalogo()
+    segunda = await server.ver_catalogo()
+
+    coberturas = [c.request.url.params.get("cobertura_id") for c in ruta.calls]
+    assert len(coberturas) >= 2, "la segunda lectura salió de un cache de sesión"
+    assert all(c == "cob-oro" for c in coberturas), f"alguna lectura fue sin cobertura: {coberturas}"
+    for carta in (primera, segunda):
+        corte = next(s for s in carta["servicios"] if s["nombre"] == "Corte")
+        assert corte["precio"] == "9000.00"
+
+
+@respx.mock(base_url=BASE, assert_all_called=False)
 async def test_cotiza_el_precio_de_la_cobertura_no_el_de_lista(respx_mock, core):
     _negocio(respx_mock)
     respx_mock.get(f"/api/clientes/por-telefono/{TELEFONO}").mock(

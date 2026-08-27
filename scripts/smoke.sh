@@ -6,8 +6,8 @@
 # importa después de un deploy — *¿puede un consultorio operar ahora mismo?*
 # Levanta el stack, espera a que los cuatro servicios estén sanos y después
 # recorre el camino completo: alta del negocio, configuración, disponibilidad,
-# hold, turno, la máquina de estados, el cobro, el cierre del día y el token
-# del agente.
+# hold, turno, la máquina de estados, el cobro, el cierre del día, el token
+# del agente y el cupo del día de una parrilla.
 #
 #   bash scripts/smoke.sh
 #
@@ -439,6 +439,107 @@ api GET /api/admin/negocios "$TOKEN_AGENTE"
 [[ $STATUS == 403 || $STATUS == 401 ]] || \
   morir "el token del agente entró al panel admin" "status: $STATUS" "cuerpo: ${RESP:0:300}"
 ok "el token del agente no llega al panel de la plataforma ($STATUS)"
+
+# ── 12. Stock del día ────────────────────────────────────────────────────────
+# El cupo por plato, de punta a punta y por la API real: se carga, se consume
+# confirmando un pedido, y el catálogo lo cuenta.
+#
+# Ojo con qué se asevera acá: `solo_disponibles=true` filtra el interruptor
+# manual del dueño y NADA más. El plato agotado SIGUE viniendo, marcado con
+# `agotado: true` y `restante: 0` — son dos estados distintos ("el dueño lo
+# apagó" vs "hoy se terminó") y el que consume tiene que poder decir una frase
+# distinta en cada caso sin una segunda llamada.
+titulo "Stock del día"
+NOMBRE_GASTRO="Parrilla Smoke ${SUFIJO}"
+USUARIO_GASTRO="gastro${SUFIJO}"
+
+api POST /api/admin/negocios "$TOKEN_ADMIN" "$(printf \
+  '{"nombre":"%s","vertical":"gastronomia","timezone":"%s","usuario_dueno":"%s","config":{"confirmacion":{"pedido":"humana"},"acepta_delivery":false}}' \
+  "$NOMBRE_GASTRO" "$TZ_NEGOCIO" "$USUARIO_GASTRO")"
+exigir 201 "alta de la parrilla"
+PASS_G=$(val password_temporal)
+
+api POST /api/auth/login '' "$(printf '{"username":"%s","password":"%s"}' "$USUARIO_GASTRO" "$PASS_G")"
+exigir 200 "login temporal del dueño de la parrilla"
+TOKEN_G_TMP=$(val access_token)
+PASS_G_DEF="gastro-clave-${SUFIJO}"
+api POST /api/auth/cambiar-password "$TOKEN_G_TMP" "$(printf '{"password_nueva":"%s"}' "$PASS_G_DEF")"
+exigir 200 "cambio de contraseña del dueño de la parrilla"
+api POST /api/auth/login '' "$(printf '{"username":"%s","password":"%s"}' "$USUARIO_GASTRO" "$PASS_G_DEF")"
+exigir 200 "login definitivo de la parrilla"
+TOKEN_G=$(val access_token)
+
+# Dos platos: uno con cuenta y otro sin ella. El sin-cuenta es el control de que
+# "ilimitado" sigue siendo el default y no se contagia del que se agota.
+api POST /api/servicios "$TOKEN_G" '{"nombre":"Empanadas","precio_base":"4500"}'
+exigir 201 "alta del plato sin cupo"
+api POST /api/servicios "$TOKEN_G" '{"nombre":"Milanesa","precio_base":"9500"}'
+exigir 201 "alta del plato con cupo"
+MILANESA_ID=$(val id)
+
+api POST /api/jornada/abrir "$TOKEN_G" ''
+exigir 201 "la caja del día se abre"
+
+api PUT /api/stock/cupos "$TOKEN_G" "$(printf '{"servicio_id":"%s","asignado":1}' "$MILANESA_ID")"
+exigir 200 "cupo de 1 porción cargado"
+igual 1 "$(val restante)" "queda una porción"
+igual false "$(val agotado)" "con una porción todavía no está agotado"
+
+# El catálogo del agente, ordenado por nombre: [0] Empanadas, [1] Milanesa.
+api GET '/api/servicios?solo_disponibles=true' "$TOKEN_G"
+exigir 200 "catálogo del agente con el cupo cargado"
+igual 2 "$(val '#')" "los dos platos en la carta"
+# `"restante":null` se busca en el cuerpo crudo y no con val: un campo AUSENTE
+# también se lee como null, y ahí el assert pasaría contra un core que no
+# implementó nada. El null tiene que estar escrito.
+contiene '"restante":null' "$RESP" "el plato sin cupo viaja ilimitado: restante null explícito, no 0 ni ausente"
+igual false "$(val '[0].agotado')" "y no viene agotado"
+igual 1 "$(val '[1].restante')" "del plato con cupo queda una"
+igual false "$(val '[1].agotado')" "y todavía no está agotado"
+
+# Un pedido que se lleva la última porción.
+api POST /api/clientes "$TOKEN_G" "$(printf '{"telefono":"54926119%s","nombre":"Juana"}' "${SUFIJO:0:5}")"
+exigir 201 "alta del cliente de la parrilla"
+CLIENTE_G=$(val id)
+
+PEDIR_MILANESA=$(printf '{
+  "cliente_id":"%s","tipo":"pedido","origen":"whatsapp","entrega":"retira",
+  "lineas":[{"servicio_id":"%s","cantidad":1}]}' "$CLIENTE_G" "$MILANESA_ID")
+
+# Los dos pedidos se arman ANTES de confirmar ninguno: así es como pasa en el
+# mostrador, los dos clientes vieron el mismo último plato.
+api POST /api/compromisos "$TOKEN_G" "$PEDIR_MILANESA"
+exigir 201 "primer pedido de la última milanesa"
+PEDIDO_1=$(val id)
+api POST /api/compromisos "$TOKEN_G" "$PEDIR_MILANESA"
+exigir 201 "segundo pedido de la misma última milanesa"
+PEDIDO_2=$(val id)
+
+api PATCH "/api/compromisos/${PEDIDO_1}/estado" "$TOKEN_G" '{"estado":"confirmado","demora_min":25}'
+exigir 200 "el local confirma el primer pedido y se lleva la porción"
+
+api PATCH "/api/compromisos/${PEDIDO_2}/estado" "$TOKEN_G" '{"estado":"confirmado","demora_min":25}'
+exigir 409 "el segundo pedido se choca con el cupo agotado (ErrSinCupo, la última línea de defensa)"
+
+api GET /api/stock "$TOKEN_G"
+exigir 200 "la pantalla de stock del panel"
+igual 1 "$(val '[0].asignado')" "asignado del día"
+igual 1 "$(val '[0].consumido')" "se vendió exactamente una porción: la base no dejó sobrevender"
+igual true "$(val '[0].agotado')" "el plato quedó agotado"
+
+api GET '/api/servicios?solo_disponibles=true' "$TOKEN_G"
+exigir 200 "catálogo del agente después de agotarse el plato"
+igual 2 "$(val '#')" "el agotado NO desaparece: solo_disponibles filtra el interruptor manual, no el stock"
+igual 0 "$(val '[1].restante')" "el agotado dice restante 0"
+igual true "$(val '[1].agotado')" "y viene marcado como agotado"
+contiene '"restante":null' "$RESP" "el plato sin cupo sigue ilimitado: no se contagió"
+
+# Y el interruptor manual sí saca el plato de la carta del agente.
+api PATCH "/api/servicios/${MILANESA_ID}/disponible" "$TOKEN_G" '{"disponible":false}'
+exigir 200 "el dueño apaga el plato desde el panel"
+api GET '/api/servicios?solo_disponibles=true' "$TOKEN_G"
+exigir 200 "catálogo con el plato apagado"
+igual 1 "$(val '#')" "lo apagado a mano sí se filtra en el servidor"
 
 # ── Final ────────────────────────────────────────────────────────────────────
 trap - ERR

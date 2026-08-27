@@ -30,6 +30,12 @@ mcp = FastMCP("copiloto-comercios")
 
 DIAS = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
 
+# Desde cuántas porciones para abajo el número le llega al modelo. Arriba de esto
+# el dato no es información, es rareza: mandarle `restante: 47` sólo invita a que
+# le diga al cliente "quedan 47 bifes". Mismo criterio que `descripcion`: lo que no
+# aporta, no viaja. Se ajusta con el dueño en dogfooding.
+STOCK_ESCASO = 3
+
 _cliente_core: CoreClient | None = None
 
 
@@ -74,23 +80,47 @@ async def _negocio() -> dict[str, Any]:
     return s.negocio
 
 
-async def _catalogo(categoria: str | None = None) -> list[dict[str, Any]]:
-    """Siempre `solo_disponibles=true`: lo apagado en el panel no existe para el agente.
+def _agotado(servicio: dict[str, Any]) -> bool:
+    """Si el plato lleva cuenta de porciones y hoy no queda ninguna.
 
-    Los precios se piden CON la cobertura del cliente: el core congela el precio
-    de la cobertura y nosotros cotizábamos precio_base, así que el cliente
-    cerraba el pedido con un número y en la caja le salía otro (H4). Si la
-    cobertura de la ficha cambió, el cache se descarta.
+    Se miran los dos campos que el core manda por el mismo hecho: `agotado` es el
+    que manda, y `restante: 0` es esa misma verdad dicha con un número. Con uno solo
+    alcanzaría, pero un plato en cero que se cuela a la carta termina en un cliente
+    ilusionado, así que acá se paga barato ser redundante.
+
+    `restante: null` es "este plato NO lleva cuenta" (ilimitado), que no es cero: por
+    eso se compara contra 0 y nunca con `<= 0`.
     """
-    s = sesion()
-    cobertura_id = _cobertura_del_cliente()
-    if categoria or not s.catalogo or s.catalogo_cobertura != cobertura_id:
-        servicios = await core().servicios(categoria, cobertura_id)
-        if not categoria:
-            s.catalogo = servicios
-            s.catalogo_cobertura = cobertura_id
-        return servicios
-    return s.catalogo
+    return bool(servicio.get("agotado")) or servicio.get("restante") == 0
+
+
+async def _catalogo_partido(
+    categoria: str | None = None,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """`(vendibles, agotados_de_hoy)` de UNA sola lectura al core.
+
+    El core ya filtró el interruptor manual del dueño (`solo_disponibles=true`): lo
+    apagado en el panel no llega hasta acá y para el agente no existe, igual que
+    siempre. Lo que sí llega es lo agotado, marcado — porque apagado y agotado no son
+    lo mismo y el cliente merece oír una frase distinta en cada caso. Partirlo acá es
+    quedarse con las dos verdades sin una segunda llamada.
+
+    Se lee fresco en cada invocación, sin cache de sesión: el stock es justamente el
+    dato que se mueve a mitad de conversación —en el servicio lleno, que es cuando
+    esto importa— y una carta cacheada ofrece el último plato después de vendido.
+
+    Lo que el cache protegía sigue en pie: los precios se piden CON la cobertura del
+    cliente porque el core congela el de la cobertura y nosotros cotizábamos
+    precio_base, así que el cliente cerraba el pedido con un número y en la caja le
+    salía otro (H4). Esa garantía viaja en `cobertura_id`, que va en cada lectura; no
+    dependía de guardar nada.
+    """
+    servicios = await core().servicios(categoria, _cobertura_del_cliente())
+    vendibles: list[dict[str, Any]] = []
+    agotados: list[dict[str, Any]] = []
+    for sv in servicios:
+        (agotados if _agotado(sv) else vendibles).append(sv)
+    return vendibles, agotados
 
 
 def _cobertura_del_cliente() -> str | None:
@@ -221,7 +251,20 @@ def _normalizar_entrega(entrega: str | None) -> str | None:
     return _ENTREGAS.get(clave, clave)
 
 
-def _sin_encontrar(que: str, r: Resolucion, campo: str = "nombre") -> dict[str, Any]:
+def _sin_encontrar(
+    que: str,
+    r: Resolucion,
+    campo: str = "nombre",
+    agotados: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Qué contestar cuando lo que pidió el cliente no está entre lo vendible.
+
+    `agotados` distingue los dos "no": el plato que el negocio no tiene y el que hoy
+    se terminó. Sin esto, un cliente que va derecho a pedir el bife agotado —sin pasar
+    por `ver_catalogo`— se lleva un "eso no lo tienen" que es falso, y encima
+    contradice lo que le diría el mismo bot un mensaje antes. Se pasa sólo desde los
+    llamadores de servicio: recursos y coberturas no llevan cupo.
+    """
     opciones = [str(c.get(campo, "")) for c in r.candidatos if c.get(campo)]
     if r.ambiguo:
         return {
@@ -230,6 +273,21 @@ def _sin_encontrar(que: str, r: Resolucion, campo: str = "nombre") -> dict[str, 
             "error": f"«{que}» puede ser más de una cosa. Preguntale al cliente cuál es, "
             "no elijas vos.",
             "opciones": opciones,
+        }
+    # Recién si no matcheó nada vendible preguntamos si es algo que se terminó hoy.
+    # Se resuelve con el mismo `resolver` que la carta, así "veggie" encuentra a la
+    # "Hamburguesa Veggie" agotada igual que la encontraría si estuviera a la venta.
+    ra = resolver(que, agotados or [], campo=campo)
+    if ra.ok:
+        nombre = str((ra.item or {}).get(campo, que))
+        return {
+            "ok": False,
+            "codigo": "agotado",
+            "error": f"«{nombre}» sí lo tienen, pero HOY SE TERMINÓ. Decíselo así: «se nos "
+            "terminó hoy», NUNCA «no lo tenemos», que sería mentira. Ofrecele algo parecido "
+            "de la carta. NO prometas que se repone, ni a qué hora vuelve, ni ofrezcas "
+            "avisarle cuando haya: no hay forma de cumplirlo.",
+            "agotado": nombre,
         }
     return {
         "ok": False,
@@ -255,6 +313,13 @@ def _servicio_visible(s: dict[str, Any]) -> dict[str, Any]:
     descripcion = s.get("descripcion")
     if descripcion:
         visible["descripcion"] = str(descripcion).strip()
+    # Cuántas porciones quedan, SÓLO cuando quedan pocas: ahí sirve para avisar
+    # "quedan 2" antes de que el cliente se ilusione con cuatro. Un plato ilimitado
+    # (`restante: null`) o con stock de sobra no trae el campo, igual que la
+    # descripción no cargada: si no está, el modelo no lo sabe y no lo afirma.
+    restante = s.get("restante")
+    if isinstance(restante, int) and not isinstance(restante, bool) and restante <= STOCK_ESCASO:
+        visible["restante"] = restante
     return visible
 
 
@@ -345,11 +410,24 @@ class LineaPedida(BaseModel):
 @mcp.tool()
 @traduce_errores
 async def ver_catalogo(categoria: str | None = None) -> dict[str, Any]:
-    """Lo que el negocio ofrece HOY, con precio y duración.
+    """Lo que el negocio puede vender AHORA, con precio y duración.
 
-    Nunca lista lo que está apagado en el panel (`disponible=false`): si algo no aparece
-    acá, para el cliente no existe. Si te pide algo que no está en la lista, decile que
-    no lo tienen — no lo ofrezcas "por las dudas".
+    `servicios` es la ÚNICA lista de la que se ofrece y de la que se toma pedido. No
+    lista lo que está apagado en el panel (`disponible=false`) ni lo que hoy se agotó:
+    si algo no está ahí, para el cliente no existe. Si te pide algo que no está en
+    `servicios`, no se lo ofrezcas ni se lo armes — tampoco "por las dudas".
+
+    `agotados_hoy` son NOMBRES, sin precio, de platos que el local sí tiene pero que hoy
+    se terminaron. **No es una lista para ofrecer ni para tomar pedido.** Existe para una
+    sola cosa: que cuando el cliente pregunte por uno de esos platos le digas "hoy se nos
+    terminó" en vez de "no lo tenemos", que sería mentira. Después de decirlo, ofrecele
+    algo de `servicios`. Nunca prometas que se repone, ni a qué hora vuelve, ni ofrezcas
+    avisarle cuando haya: no hay nada en el sistema que pueda cumplir eso. Si la lista no
+    viene, es que no se agotó nada.
+
+    Un ítem trae `restante` sólo cuando quedan pocas porciones: ahí sí podés decir cuántas
+    quedan. Si el campo no está, no sabés cuántas hay — no digas que hay de sobra ni que
+    quedan pocas.
 
     Los precios que le digas al cliente salen de acá TAL CUAL. Si un precio no está en
     esta respuesta, no lo digas: no se estima ni se redondea.
@@ -357,18 +435,30 @@ async def ver_catalogo(categoria: str | None = None) -> dict[str, Any]:
     Cada ítem puede traer `descripcion` (lo que lleva el plato). Si el cliente pregunta
     "¿qué tiene la Doble bacon?", respondé con ESA descripción textual. Si un ítem no la
     trae, no la sabés: no la inventes — usá `dejar_consulta` para que el local responda.
+
+    Si la conversación se estiró, volvé a llamarla antes de cerrar: el stock se mueve y
+    esta tool consulta fresco cada vez.
     """
-    servicios = await _catalogo(categoria)
+    servicios, agotados = await _catalogo_partido(categoria)
+    # Sólo el nombre: con precio, `agotados_hoy` parecería una carta paralela y sería
+    # cuestión de tiempo que el modelo cotice de ahí.
+    agotados_hoy = [str(s.get("nombre")) for s in agotados if s.get("nombre")]
+    # Ausente cuando no hay nada agotado: una lista vacía en la respuesta es una
+    # invitación a mencionarla, y no hay nada que mencionar.
+    hoy = {"agotados_hoy": agotados_hoy} if agotados_hoy else {}
     if not servicios:
         return {
             "ok": True,
             "servicios": [],
-            "aviso": "El negocio no tiene nada disponible ahora mismo. Decilo así y ofrecé "
-            "que lo contacten del negocio; no inventes productos.",
+            **hoy,
+            "aviso": "No queda nada para vender ahora mismo. Decilo así —si hay "
+            "`agotados_hoy`, que hoy se terminó, no que no lo tienen— y ofrecé que lo "
+            "contacten del negocio. No inventes productos.",
         }
     return {
         "ok": True,
         "servicios": [_servicio_visible(s) for s in servicios],
+        **hoy,
         "nota": "Precios y duraciones son los reales: leelos textuales, no los estimes.",
     }
 
@@ -392,10 +482,10 @@ async def consultar_disponibilidad(
     vacía, no hay turno en ese rango: ofrecé buscar en otra fecha, nunca inventes uno.
     Copiá `inicio` y `fin` tal cual para `bloquear`.
     """
-    servicios = await _catalogo()
+    servicios, agotados = await _catalogo_partido()
     r = resolver(servicio, servicios)
     if not r.ok:
-        return _sin_encontrar(servicio, r)
+        return _sin_encontrar(servicio, r, agotados=agotados)
     sv = r.item or {}
 
     recurso_id = None
@@ -471,12 +561,19 @@ async def armar_compromiso(
     entra al panel apenas hay ítems, así la cocina lo ve venir. Si después agrega o cambia
     algo, volvé a llamarla: reemplaza el borrador anterior.
     """
-    servicios = await _catalogo()
+    servicios, agotados = await _catalogo_partido()
     if not servicios:
         return {
             "ok": False,
             "codigo": "sin_catalogo",
-            "error": "El negocio no tiene nada disponible. No armes nada.",
+            # Si la carta entera se agotó, "no tiene nada" también sería mentira: el
+            # negocio tiene, se le terminó. Es la misma distinción que `agotado`.
+            "error": "No queda nada para vender ahora mismo. No armes nada."
+            + (
+                " Lo que pidió se terminó HOY: decíselo así, no que no lo tienen."
+                if agotados
+                else ""
+            ),
         }
 
     entrega = _normalizar_entrega(entrega)
@@ -484,7 +581,7 @@ async def armar_compromiso(
     for pedida in lineas:
         r = resolver(pedida.servicio, servicios)
         if not r.ok:
-            return _sin_encontrar(pedida.servicio, r)
+            return _sin_encontrar(pedida.servicio, r, agotados=agotados)
         sv = r.item or {}
         borrador.lineas.append(
             LineaBorrador(
@@ -708,11 +805,9 @@ async def confirmar(
         if cambios:
             cliente = await core().actualizar_cliente(str(cliente.get("id")), **cambios)
     s.cliente = cliente
-    # Si recién ahora supimos la cobertura, el catálogo cacheado tiene los
-    # precios de otra: que la próxima cotización lo vuelva a pedir (H4).
-    if s.catalogo_cobertura != _cobertura_del_cliente():
-        s.catalogo = []
-        s.catalogo_cobertura = None
+    # Antes acá se descartaba el catálogo cacheado si recién ahora supimos la
+    # cobertura (H4). Ya no hace falta: el catálogo no se cachea y cada lectura sale
+    # con la cobertura que tenga la ficha en ese momento.
 
     # 2) el compromiso. `sesion` va para que el hold propio no cuente como solape.
     cuerpo: dict[str, Any] = {

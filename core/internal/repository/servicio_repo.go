@@ -17,8 +17,12 @@ type FiltroServicios struct {
 
 // ServicioRepository es tenant-scoped.
 //
-// ListDisponibles es la vista del agente: sólo activo + disponible. El
-// interruptor `disponible` excluye el servicio de todo listado no-admin.
+// ListDisponibles es activo + disponible. El interruptor `disponible` excluye
+// el servicio de todo listado no-admin.
+//
+// No resuelve el cupo del día: quien llame directo a este método no se entera
+// de qué se terminó. La vista del agente pasa por CatalogoService, que sí lo
+// informa.
 type ServicioRepository interface {
 	Create(ctx context.Context, negocioID string, s *model.Servicio) error
 	GetByID(ctx context.Context, negocioID, id string) (*model.Servicio, error)

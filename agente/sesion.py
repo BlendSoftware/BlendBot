@@ -117,11 +117,10 @@ class Bloqueo:
 class Sesion:
     telefono: str = ""
     negocio: dict[str, Any] | None = None
-    catalogo: list[dict[str, Any]] = field(default_factory=list)
-    # Con qué cobertura se pidieron los precios del catálogo cacheado. Si el
-    # cliente declara su obra social a mitad de la charla, el cache quedó con
-    # los precios de otra cobertura y hay que volver a pedirlo (H4).
-    catalogo_cobertura: str | None = None
+    # El catálogo NO se guarda acá: se lee fresco en cada llamada. El stock del día
+    # es el dato que se mueve a mitad de conversación, y una carta cacheada sigue
+    # ofreciendo el último plato después de vendido. Los recursos sí se cachean: no
+    # cambian durante una charla.
     recursos: list[dict[str, Any]] = field(default_factory=list)
     ultimos_huecos: list[dict[str, Any]] = field(default_factory=list)
     borrador: Borrador | None = None

@@ -141,6 +141,7 @@ func armarRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) *gin.Engine
 	avisoRepo := repository.NewAvisoRepository(db)
 	cobroRepo := repository.NewCobroRepository(db)
 	jornadaRepo := repository.NewJornadaRepository(db)
+	cupoRepo := repository.NewCupoRepository(db)
 	reporteRepo := repository.NewReporteRepository(db)
 
 	// El cifrado fiscal va con una clave de test: sin cifrador, cargar
@@ -156,16 +157,28 @@ func armarRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) *gin.Engine
 	huecoLiberado := worker.NewListaEsperaNotificador(
 		listaEsperaRepo, avisoRepo, worker.NewPublicador(rdb), nil)
 
+	// El control de cupos va cableado como en producción (main.go): el catálogo
+	// informa el stock del día y confirmar un pedido lo descuenta. Sin esto el
+	// e2e no probaba una sola línea de la feature de stock sobre HTTP —ni
+	// siquiera el 409 de ErrSinCupo—, y peor: el catálogo salía MUDO (todo
+	// `restante: null`, `agotado: false`), así que un test de stock fallaría
+	// por falta de datos y no por el bug que busca.
 	return router.New(router.Deps{
-		Cfg:          cfg,
-		DB:           db,
-		RDB:          rdb,
-		AuthSvc:      service.NewAuthService(usuarioRepo, cfg, rdb),
-		NegocioSvc:   service.NewNegocioService(db, negocioRepo, usuarioRepo),
-		CatalogoSvc:  service.NewCatalogoService(categoriaRepo, recursoRepo, servicioRepo, coberturaRepo),
-		ClienteSvc:   service.NewClienteService(clienteRepo, coberturaRepo),
-		AuditSvc:     service.NewAuditService(auditRepo),
-		MotorSvc:     service.NewMotorGastro(service.NewMotorService(compromisoRepo, holdRepo, service.ConNotificador(huecoLiberado)), negDatosRepo),
+		Cfg:        cfg,
+		DB:         db,
+		RDB:        rdb,
+		AuthSvc:    service.NewAuthService(usuarioRepo, cfg, rdb),
+		NegocioSvc: service.NewNegocioService(db, negocioRepo, usuarioRepo),
+		CatalogoSvc: service.NewCatalogoService(categoriaRepo, recursoRepo, servicioRepo, coberturaRepo,
+			service.ConCupoEnCatalogo(cupoRepo, jornadaRepo),
+		),
+		ClienteSvc: service.NewClienteService(clienteRepo, coberturaRepo),
+		AuditSvc:   service.NewAuditService(auditRepo),
+		MotorSvc: service.NewMotorGastro(
+			service.NewMotorService(compromisoRepo, holdRepo, service.ConNotificador(huecoLiberado)),
+			negDatosRepo,
+			service.ConControlDeCupos(cupoRepo, jornadaRepo),
+		),
 		HoldSvc:      service.NewHoldService(holdRepo, compromisoRepo),
 		DispoSvc:     service.NewDisponibilidadService(dispoRepo),
 		TokenSvc:     service.NewNegocioTokenService(negDatosRepo),
@@ -173,6 +186,7 @@ func armarRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) *gin.Engine
 		ConsultaSvc:  service.NewConsultaService(consultaRepo, worker.NewAvisadorConsulta(worker.NewPublicador(rdb))),
 		CobroSvc:     service.NewCobroService(cobroRepo, negDatosRepo, cifrador),
 		JornadaSvc:   service.NewJornadaService(jornadaRepo),
+		CupoSvc:      service.NewCupoService(cupoRepo, jornadaRepo, servicioRepo),
 		ReporteSvc:   service.NewReporteService(reporteRepo, negDatosRepo),
 		NegDatosRepo: negDatosRepo,
 		HorarioH:     handler.NewHorariosHandler(horarioRepo),

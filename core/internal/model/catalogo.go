@@ -53,6 +53,20 @@ type Servicio struct {
 	// agente cotizaba precio_base mientras el motor congelaba el de cobertura:
 	// el cliente confirmaba un número y se le cobraba otro (H4).
 	PrecioEfectivo *decimal.Decimal `gorm:"-" json:"precio_efectivo,omitempty"`
+
+	// Restante son las porciones que quedan hoy, según el cupo de la jornada
+	// abierta. Tampoco es una columna: se resuelve al listar.
+	//
+	// nil NO es cero. nil es "este plato no lleva cuenta" —el cupo se opta
+	// plato por plato, así que ilimitado es el default— y 0 es "lleva cuenta y
+	// no queda". Viaja como puntero y sin omitempty para que la diferencia
+	// llegue entera al JSON: el que no puede distinguir "no sé" de "no hay"
+	// termina apagando el plato equivocado o vendiendo el que se terminó.
+	Restante *int `gorm:"-" json:"restante"`
+	// Agotado es Restante == 0. Va aparte para que nadie tenga que volver a
+	// decidir qué significa un cero, y para que un plato ilimitado diga false
+	// en vez de dejar al consumidor adivinando.
+	Agotado bool `gorm:"-" json:"agotado"`
 }
 
 func (Servicio) TableName() string { return "servicio" }

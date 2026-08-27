@@ -29,6 +29,11 @@ type CatalogoService interface {
 	ActualizarRecurso(ctx context.Context, negocioID, id string, req dto.ActualizarRecursoRequest) (*model.Recurso, error)
 
 	// Servicios
+	//
+	// El listado trae además el cupo del día: Restante y Agotado resueltos
+	// contra la jornada abierta. Los agotados NO se filtran — viajan marcados,
+	// incluso con f.SoloDisponibles, para que quien consume pueda distinguir
+	// "el dueño lo apagó" de "hoy se terminó" en una sola lectura.
 	ListarServicios(ctx context.Context, negocioID string, f repository.FiltroServicios) ([]model.Servicio, error)
 	// ListarServiciosParaCobertura es el mismo listado con PrecioEfectivo
 	// resuelto: lo que el agente tiene que cotizar para ESE cliente. Con
@@ -57,6 +62,36 @@ type catalogoService struct {
 	recursos   repository.RecursoRepository
 	servicios  repository.ServicioRepository
 	coberturas repository.CoberturaRepository
+	cupos      cupoLector                   // opcional: nil = todo ilimitado
+	jornadas   repository.JornadaRepository // opcional: va de la mano de cupos
+}
+
+// cupoLector es lo único que el catálogo necesita del control de stock: cuánto
+// queda de cada plato de la jornada, en UNA consulta. Lo implementa
+// repository.CupoRepository.
+//
+// Es lectura y nada más. El descuento al confirmar sigue siendo del motor y de
+// Postgres: acá no se toca un cupo, se mira.
+type cupoLector interface {
+	RestantePorServicio(ctx context.Context, negocioID, jornadaID string) (map[string]int, error)
+}
+
+// OpcionCatalogo configura el service sin romperle la firma al constructor,
+// igual que OpcionGastro en el motor.
+type OpcionCatalogo func(*catalogoService)
+
+// ConCupoEnCatalogo hace que el listado informe el cupo del día. Sin la opción
+// el catálogo sale como salía siempre —todo con restante nil y agotado false—,
+// que es lo correcto para salud, donde no hay cupos.
+//
+// La opción no cambia QUÉ platos se listan, sólo cuánto se sabe de cada uno:
+// olvidarse de cablearla deja al consumidor sin stock, no le cambia la carta
+// por abajo.
+func ConCupoEnCatalogo(c cupoLector, j repository.JornadaRepository) OpcionCatalogo {
+	return func(s *catalogoService) {
+		s.cupos = c
+		s.jornadas = j
+	}
 }
 
 func NewCatalogoService(
@@ -64,13 +99,18 @@ func NewCatalogoService(
 	recursos repository.RecursoRepository,
 	servicios repository.ServicioRepository,
 	coberturas repository.CoberturaRepository,
+	opts ...OpcionCatalogo,
 ) CatalogoService {
-	return &catalogoService{
+	s := &catalogoService{
 		categorias: categorias,
 		recursos:   recursos,
 		servicios:  servicios,
 		coberturas: coberturas,
 	}
+	for _, o := range opts {
+		o(s)
+	}
+	return s
 }
 
 // traducirNoEncontrado normaliza el error del ORM a un sentinel del dominio.
@@ -164,7 +204,9 @@ func (s *catalogoService) ActualizarRecurso(ctx context.Context, negocioID, id s
 // ─── Servicios ───────────────────────────────────────────────────────────────
 
 func (s *catalogoService) ListarServicios(ctx context.Context, negocioID string, f repository.FiltroServicios) ([]model.Servicio, error) {
-	return s.servicios.List(ctx, negocioID, f)
+	// Un solo camino: si el cupo se resolviera en un listado y no en el otro,
+	// el que se olvide de pasar cobertura se queda sin saber qué hay.
+	return s.ListarServiciosParaCobertura(ctx, negocioID, f, "")
 }
 
 // ListarServiciosParaCobertura resuelve el precio que se le va a congelar a un
@@ -172,9 +214,17 @@ func (s *catalogoService) ListarServicios(ctx context.Context, negocioID string,
 // el precio de cobertura: el cliente cerraba el pedido con un número y en la
 // caja le aparecía otro (H4). Ahora quien cotiza pide el precio de la cobertura
 // y los dos lados dicen lo mismo.
+//
+// El cupo se resuelve y se informa; no se filtra. Un plato agotado sale igual,
+// con agotado true y su precio: quien consume necesita las dos cosas para
+// decirle al cliente "hoy se nos terminó" en vez de hacer de cuenta que el
+// plato no existe.
 func (s *catalogoService) ListarServiciosParaCobertura(ctx context.Context, negocioID string, f repository.FiltroServicios, coberturaID string) ([]model.Servicio, error) {
 	servicios, err := s.servicios.List(ctx, negocioID, f)
 	if err != nil {
+		return nil, err
+	}
+	if err := s.resolverCupo(ctx, negocioID, servicios); err != nil {
 		return nil, err
 	}
 	if coberturaID == "" || len(servicios) == 0 {
@@ -202,6 +252,53 @@ func (s *catalogoService) ListarServiciosParaCobertura(ctx context.Context, nego
 		servicios[i].PrecioEfectivo = &efectivo
 	}
 	return servicios, nil
+}
+
+// resolverCupo mergea sobre el listado el cupo de la jornada abierta. Es UNA
+// consulta para toda la carta: preguntar plato por plato convierte cada
+// listado del agente —y son varios por conversación— en un N+1 contra
+// cupo_jornada.
+//
+// Se resuelve acá y no en ServicioRepository a propósito: el repositorio de
+// servicios no conoce la jornada, y también lo usa salud, donde no hay cupos.
+// Meterle jornada_id a su firma acopla el catálogo entero a algo que la mitad
+// del producto no tiene.
+//
+// Sin jornada abierta —o sin control de cupos cableado— no se inventa un día:
+// los servicios quedan como salieron del repo, o sea `restante: null` y
+// `agotado: false`. Eso NO es un error: el negocio que nunca abre caja tiene
+// que seguir vendiendo igual que antes de este cambio.
+func (s *catalogoService) resolverCupo(ctx context.Context, negocioID string, servicios []model.Servicio) error {
+	if s.cupos == nil || s.jornadas == nil || len(servicios) == 0 {
+		return nil
+	}
+	j, err := s.jornadas.Actual(ctx, negocioID)
+	if err != nil {
+		return err
+	}
+	if j == nil || j.CerradaEn != nil {
+		return nil
+	}
+	restantes, err := s.cupos.RestantePorServicio(ctx, negocioID, j.ID)
+	if err != nil {
+		return err
+	}
+	for i := range servicios {
+		// Lo que no está en cupo_jornada es ilimitado. Dejarlo en restante 0
+		// sería decirle al que consume "no hay" donde la verdad es "no sé".
+		r, lleva := restantes[servicios[i].ID]
+		if !lleva {
+			continue
+		}
+		if r < 0 {
+			// El CHECK (consumido <= asignado) no deja llegar acá. Si algún día
+			// llegara, agotado es la lectura segura: la otra vende de más.
+			r = 0
+		}
+		servicios[i].Restante = &r
+		servicios[i].Agotado = r == 0
+	}
+	return nil
 }
 
 func (s *catalogoService) ObtenerServicio(ctx context.Context, negocioID, id string) (*model.Servicio, error) {
