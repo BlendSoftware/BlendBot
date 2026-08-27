@@ -218,6 +218,22 @@ Y la línea de falla, que es el entregable de verdad:
 
 *Por qué separarlos:* confundirlos es la forma más rápida de perder una hora arreglando un bug que no existe. Un arnés que dice "rojo" cuando en realidad se quedó sin API key entrena a la gente a desconfiar del rojo, y a partir de ahí el rojo no sirve para nada.
 
+### 16. El redis del arnés se le pregunta al compose, no se asume
+
+`urlDeRedisDelHost()` resuelve la URL con esta precedencia: `ARNES_REDIS_URL` explícito → `docker compose port redis 6379` → el 6379 de siempre, avisando.
+
+*Por qué:* la URL que vive en el compose (`redis://redis:6379/0`) es el hostname de la red de docker y desde el host no resuelve. Y el puerto publicado **no es necesariamente el 6379**: en la máquina donde se construyó esto, un `docker-compose.override.yml` gitignoreado lo mueve al 6380 porque otro proyecto ocupa el de siempre.
+
+*Por qué importa más de lo que parece:* el modo de falla es horrible. El cliente de redis reintenta en silencio, el proceso queda colgado con un `err.message` vacío, y el síntoma que ve el que corre el arnés es **"el bot no contestó"** — o sea, va a buscar el problema en el producto. Es el tercer gotcha del arnés, al mismo nivel que el `stop` del gateway (§4) y el `message.id` repetido, y por el mismo motivo: los tres se disfrazan de bug del producto.
+
+*Alternativa descartada:* hardcodear `redis://localhost:6379` en la lectura del entorno. Se probó y mintió el mismo día. Una constante que sólo es cierta en algunas máquinas es una segunda fuente de verdad, y la que miente siempre es la que alguien lee primero.
+
+### 17. La única dependencia que el arnés importa directo es `redis`, y sale de `gateway/`
+
+Se resuelve con `createRequire` apuntado a `gateway/package.json`, en vez de instalar una copia propia en `arnes/`.
+
+*Por qué:* el cliente de redis que se le pasa a `crearApp` tiene que ser **el que el gateway espera**. Con una copia propia en `arnes/node_modules`, una diferencia de versión convierte al arnés en una prueba de otra cosa — y esa clase de falla aparece meses después, disfrazada.
+
 ## Risks / Trade-offs
 
 - **El juez condena de más y el arnés se vuelve ruido** → tres veredictos con mayoría sobre transcripción fija, cita textual obligatoria (sin cita el veredicto se descarta y marca arnés roto), sólo prohibiciones, sólo las seis reglas duras rompen, y cuarentena manual para lo que grite en falso. Es el riesgo número uno del cambio y se lo ataca por cuatro lados a la vez.

@@ -1,0 +1,17 @@
+{
+  "name": "copiloto-arnes",
+  "version": "1.0.0",
+  "description": "Arnés de tres actores: el dueño en el panel, el bot real y el cliente por WhatsApp, contra el sistema levantado. No reemplaza a scripts/smoke.sh: pregunta otra cosa.",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "preflight": "node preflight.js"
+  },
+  "dependencies": {
+    "@playwright/test": "^1.62.1",
+    "@anthropic-ai/sdk": "^0.121.0"
+  }
+}

@@ -26,5 +26,13 @@ __pycache__/
 .playwright-mcp/
 *-login.png
 
+# Arnés de tres actores — artefactos de corrida, nunca al repo
+arnes/node_modules/
+arnes/salida/
+arnes/test-results/
+arnes/playwright-report/
+arnes/blob-report/
+arnes/playwright/.cache/
+
 # Override local de puertos, por máquina
 docker-compose.override.yml
