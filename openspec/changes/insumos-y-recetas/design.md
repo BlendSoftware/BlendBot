@@ -97,7 +97,7 @@ El listado trae en una sola query los `receta_item` de todos los servicios de la
 
 ## Risks / Trade-offs
 
-- **Una receta mal cargada apaga un plato vendible** → decisión §6: el panel dice qué insumo lo apagó, y el interruptor manual sigue siendo la salida de emergencia. Es la mitigación, no la solución; el riesgo es real y es el precio de la feature.
+- **Una receta mal cargada apaga un plato vendible** → decisión §6: el panel dice qué insumo lo apagó, con sus números y su unidad, y lleva a corregir ese saldo. **El interruptor manual NO es la salida** — eso decía la primera versión de este documento y resultó falso: un plato agotado por receta ya tiene `disponible: true`, y aunque se pudiera forzar, confirmar fallaría con `ErrSinStock`. Es la mitigación, no la solución; el riesgo es real y es el precio de la feature.
 - **Unidades mal cargadas** → decisión §3: una unidad por insumo, heredada por la receta, sin conversión posible.
 - **El dueño carga la materia prima una vez y no la vuelve a tocar** → el stock deriva de la realidad y el sistema apaga platos que sí hay. No hay mitigación técnica: es disciplina operativa, y es exactamente lo que la decisión original del proyecto predijo que iba a fallar. El registro de movimientos al menos hace visible cuándo fue la última vez que alguien cargó algo.
 - **Costo del catálogo** → decisión §8, y medir con carta grande + recetas de varios insumos. Si duele, la salida es cachear por jornada con invalidación en cada movimiento, no volver al N+1.

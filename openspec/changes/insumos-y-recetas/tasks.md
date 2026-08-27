@@ -69,7 +69,7 @@
 - [x] 6.8 Integración: el listado resuelve las recetas de toda la carta sin N+1. Carta grande con recetas de varios insumos.
 - [x] 6.9 e2e: pedido de 3 unidades descuenta 3; insumo insuficiente frena TODO el pedido sin descontar nada; cancelar devuelve; dos pedidos por lo último y el stock nunca queda negativo.
 - [x] 6.10 e2e: pedido mezclando plato con receta y plato con cupo aplica los dos controles.
-- [ ] 6.11 vitest para las vistas nuevas del panel (`Insumos.tsx`, `EditorReceta.tsx`, `dominio/insumos.ts`). **Casi se marca hecho sin estarlo**: al agente del panel se le dijo que no escribiera tests de vistas nuevas y al de tests que el panel no era suyo, así que quedó en el hueco entre los dos.
+- [x] 6.11 vitest para las vistas nuevas del panel. 40 tests nuevos (213 en total), verificados con **mutation testing**: 25 mutaciones sembradas, 24 cazadas a la primera y 1 no — sacar el sufijo de unidad de cada línea de la receta pasaba TODO VERDE. Corregido. Se sumó además un test-guardián por suite que compara los imports reales de la vista contra lo que la suite mockea, para cerrar la trampa del mock con objeto literal.
 - [x] 6.12 `scripts/smoke.sh`: insumo → receta → confirmar pedido → el insumo bajó y el plato se apagó solo.
 - [x] 6.13 Suites completas verdes: `go test ./...`, `npm test` en panel, `uv run pytest`, y el smoke contra el compose.
 

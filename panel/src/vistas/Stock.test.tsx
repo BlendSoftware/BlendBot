@@ -38,6 +38,34 @@ function servicio(id: string, nombre: string, disponible = true) {
   }
 }
 
+/**
+ * Un plato que se controla por RECETA. Lo que lo distingue del que lleva cupo a
+ * mano es que trae `limitante`: su presencia ES la forma de saber de dónde sale
+ * el número, y el limitante trae su propia unidad para que ningún número de la
+ * pantalla quede pelado.
+ */
+function platoConReceta(
+  id: string,
+  nombre: string,
+  restante: number,
+  limitante: { insumo: string; unidad: 'g' | 'ml' | 'unidad'; stock: number; pide_la_receta: number },
+) {
+  return { ...servicio(id, nombre), restante, agotado: restante === 0, limitante }
+}
+
+/** Una receta como la devuelve el core, ya resuelta para mostrar. */
+function recetaDe(servicioID: string, items: { insumo_id: string; insumo_nombre: string; unidad: 'g' | 'ml' | 'unidad'; cantidad: number; stock: number }[]) {
+  return {
+    servicio_id: servicioID,
+    tiene_receta: items.length > 0,
+    items,
+    porciones: null,
+    insumo_limitante: '',
+    stock_limitante: 0,
+    pide_la_receta: 0,
+  }
+}
+
 function cupo(servicioID: string, nombre: string, asignado: number, consumido: number) {
   const restante = Math.max(0, asignado - consumido)
   return {
@@ -59,7 +87,10 @@ beforeEach(() => {
   // La pestaña Insumos convive con la de Platos: sin estos dos, la carga
   // completa se cae y los casos de cupo pasarían por el camino de error.
   listarInsumos.mockResolvedValue([])
-  traerReceta.mockResolvedValue([])
+  // Un objeto Receta, no un array: la vista lee `.items`. Con `[]` el `?? []`
+  // la salvaba, que es justo la clase de mock que deja pasar un test sin que
+  // ejercite nada.
+  traerReceta.mockResolvedValue(recetaDe('s1', []))
 })
 
 describe('stock del día', () => {
@@ -141,5 +172,87 @@ describe('stock del día', () => {
     render(<Stock />)
 
     expect(await screen.findByText('Todavía no hay platos en la carta.')).toBeInTheDocument()
+  })
+})
+
+describe('los platos que se controlan por receta', () => {
+  it('el plato que se apagó nombra al insumo que lo apagó, con sus números y su unidad', async () => {
+    listarServicios.mockResolvedValue([
+      platoConReceta('s1', 'Hamburguesa', 0, {
+        insumo: 'Pan de papa',
+        unidad: 'unidad',
+        stock: 2,
+        pide_la_receta: 3,
+      }),
+    ])
+    render(<Stock />)
+
+    expect(
+      await screen.findByText(
+        '0 porciones — falta Pan de papa (quedan 2 unidades, la receta pide 3 unidades)',
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it('no le ofrece ponerle cupo: el core lo rechazaría y quedaría un error en vez de una explicación', async () => {
+    listarServicios.mockResolvedValue([
+      platoConReceta('s1', 'Hamburguesa', 6, {
+        insumo: 'Carne picada',
+        unidad: 'g',
+        stock: 1800,
+        pide_la_receta: 300,
+      }),
+      servicio('s2', 'Milanesa'),
+    ])
+    render(<Stock />)
+
+    expect(
+      await screen.findByText('Se controla por receta · se edita en Carta'),
+    ).toBeInTheDocument()
+    // El de cupo a mano sí lo ofrece: el botón que falta es el del plato con
+    // receta, no el botón entero.
+    expect(screen.getAllByRole('button', { name: '+ Ponerle cupo' })).toHaveLength(1)
+  })
+
+  it('si el limitante también va en otro plato lo avisa: estas porciones se mueven solas', async () => {
+    const carne = {
+      insumo_id: 'carne',
+      insumo_nombre: 'Carne picada',
+      unidad: 'g' as const,
+      cantidad: 300,
+      stock: 1800,
+    }
+    listarServicios.mockResolvedValue([
+      platoConReceta('s1', 'Bife', 6, {
+        insumo: 'Carne picada',
+        unidad: 'g',
+        stock: 1800,
+        pide_la_receta: 300,
+      }),
+      platoConReceta('s2', 'Empanadas', 18, {
+        insumo: 'Carne picada',
+        unidad: 'g',
+        stock: 1800,
+        pide_la_receta: 100,
+      }),
+    ])
+    traerReceta.mockImplementation(async (id: string) =>
+      recetaDe(id, [{ ...carne, cantidad: id === 's1' ? 300 : 100 }]),
+    )
+    render(<Stock />)
+
+    expect(
+      await screen.findByText(
+        'Ojo: Carne picada también va en Empanadas. Lo que se venda de ahí baja estas porciones.',
+      ),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        'Ojo: Carne picada también va en Bife. Lo que se venda de ahí baja estas porciones.',
+      ),
+    ).toBeInTheDocument()
+    // Los dos números están, pero cada uno con su explicación de por qué se
+    // mueve: en ningún lado quedan uno al lado del otro invitando a sumarse.
+    expect(screen.queryByText(/24 platos|6 \+ 18/)).not.toBeInTheDocument()
   })
 })

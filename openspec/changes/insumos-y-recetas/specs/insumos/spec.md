@@ -71,12 +71,19 @@ El movimiento SHALL escribirse en la **misma transacción** que el cambio de sto
 
 Un insumo cuyo stock esté por debajo de su mínimo SHALL aparecer marcado. El aviso SHALL ser visible en el panel; NO SHALL haber notificaciones push en este alcance.
 
-Un insumo sin mínimo cargado NUNCA SHALL marcarse: no tener mínimo significa "no me avises", no "avisame siempre".
+Un insumo sin mínimo cargado NUNCA SHALL llevar la marca de reposición: no tener mínimo significa "no me avises", no "avisame siempre".
+
+Un insumo **en cero** SÍ SHALL mostrarse como agotado aunque no tenga mínimo, y eso NO es una violación de lo anterior: "se acabó" es un hecho del saldo, no un aviso de reposición que alguien pidió. Un local que no quiere que lo molesten con umbrales igual necesita ver que no le queda carne.
 
 #### Scenario: Cae bajo el mínimo
 - **WHEN** un insumo con mínimo 5000 queda en 4200
 - **THEN** aparece marcado como bajo mínimo
 
-#### Scenario: Sin mínimo no hay aviso
+#### Scenario: Sin mínimo no hay aviso de reposición
 - **WHEN** un insumo no tiene mínimo cargado y queda en 1
 - **THEN** NO aparece marcado
+
+#### Scenario: El cero se ve igual
+- **WHEN** un insumo sin mínimo cargado queda en 0
+- **THEN** se muestra como agotado
+- **AND** NO se muestra además como pendiente de reposición: es un hecho, no un aviso
