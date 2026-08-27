@@ -21,21 +21,26 @@ import type {
   Excepcion,
   Horario,
   InfoLocal,
+  Insumo,
   Jornada,
   JornadaActual,
   MedioPago,
   ModoFiscal,
+  MovimientoInsumo,
   Negocio,
   NegocioDatos,
   Plata,
   PrecioCobertura,
   RangoReporte,
+  Receta,
+  RecetaItem,
   Recurso,
   Reporte,
   Servicio,
   TokenAgente,
   Tokens,
   TransicionarInput,
+  Unidad,
   Vertical,
 } from './tipos'
 
@@ -172,6 +177,89 @@ export function setCupo(servicioID: string, asignado: number): Promise<CupoStock
 /** Sacar el cupo devuelve el plato a "sin límite", que es el default. */
 export function quitarCupo(servicioID: string): Promise<void> {
   return pedir<void>(`/api/stock/cupos/${servicioID}`, { metodo: 'DELETE' })
+}
+
+// ─── Insumos y recetas ───────────────────────────────────────────────────────
+//
+// Al revés que el cupo, NADA de esto cuelga de la jornada: el stock de un
+// insumo es un saldo del negocio y se lee y se corrige con la caja cerrada.
+
+export function listarInsumos(): Promise<Insumo[]> {
+  return pedir<Insumo[]>('/api/insumos')
+}
+
+/** `stock_inicial` va aparte del stock de después: es lo único que entra sin
+ *  movimiento de compra, porque es el punto de partida. */
+export function crearInsumo(cuerpo: {
+  nombre: string
+  unidad: Unidad
+  stock_inicial?: number
+  stock_minimo?: number | null
+}): Promise<Insumo> {
+  return pedir<Insumo>('/api/insumos', { metodo: 'POST', cuerpo })
+}
+
+/**
+ * NO es un PATCH parcial aunque el verbo lo sea: el nombre va siempre, y
+ * `stock_minimo: null` significa "sacame el mínimo, no me avises más". Si fuera
+ * parcial, "campo ausente" y "campo en null" querrían decir lo mismo y no habría
+ * forma de borrar un mínimo ya cargado.
+ *
+ * El stock NO se toca por acá: para eso están la compra y el ajuste, que dejan
+ * su movimiento. Un stock que cambia sin movimiento es un agujero en la
+ * historia.
+ */
+export function actualizarInsumo(
+  id: string,
+  cuerpo: { nombre: string; stock_minimo: number | null; unidad?: Unidad },
+): Promise<Insumo> {
+  return pedir<Insumo>(`/api/insumos/${id}`, { metodo: 'PATCH', cuerpo })
+}
+
+/**
+ * "Entraron 20000 g de carne": suma al saldo y deja un movimiento `compra`.
+ * Es POST de un HECHO y no PATCH del stock a propósito — un PATCH invitaría a
+ * escribir el saldo sin explicación, que es justo lo que la historia de
+ * movimientos existe para impedir.
+ */
+export function registrarCompra(
+  insumoID: string,
+  cuerpo: { cantidad: number; motivo?: string | null },
+): Promise<Insumo> {
+  return pedir<Insumo>(`/api/insumos/${insumoID}/compras`, { metodo: 'POST', cuerpo })
+}
+
+/**
+ * "Conté la heladera y hay 3200": se manda el SALDO, no la diferencia, porque
+ * es lo que el dueño sabe. Deja un movimiento `ajuste`.
+ */
+export function ajustarStock(
+  insumoID: string,
+  cuerpo: { stock: number; motivo?: string | null },
+): Promise<Insumo> {
+  return pedir<Insumo>(`/api/insumos/${insumoID}/ajustes`, { metodo: 'POST', cuerpo })
+}
+
+/** La historia de un saldo, de lo último a lo primero. El core recorta en 50 si
+ *  no se le pide otra cosa. */
+export function listarMovimientos(insumoID: string, limite?: number): Promise<MovimientoInsumo[]> {
+  const cola = limite ? `?limite=${limite}` : ''
+  return pedir<MovimientoInsumo[]>(`/api/insumos/${insumoID}/movimientos${cola}`)
+}
+
+/** La receta de un plato, ya resuelta para mostrar: cada línea trae el nombre
+ *  del insumo, su unidad y cuánto hay, así el editor no cruza nada. */
+export function traerReceta(servicioID: string): Promise<Receta> {
+  return pedir<Receta>(`/api/servicios/${servicioID}/receta`)
+}
+
+/** Guarda la receta ENTERA de una: la lista que va es la que queda. Mandar `[]`
+ *  la vacía, y un plato con receta vacía vuelve a ser ilimitado — no agotado. */
+export function guardarReceta(servicioID: string, items: RecetaItem[]): Promise<Receta> {
+  return pedir<Receta>(`/api/servicios/${servicioID}/receta`, {
+    metodo: 'PUT',
+    cuerpo: { items },
+  })
 }
 
 // ─── Jornada (la caja del día) ───────────────────────────────────────────────

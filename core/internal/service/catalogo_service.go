@@ -30,10 +30,11 @@ type CatalogoService interface {
 
 	// Servicios
 	//
-	// El listado trae además el cupo del día: Restante y Agotado resueltos
-	// contra la jornada abierta. Los agotados NO se filtran — viajan marcados,
-	// incluso con f.SoloDisponibles, para que quien consume pueda distinguir
-	// "el dueño lo apagó" de "hoy se terminó" en una sola lectura.
+	// El listado trae además cuánto queda de cada plato: Restante y Agotado,
+	// derivados de la receta si el plato tiene una, o del cupo de la jornada
+	// abierta si no. Los agotados NO se filtran — viajan marcados, incluso con
+	// f.SoloDisponibles, para que quien consume pueda distinguir "el dueño lo
+	// apagó" de "hoy se terminó" en una sola lectura.
 	ListarServicios(ctx context.Context, negocioID string, f repository.FiltroServicios) ([]model.Servicio, error)
 	// ListarServiciosParaCobertura es el mismo listado con PrecioEfectivo
 	// resuelto: lo que el agente tiene que cotizar para ESE cliente. Con
@@ -64,6 +65,7 @@ type catalogoService struct {
 	coberturas repository.CoberturaRepository
 	cupos      cupoLector                   // opcional: nil = todo ilimitado
 	jornadas   repository.JornadaRepository // opcional: va de la mano de cupos
+	recetas    porcionesLector              // opcional: nil = ningún plato lleva receta
 }
 
 // cupoLector es lo único que el catálogo necesita del control de stock: cuánto
@@ -74,6 +76,29 @@ type catalogoService struct {
 // Postgres: acá no se toca un cupo, se mira.
 type cupoLector interface {
 	RestantePorServicio(ctx context.Context, negocioID, jornadaID string) (map[string]int, error)
+}
+
+// porcionesLector es la segunda fuente del mismo número: cuántas porciones da
+// la materia prima que hay en el local. Lo implementa
+// repository.RecetaRepository, el mismo repo que usa el descuento — pero esto
+// es otra pregunta y por eso es otra interfaz: el descuento quiere la receta de
+// UN plato para bajarle el stock, el catálogo quiere las porciones de TODA la
+// carta para mostrarlas.
+//
+// Mismas dos reglas que cupoLector, y no por simetría estética sino porque el
+// catálogo depende de las dos:
+//   - UNA consulta para toda la carta. El camino ingenuo —la receta de cada
+//     plato, y después el insumo de cada línea— es un N+1 sobre dos tablas, y
+//     el catálogo se pide en cada mensaje de cada conversación.
+//   - Lo que NO está en el mapa no lleva cuenta. Un servicio sin receta, y uno
+//     con receta a la que le borraron todas las líneas, son el mismo caso: no
+//     vienen, y quedan ilimitados. Apagar un plato porque alguien le vació la
+//     receta es el peor default posible.
+//
+// Es lectura y nada más: el descuento al confirmar es del decorador de gastro y
+// del CHECK de Postgres. Acá no se toca un insumo, se mira.
+type porcionesLector interface {
+	PorcionesPorServicio(ctx context.Context, negocioID string) (map[string]repository.PorcionesServicio, error)
 }
 
 // OpcionCatalogo configura el service sin romperle la firma al constructor,
@@ -91,6 +116,19 @@ func ConCupoEnCatalogo(c cupoLector, j repository.JornadaRepository) OpcionCatal
 	return func(s *catalogoService) {
 		s.cupos = c
 		s.jornadas = j
+	}
+}
+
+// ConRecetasEnCatalogo hace que el listado derive las porciones posibles desde
+// el stock de insumos. Hermana de ConCupoEnCatalogo y con la misma promesa: sin
+// la opción, el catálogo sale exactamente como salía —el cupo manual sigue
+// mandando y lo demás queda ilimitado—, que es lo correcto para salud y para
+// todo negocio que no cargó un insumo en su vida.
+//
+// No pide jornada, y eso no es un olvido: ver el comentario de resolverRestante.
+func ConRecetasEnCatalogo(r porcionesLector) OpcionCatalogo {
+	return func(s *catalogoService) {
+		s.recetas = r
 	}
 }
 
@@ -215,7 +253,7 @@ func (s *catalogoService) ListarServicios(ctx context.Context, negocioID string,
 // caja le aparecía otro (H4). Ahora quien cotiza pide el precio de la cobertura
 // y los dos lados dicen lo mismo.
 //
-// El cupo se resuelve y se informa; no se filtra. Un plato agotado sale igual,
+// El stock se resuelve y se informa; no se filtra. Un plato agotado sale igual,
 // con agotado true y su precio: quien consume necesita las dos cosas para
 // decirle al cliente "hoy se nos terminó" en vez de hacer de cuenta que el
 // plato no existe.
@@ -224,7 +262,7 @@ func (s *catalogoService) ListarServiciosParaCobertura(ctx context.Context, nego
 	if err != nil {
 		return nil, err
 	}
-	if err := s.resolverCupo(ctx, negocioID, servicios); err != nil {
+	if err := s.resolverRestante(ctx, negocioID, servicios); err != nil {
 		return nil, err
 	}
 	if coberturaID == "" || len(servicios) == 0 {
@@ -254,51 +292,137 @@ func (s *catalogoService) ListarServiciosParaCobertura(ctx context.Context, nego
 	return servicios, nil
 }
 
-// resolverCupo mergea sobre el listado el cupo de la jornada abierta. Es UNA
-// consulta para toda la carta: preguntar plato por plato convierte cada
-// listado del agente —y son varios por conversación— en un N+1 contra
-// cupo_jornada.
+// resolverRestante mergea sobre el listado de dónde sale el número de porciones
+// de cada plato. Hay dos fuentes y el orden está escrito acá, una sola vez:
+//
+//  1. Receta      → min(floor(stock del insumo / lo que pide la receta))
+//  2. Cupo manual → asignado - consumido de la jornada abierta
+//  3. Ilimitado   → restante nil, agotado false
+//
+// El orden no desempata nada real: un plato no puede tener receta y cupo a la
+// vez, porque la escritura lo rechaza en los dos sentidos. Está explícito de
+// todos modos para que el día que alguien rompa esa validación el catálogo no
+// cambie de opinión según cómo quedó ordenado un if. Un comportamiento que
+// depende del orden accidental de la implementación es una respuesta distinta
+// para la misma pregunta, y el dueño la va a hacer en el peor momento.
+//
+// Las dos fuentes se resuelven ANTES del loop y cada una en una consulta: si la
+// lectura entrara al for, el catálogo —que el agente pide en cada mensaje de
+// cada conversación— se vuelve un N+1 sobre dos tablas más.
 //
 // Se resuelve acá y no en ServicioRepository a propósito: el repositorio de
-// servicios no conoce la jornada, y también lo usa salud, donde no hay cupos.
-// Meterle jornada_id a su firma acopla el catálogo entero a algo que la mitad
-// del producto no tiene.
-//
-// Sin jornada abierta —o sin control de cupos cableado— no se inventa un día:
-// los servicios quedan como salieron del repo, o sea `restante: null` y
-// `agotado: false`. Eso NO es un error: el negocio que nunca abre caja tiene
-// que seguir vendiendo igual que antes de este cambio.
-func (s *catalogoService) resolverCupo(ctx context.Context, negocioID string, servicios []model.Servicio) error {
-	if s.cupos == nil || s.jornadas == nil || len(servicios) == 0 {
+// servicios no conoce la jornada ni los insumos, y también lo usa salud, donde
+// no hay ni cupos ni recetas. Meterle jornada_id a su firma acopla el catálogo
+// entero a algo que la mitad del producto no tiene.
+func (s *catalogoService) resolverRestante(ctx context.Context, negocioID string, servicios []model.Servicio) error {
+	if len(servicios) == 0 {
 		return nil
 	}
-	j, err := s.jornadas.Actual(ctx, negocioID)
+	porciones, err := s.porcionesPorReceta(ctx, negocioID)
 	if err != nil {
 		return err
 	}
-	if j == nil || j.CerradaEn != nil {
-		return nil
-	}
-	restantes, err := s.cupos.RestantePorServicio(ctx, negocioID, j.ID)
+	cupos, err := s.cupoDeLaJornada(ctx, negocioID)
 	if err != nil {
 		return err
 	}
 	for i := range servicios {
-		// Lo que no está en cupo_jornada es ilimitado. Dejarlo en restante 0
-		// sería decirle al que consume "no hay" donde la verdad es "no sé".
-		r, lleva := restantes[servicios[i].ID]
-		if !lleva {
+		// 1. Receta.
+		if p, tieneReceta := porciones[servicios[i].ID]; tieneReceta {
+			aplicarPorciones(&servicios[i], p)
 			continue
 		}
-		if r < 0 {
-			// El CHECK (consumido <= asignado) no deja llegar acá. Si algún día
-			// llegara, agotado es la lectura segura: la otra vende de más.
-			r = 0
+		// 2. Cupo manual. Lo que no está en cupo_jornada es ilimitado: dejarlo
+		// en restante 0 sería decirle al que consume "no hay" donde la verdad
+		// es "no sé".
+		if r, llevaCupo := cupos[servicios[i].ID]; llevaCupo {
+			aplicarCupo(&servicios[i], r)
+			continue
 		}
-		servicios[i].Restante = &r
-		servicios[i].Agotado = r == 0
+		// 3. Ilimitado: se deja como salió del repo, o sea restante nil y
+		// agotado false. No se toca nada a propósito — no hay un cero que
+		// escribir acá.
 	}
 	return nil
+}
+
+// porcionesPorReceta trae, en UNA consulta, las porciones posibles de todos los
+// platos de la carta que tienen receta con al menos una línea.
+//
+// No pide jornada, y ahí está la asimetría con el cupo: el insumo es un saldo
+// corriente del negocio, no una foto del día. La carne está en la heladera
+// exista o no una jornada abierta, y sigue estando mañana a la mañana. Un plato
+// con receta calcula su restante con la caja cerrada; uno con cupo manual y sin
+// jornada abierta es ilimitado, porque su cupo literalmente no existe todavía.
+// Unificar las dos cosas "por consistencia" rompe una de las dos.
+//
+// Sin la opción cableada devuelve nil, y un mapa nil se lee igual que uno
+// vacío: ningún plato tiene receta y todo cae al cupo manual, que es cómo se
+// comportaba el catálogo antes de este cambio.
+func (s *catalogoService) porcionesPorReceta(ctx context.Context, negocioID string) (map[string]repository.PorcionesServicio, error) {
+	if s.recetas == nil {
+		return nil, nil
+	}
+	return s.recetas.PorcionesPorServicio(ctx, negocioID)
+}
+
+// cupoDeLaJornada trae, en UNA consulta, el restante de los platos que llevan
+// cupo hoy.
+//
+// Sin jornada abierta —o sin control de cupos cableado— no se inventa un día:
+// devuelve nil y los servicios quedan ilimitados. Eso NO es un error: el
+// negocio que nunca abre caja tiene que seguir vendiendo igual que siempre.
+func (s *catalogoService) cupoDeLaJornada(ctx context.Context, negocioID string) (map[string]int, error) {
+	if s.cupos == nil || s.jornadas == nil {
+		return nil, nil
+	}
+	j, err := s.jornadas.Actual(ctx, negocioID)
+	if err != nil {
+		return nil, err
+	}
+	if j == nil || j.CerradaEn != nil {
+		return nil, nil
+	}
+	return s.cupos.RestantePorServicio(ctx, negocioID, j.ID)
+}
+
+// aplicarPorciones vuelca el resultado de la receta sobre el servicio. El
+// contrato de afuera no cambia ni un byte: restante sigue siendo entero o null
+// y agotado sigue siendo restante == 0. Lo único que cambió es de dónde salió
+// el número.
+//
+// Además viaja el limitante, que es el argmin del mismo min() y por eso no
+// cuesta una consulta más. Va siempre que el plato se controle por receta, no
+// sólo cuando está agotado: el insumo que se va a quedar corto primero es la
+// única forma de mostrar que el bife y las empanadas comparten la carne, en vez
+// de dos números que parezcan sumables.
+func aplicarPorciones(sv *model.Servicio, p repository.PorcionesServicio) {
+	r := p.Porciones
+	if r < 0 {
+		// El CHECK (stock >= 0) del insumo no deja llegar acá. Si algún día
+		// llegara, agotado es la lectura segura: la otra vende de más.
+		r = 0
+	}
+	sv.Restante = &r
+	sv.Agotado = r == 0
+	sv.Limitante = &model.InsumoLimitante{
+		Insumo:       p.InsumoLimitante,
+		Unidad:       p.UnidadLimitante,
+		Stock:        p.StockLimitante,
+		PideLaReceta: p.PideLaReceta,
+	}
+}
+
+// aplicarCupo es lo mismo para la Capa 1, y se mantiene idéntico a como estaba:
+// este cambio agrega una fuente, no toca la que ya andaba.
+func aplicarCupo(sv *model.Servicio, r int) {
+	if r < 0 {
+		// El CHECK (consumido <= asignado) no deja llegar acá. Si algún día
+		// llegara, agotado es la lectura segura: la otra vende de más.
+		r = 0
+	}
+	sv.Restante = &r
+	sv.Agotado = r == 0
 }
 
 func (s *catalogoService) ObtenerServicio(ctx context.Context, negocioID, id string) (*model.Servicio, error) {

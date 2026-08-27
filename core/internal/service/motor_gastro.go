@@ -30,14 +30,18 @@ type negocioConfigLeer interface {
 type motorGastro struct {
 	inner    MotorService
 	negocios negocioConfigLeer
-	avisador AvisadorPedido // opcional: nil = no se avisa al cliente
-	cupos    cupoDescontador // opcional: nil = no hay control de cupos
+	avisador AvisadorPedido   // opcional: nil = no se avisa al cliente
+	stock    DescontadorStock // opcional: nil = no hay control de stock
 	jornadas repository.JornadaRepository
 }
 
-// cupoDescontador es lo que el vertical necesita del control de stock: bajar
+// cupoDescontador es lo que el vertical necesita de la Capa 1 del stock: bajar
 // el cupo cuando el local se compromete a cocinar, y devolverlo si el pedido
 // se cae. Lo implementa repository.CupoRepository.
+//
+// El decorador ya no habla directamente con esta interfaz: habla con
+// DescontadorStock, que enruta plato por plato entre cupo e insumos. Esto queda
+// como el contrato de la Capa 1 y como lo que ConControlDeCupos recibe.
 type cupoDescontador interface {
 	Consumir(ctx context.Context, jornadaID string, porServicio map[string]int) error
 	Devolver(ctx context.Context, jornadaID string, porServicio map[string]int) error
@@ -52,12 +56,23 @@ func ConAvisadorPedido(a AvisadorPedido) OpcionGastro {
 	return func(m *motorGastro) { m.avisador = a }
 }
 
-// ConControlDeCupos engancha la Capa 1 del stock: confirmar un pedido baja el
-// cupo del día de cada plato, y cancelarlo lo devuelve. Sin esta opción el
+// ConControlDeCupos engancha SÓLO la Capa 1 del stock: confirmar un pedido baja
+// el cupo del día de cada plato, y cancelarlo lo devuelve. Sin esta opción el
 // motor se comporta como siempre (todo ilimitado).
+//
+// Sigue existiendo con el mismo significado que tenía: es lo que se cablea
+// cuando el negocio no tiene recetas. Por dentro envuelve el cupoDescontador en
+// un DescontadorStock que no sabe de insumos.
 func ConControlDeCupos(c cupoDescontador, j repository.JornadaRepository) OpcionGastro {
+	return ConControlDeStock(soloCupo{cupos: c}, j)
+}
+
+// ConControlDeStock engancha las dos capas: el descontador decide plato por
+// plato si el pedido baja insumos (plato con receta) o cupo del día (plato con
+// cupo manual). Es la opción que se cablea cuando hay recetas cargadas.
+func ConControlDeStock(d DescontadorStock, j repository.JornadaRepository) OpcionGastro {
 	return func(m *motorGastro) {
-		m.cupos = c
+		m.stock = d
 		m.jornadas = j
 	}
 }
@@ -123,18 +138,18 @@ func (m *motorGastro) Listar(ctx context.Context, negocioID string, f dto.Filtro
 }
 
 /*
-Transicionar mueve el pedido y, de paso, mueve el cupo del día.
+Transicionar mueve el pedido y, de paso, mueve el stock: el cupo del día de los
+platos con cupo y los insumos de los platos con receta.
 
 El orden importa y es el mismo que usa el worker facturador: primero se toma lo
-que puede fallar por concurrencia (el cupo), y sólo después se hace lo que no
+que puede fallar por concurrencia (el stock), y sólo después se hace lo que no
 se deshace fácil (la transición). Al revés, dos "Confirmar" simultáneos del
-último plato pasarían los dos y recién se pelearían por el cupo, con el pedido
+último plato pasarían los dos y recién se pelearían por el stock, con el pedido
 ya confirmado.
 
-Si la transición falla DESPUÉS de haber tomado el cupo, se devuelve. Es una
+Si la transición falla DESPUÉS de haber tomado el stock, se devuelve. Es una
 compensación, no una transacción: el motor no expone su tx y meterle una sería
-reescribirlo. La ventana es de milisegundos y el peor caso —cupo devuelto de
-más— lo tapa el GREATEST(0, …) del repositorio.
+reescribirlo. La ventana es de milisegundos.
 */
 func (m *motorGastro) Transicionar(ctx context.Context, negocioID, id string, nuevo model.EstadoCompromiso, opts OpcionesTransicion) (*dto.CompromisoResponse, error) {
 	antes, err := m.inner.Obtener(ctx, negocioID, id)
@@ -142,7 +157,7 @@ func (m *motorGastro) Transicionar(ctx context.Context, negocioID, id string, nu
 		return nil, err
 	}
 
-	tomado, err := m.tomarCupo(ctx, negocioID, antes, nuevo)
+	tomado, err := m.tomarStock(ctx, negocioID, antes, nuevo)
 	if err != nil {
 		return nil, err
 	}
@@ -150,34 +165,38 @@ func (m *motorGastro) Transicionar(ctx context.Context, negocioID, id string, nu
 	resp, err := m.inner.Transicionar(ctx, negocioID, id, nuevo, opts)
 	if err != nil {
 		if tomado {
-			m.moverCupo(ctx, negocioID, antes, false)
+			m.moverStock(ctx, negocioID, antes, false)
 		}
 		return nil, err
 	}
 
-	m.devolverCupoSiSeCayo(ctx, negocioID, antes, nuevo)
+	m.devolverStockSiSeCayo(ctx, negocioID, antes, nuevo)
 	m.avisarConfirmacion(ctx, negocioID, resp)
 	return m.localizado(ctx, negocioID, resp)
 }
 
-// tomarCupo descuenta si esta transición es la que compromete la cocina:
+// tomarStock descuenta si esta transición es la que compromete la cocina:
 // pendiente → confirmado. Devuelve si efectivamente descontó, para poder
 // compensar si la transición falla después.
-func (m *motorGastro) tomarCupo(ctx context.Context, negocioID string, antes *dto.CompromisoResponse, nuevo model.EstadoCompromiso) (bool, error) {
-	if !m.hayControlDeCupos(antes) {
+//
+// El error que sube de acá puede ser ErrSinCupo (no queda cupo del día) o
+// ErrSinStock (no alcanza algún insumo, y el mensaje lo nombra). Los dos frenan
+// la confirmación y los dos los traduce el handler a 409.
+func (m *motorGastro) tomarStock(ctx context.Context, negocioID string, antes *dto.CompromisoResponse, nuevo model.EstadoCompromiso) (bool, error) {
+	if !m.hayControlDeStock(antes) {
 		return false, nil
 	}
 	if antes.Estado != model.EstadoPendiente || nuevo != model.EstadoConfirmado {
 		return false, nil
 	}
-	if err := m.moverCupo(ctx, negocioID, antes, true); err != nil {
+	if err := m.moverStock(ctx, negocioID, antes, true); err != nil {
 		return false, err
 	}
 	return true, nil
 }
 
 /*
-devolverCupoSiSeCayo reintegra lo descontado cuando el pedido se cae después de
+devolverStockSiSeCayo reintegra lo descontado cuando el pedido se cae después de
 confirmado.
 
 Los caminos son exactamente dos, y salen de la tabla de transiciones: desde
@@ -189,42 +208,50 @@ Es best-effort a propósito: la transición ya está persistida y no se va a
 voltear porque el reintegro falle. Se loguea, que es lo que permite arreglarlo
 a mano.
 */
-func (m *motorGastro) devolverCupoSiSeCayo(ctx context.Context, negocioID string, antes *dto.CompromisoResponse, nuevo model.EstadoCompromiso) {
-	if !m.hayControlDeCupos(antes) || antes.Estado != model.EstadoConfirmado {
+func (m *motorGastro) devolverStockSiSeCayo(ctx context.Context, negocioID string, antes *dto.CompromisoResponse, nuevo model.EstadoCompromiso) {
+	if !m.hayControlDeStock(antes) || antes.Estado != model.EstadoConfirmado {
 		return
 	}
 	if nuevo != model.EstadoCancelado && nuevo != model.EstadoAusente {
 		return
 	}
-	if err := m.moverCupo(ctx, negocioID, antes, false); err != nil {
+	if err := m.moverStock(ctx, negocioID, antes, false); err != nil {
 		log.Error().Err(err).Str("compromiso", antes.ID).
-			Msg("no se pudo devolver el cupo de un pedido caído: revisar a mano")
+			Msg("no se pudo devolver el stock de un pedido caído: revisar a mano")
 	}
 }
 
-func (m *motorGastro) hayControlDeCupos(antes *dto.CompromisoResponse) bool {
-	return m.cupos != nil && m.jornadas != nil && antes != nil && antes.Tipo == model.CompromisoPedido
+func (m *motorGastro) hayControlDeStock(antes *dto.CompromisoResponse) bool {
+	return m.stock != nil && m.jornadas != nil && antes != nil && antes.Tipo == model.CompromisoPedido
 }
 
-// moverCupo traduce las líneas del pedido a "cuánto de cada plato" y se lo pasa
-// al repositorio. Un pedido puede repetir el mismo servicio en dos líneas
-// (dos notas distintas), así que las cantidades se suman.
-func (m *motorGastro) moverCupo(ctx context.Context, negocioID string, c *dto.CompromisoResponse, consumir bool) error {
-	j, err := m.jornadas.Actual(ctx, negocioID)
-	if err != nil || j == nil || j.CerradaEn != nil {
-		// Sin caja abierta no hay día al que descontarle. No es un error del
-		// pedido: el local todavía no abrió, y el motor no es quién para
-		// frenarlo por eso.
-		return nil
+/*
+moverStock traduce las líneas del pedido a "cuánto de cada plato" y se lo pasa
+al descontador, que decide si eso sale del cupo del día o de los insumos. Un
+pedido puede repetir el mismo servicio en dos líneas (dos notas distintas), así
+que las cantidades se suman ANTES de bajar: si no, el mismo plato descontaría
+dos veces por separado y la guarda de "¿alcanza?" se evaluaría por línea.
+
+La jornada dejó de ser un requisito para descontar. Sin caja abierta no hay día
+al que bajarle el cupo —eso no cambió, y el descontador se saltea la Capa 1
+cuando el jornadaID viene vacío—, pero los insumos son un saldo del negocio y no
+de la jornada: la carne que se usa a las 3 de la mañana con la caja cerrada
+salió igual de la heladera (spec `recetas`, MODIFIED). Por eso acá se tolera que
+no haya jornada en vez de cortar.
+*/
+func (m *motorGastro) moverStock(ctx context.Context, negocioID string, c *dto.CompromisoResponse, consumir bool) error {
+	jornadaID := ""
+	if j, err := m.jornadas.Actual(ctx, negocioID); err == nil && j != nil && j.CerradaEn == nil {
+		jornadaID = j.ID
 	}
 	porServicio := make(map[string]int, len(c.Lineas))
 	for _, l := range c.Lineas {
 		porServicio[l.ServicioID] += l.Cantidad
 	}
 	if consumir {
-		return m.cupos.Consumir(ctx, j.ID, porServicio)
+		return m.stock.Consumir(ctx, negocioID, jornadaID, c.ID, porServicio)
 	}
-	return m.cupos.Devolver(ctx, j.ID, porServicio)
+	return m.stock.Devolver(ctx, negocioID, jornadaID, c.ID, porServicio)
 }
 
 // avisarConfirmacion le avisa al cliente que el local confirmó su pedido y con

@@ -111,16 +111,25 @@ Cuando un servicio queda agotado por receta, el sistema SHALL poder informar **c
 
 Un plato que se apaga solo y no dice por qué es indistinguible de un bug, y el dueño lo resuelve apagando la feature entera. El insumo limitante ya se conoce: es el mínimo del mismo cálculo que derivó las porciones.
 
-El interruptor manual `disponible` SHALL seguir funcionando como salida de emergencia para forzar la venta de un plato que el stock apagó.
+La salida cuando el stock miente SHALL ser **corregir el saldo del insumo**, no forzar la venta del plato. El panel SHALL llevar del plato apagado al insumo que hay que corregir.
+
+El interruptor `disponible` NO es esa salida y NO SHALL presentarse como tal: un plato agotado por receta ya lo tiene en `true`, así que apagarlo lo esconde del todo y prenderlo lo devuelve a agotado. Y aunque existiera un modo de forzarlo dentro de la lista vendible, confirmar el pedido fallaría igual con `ErrSinStock` — o sea que la "salida de emergencia" dejaría al cliente pidiendo algo que no se le puede cobrar. Una salida que falla más tarde es peor que no tener salida.
+
+Corregir el saldo es además la salida correcta y no un reemplazo pobre: arregla el número equivocado en vez de taparlo, y deja un movimiento de `ajuste` explicando qué pasó.
 
 #### Scenario: Se nombra al culpable
 - **WHEN** la hamburguesa queda en 0 porciones porque no hay pan
 - **THEN** el panel indica que el limitante es el pan, con su stock y lo que pide la receta
 
-#### Scenario: Forzar la venta a mano
-- **WHEN** el dueño sabe que el stock está mal cargado y enciende el plato a mano
-- **THEN** el plato vuelve a ofrecerse
-- **AND** el descuento de insumos sigue intentándose al confirmar
+#### Scenario: Del plato apagado al insumo que hay que corregir
+- **WHEN** el dueño ve un plato apagado por receta y sabe que el stock está mal
+- **THEN** el panel le dice qué insumo corregir y dónde
+- **AND** corregir ese saldo devuelve el plato a la venta en la lectura siguiente
+- **AND** el ajuste queda registrado como movimiento
+
+#### Scenario: El interruptor no promete lo que no puede
+- **WHEN** un plato está agotado por receta
+- **THEN** ningún copy del panel ofrece encenderlo a mano como forma de venderlo igual
 
 ## MODIFIED Requirements
 

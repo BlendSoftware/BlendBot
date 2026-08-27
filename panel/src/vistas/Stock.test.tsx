@@ -4,14 +4,25 @@ import userEvent from '@testing-library/user-event'
 import { Stock } from './Stock'
 import { ErrorApi } from '../api/cliente'
 
-const { listarServicios, listarStock, setCupo, quitarCupo } = vi.hoisted(() => ({
-  listarServicios: vi.fn(),
-  listarStock: vi.fn(),
-  setCupo: vi.fn(),
-  quitarCupo: vi.fn(),
-}))
+const { listarServicios, listarStock, setCupo, quitarCupo, listarInsumos, traerReceta } = vi.hoisted(
+  () => ({
+    listarServicios: vi.fn(),
+    listarStock: vi.fn(),
+    setCupo: vi.fn(),
+    quitarCupo: vi.fn(),
+    listarInsumos: vi.fn(),
+    traerReceta: vi.fn(),
+  }),
+)
 
-vi.mock('../api/endpoints', () => ({ listarServicios, listarStock, setCupo, quitarCupo }))
+vi.mock('../api/endpoints', () => ({
+  listarServicios,
+  listarStock,
+  setCupo,
+  quitarCupo,
+  listarInsumos,
+  traerReceta,
+}))
 
 function servicio(id: string, nombre: string, disponible = true) {
   return {
@@ -45,6 +56,10 @@ beforeEach(() => {
   listarServicios.mockResolvedValue([servicio('s1', 'Milanesa'), servicio('s2', 'Empanadas')])
   listarStock.mockResolvedValue([])
   quitarCupo.mockResolvedValue(undefined)
+  // La pestaña Insumos convive con la de Platos: sin estos dos, la carga
+  // completa se cae y los casos de cupo pasarían por el camino de error.
+  listarInsumos.mockResolvedValue([])
+  traerReceta.mockResolvedValue([])
 })
 
 describe('stock del día', () => {

@@ -169,7 +169,23 @@ func responderErrorMotor(c *gin.Context, err error) {
 		// 409: el pedido es válido, lo que pasó es que otro se llevó la última
 		// porción. Es una carrera perdida, no un body mal armado.
 		c.JSON(http.StatusConflict, apierror.New(err.Error()))
+	case errors.Is(err, service.ErrSinStock):
+		// Mismo caso que ErrSinCupo pero por la Capa 2: no alcanza la materia
+		// prima de algún plato. El mensaje viaja tal cual porque NOMBRA el
+		// insumo que faltó, y ese nombre es toda la diferencia entre "no se
+		// pudo" y "andá a comprar pan".
+		c.JSON(http.StatusConflict, apierror.New(err.Error()))
 	case errors.Is(err, service.ErrCupoMenorAlConsumido):
+		c.JSON(http.StatusUnprocessableEntity, apierror.New(err.Error()))
+	case errors.Is(err, service.ErrPlatoConCupo),
+		errors.Is(err, service.ErrPlatoConReceta),
+		errors.Is(err, service.ErrInsumoConRecetas),
+		errors.Is(err, service.ErrInsumoRepetido):
+		// 409: el estado actual del plato o del insumo es incompatible con lo
+		// que se pidió. El mensaje viaja tal cual porque dice CUÁL de los dos
+		// hay que sacar — un "no se puede" pelado deja al dueño adivinando.
+		c.JSON(http.StatusConflict, apierror.New(err.Error()))
+	case errors.Is(err, service.ErrUnidadInvalida):
 		c.JSON(http.StatusUnprocessableEntity, apierror.New(err.Error()))
 	case errors.Is(err, service.ErrJornadaYaAbierta), errors.Is(err, service.ErrSinJornadaAbierta):
 		c.JSON(http.StatusConflict, apierror.New(err.Error()))

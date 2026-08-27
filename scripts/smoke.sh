@@ -541,6 +541,110 @@ api GET '/api/servicios?solo_disponibles=true' "$TOKEN_G"
 exigir 200 "catálogo con el plato apagado"
 igual 1 "$(val '#')" "lo apagado a mano sí se filtra en el servidor"
 
+# ── 13. Insumos y recetas ────────────────────────────────────────────────────
+# La Capa 2 del stock por la API real, en el orden en que la vive el local:
+# carga la materia prima, declara de qué está hecho el plato, vende, y el plato
+# se apaga SOLO cuando se acaba el insumo. Nadie tocó un cupo.
+#
+# La diferencia con la sección anterior es la que ordena todo el diseño: el cupo
+# es una foto del día y vive colgado de la jornada; el insumo es un saldo
+# corriente del negocio. Por eso acá no se abre ni se cierra nada.
+titulo "Insumos y recetas"
+
+# El pan viene contado en unidades, no en gramos: la unidad es del insumo y no
+# se convierte nunca. Toda cantidad que se exprese contra él —la receta, esta
+# compra, un ajuste— está en ESTA unidad.
+api POST /api/insumos "$TOKEN_G" '{"nombre":"pan de pancho","unidad":"unidad","stock_inicial":2}'
+exigir 201 "alta del insumo con su saldo inicial"
+PAN_ID=$(val id)
+igual 2 "$(val stock)" "el saldo inicial quedó cargado"
+igual unidad "$(val unidad)" "la unidad viaja al lado del saldo"
+
+# El saldo inicial NO entra por el INSERT: el alta crea en cero y carga el stock
+# como una `compra`. Es lo que hace que no exista un camino que escriba el saldo
+# sin dejar su explicación en la historia.
+api GET "/api/insumos/${PAN_ID}/movimientos" "$TOKEN_G"
+exigir 200 "la historia del insumo recién creado"
+igual 1 "$(val '#')" "el alta con stock dejó un movimiento"
+igual compra "$(val '[0].tipo')" "y ese movimiento es una compra, no un INSERT mudo"
+igual 2 "$(val '[0].saldo_resultante')" "que además dice en cuánto quedó el saldo"
+
+api POST /api/servicios "$TOKEN_G" '{"nombre":"Choripán","precio_base":"5200"}'
+exigir 201 "alta del plato que se controla por receta"
+CHORI_ID=$(val id)
+
+api PUT "/api/servicios/${CHORI_ID}/receta" "$TOKEN_G" \
+  "$(printf '{"items":[{"insumo_id":"%s","cantidad":1}]}' "$PAN_ID")"
+exigir 200 "la receta del choripán: un pan por porción"
+igual true "$(val tiene_receta)" "el plato pasó a controlarse por receta"
+igual 2 "$(val porciones)" "y las porciones se derivan del stock: 2 panes, 2 choripanes"
+
+# Un plato tiene receta O cupo manual, nunca los dos. Dos fuentes para el mismo
+# número obligan a una regla de precedencia, y esa regla es una pregunta que el
+# dueño se hace en el peor momento.
+api PUT /api/stock/cupos "$TOKEN_G" "$(printf '{"servicio_id":"%s","asignado":10}' "$CHORI_ID")"
+exigir 409 "ponerle cupo a un plato con receta rebota, diciendo cuál de los dos sacar"
+
+# El catálogo del agente, ordenado por nombre: [0] Choripán, [1] Empanadas.
+api GET '/api/servicios?solo_disponibles=true' "$TOKEN_G"
+exigir 200 "catálogo con el plato que se controla por receta"
+igual "Choripán" "$(val '[0].nombre')" "el choripán encabeza la carta"
+igual 2 "$(val '[0].restante')" "el restante del plato con receta sale del stock del insumo"
+igual false "$(val '[0].agotado')" "y todavía no está agotado"
+igual "pan de pancho" "$(val '[0].limitante.insumo')" "el catálogo nombra al insumo limitante"
+igual unidad "$(val '[0].limitante.unidad')" "con su unidad, para que «quedan 2» quiera decir algo"
+
+# Un pedido de DOS unidades se lleva DOS panes, no uno: la cantidad de la receta
+# es por porción y se multiplica por lo pedido.
+PEDIR_CHORIS=$(printf '{
+  "cliente_id":"%s","tipo":"pedido","origen":"whatsapp","entrega":"retira",
+  "lineas":[{"servicio_id":"%s","cantidad":2}]}' "$CLIENTE_G" "$CHORI_ID")
+
+api POST /api/compromisos "$TOKEN_G" "$PEDIR_CHORIS"
+exigir 201 "pedido de dos choripanes"
+PEDIDO_CHORI=$(val id)
+api PATCH "/api/compromisos/${PEDIDO_CHORI}/estado" "$TOKEN_G" '{"estado":"confirmado","demora_min":15}'
+exigir 200 "el local confirma y se compromete a cocinarlos"
+
+api GET /api/insumos "$TOKEN_G"
+exigir 200 "la pestaña de insumos del panel"
+igual 0 "$(val '[0].stock')" "el insumo bajó 2: se descontó por unidades pedidas, no por línea"
+
+api GET "/api/insumos/${PAN_ID}/movimientos" "$TOKEN_G"
+exigir 200 "la historia después de vender"
+igual consumo "$(val '[0].tipo')" "el último movimiento es un consumo"
+igual 2 "$(val '[0].cantidad')" "de dos panes"
+igual "$PEDIDO_CHORI" "$(val '[0].compromiso_id')" "y dice qué pedido se los llevó"
+
+# El plato se apagó SOLO. Nadie tocó un interruptor ni cargó un cupo.
+api GET '/api/servicios?solo_disponibles=true' "$TOKEN_G"
+exigir 200 "catálogo después de que se acabara el insumo"
+igual 0 "$(val '[0].restante')" "el plato quedó en 0 porciones"
+igual true "$(val '[0].agotado')" "y se apagó solo, sin que nadie tocara nada"
+igual "pan de pancho" "$(val '[0].limitante.insumo')" "diciendo QUÉ insumo lo apagó"
+contiene '"restante":null' "$RESP" "el plato sin receta ni cupo sigue ilimitado: no se contagió"
+
+# Y confirmar sin insumo falla nombrando el que falta: "no se pudo" se resuelve
+# apagando la feature; "falta pan de pancho" se resuelve yendo a comprar pan.
+api POST /api/compromisos "$TOKEN_G" "$PEDIR_CHORIS"
+exigir 201 "otro pedido de choripanes cuando ya no hay pan"
+PEDIDO_SIN_PAN=$(val id)
+api PATCH "/api/compromisos/${PEDIDO_SIN_PAN}/estado" "$TOKEN_G" '{"estado":"confirmado","demora_min":15}'
+exigir 409 "la confirmación se choca con el stock (ErrSinStock)"
+contiene 'pan de pancho' "$RESP" "y el 409 NOMBRA el insumo que faltó"
+
+# Entra mercadería a mitad del servicio: la lectura siguiente ya lo ofrece, y no
+# hizo falta cerrar ni reabrir la jornada. Es el escenario que descartó
+# materializar las porciones al abrir la caja.
+api POST "/api/insumos/${PAN_ID}/compras" "$TOKEN_G" '{"cantidad":10,"motivo":"llegó el panadero"}'
+exigir 200 "compra a mitad del servicio"
+igual 10 "$(val stock)" "el saldo subió"
+
+api GET '/api/servicios?solo_disponibles=true' "$TOKEN_G"
+exigir 200 "catálogo después de la compra"
+igual 10 "$(val '[0].restante')" "el plato volvió a ofrecerse sin cerrar la jornada"
+igual false "$(val '[0].agotado')" "y ya no está agotado"
+
 # ── Final ────────────────────────────────────────────────────────────────────
 trap - ERR
 printf '\n%s✓ SMOKE OK%s — %d asserts, el sistema entero responde.\n' "$VERDE$NEGRITA" "$FIN" "$PASOS"

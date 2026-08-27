@@ -841,3 +841,107 @@
   color: var(--acento);
   font-size: var(--t-mini);
 }
+
+/* ── La fila del plato: lo que dice el stock, y su receta ─────────────────────
+ *
+ * El estado de stock va SUELTO en la fila, sin desplegar nada: un plato que se
+ * apagó solo porque falta el pan tiene que decirlo ahí. Un plato que se apaga
+ * solo y no dice por qué es indistinguible de un bug, y el dueño lo resuelve
+ * apagando la feature entera.
+ */
+
+.servicio__stock {
+  padding: 0 0 var(--e2);
+  margin: 0;
+}
+
+.servicio__stock-texto {
+  color: var(--tinta-suave);
+  font-size: var(--t-mini);
+}
+
+.servicio__stock-texto--agotado {
+  color: var(--tinta-error);
+  font-weight: 700;
+}
+
+.servicio__receta-boton {
+  flex-shrink: 0;
+}
+
+.servicio__receta {
+  padding-bottom: var(--e3);
+}
+
+.receta {
+  padding: var(--e3);
+  border-radius: var(--radio);
+  background: var(--panel);
+  box-shadow: inset 0 1px 3px oklch(0.24 0.012 55 / 0.06);
+}
+
+.receta__bajada {
+  color: var(--tinta-suave);
+  font-size: var(--t-mini);
+  max-width: 70ch;
+}
+
+.receta__vacio {
+  padding: var(--e2) 0 var(--e3);
+  color: var(--tinta-suave);
+  font-size: var(--t-mini);
+}
+
+.receta__lista {
+  margin: var(--e3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.receta__fila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--e2) var(--e3);
+  padding: var(--e2) 0;
+  border-top: 1px solid var(--borde);
+}
+
+.receta__nombre {
+  flex: 1 1 160px;
+  font-weight: 600;
+}
+
+.receta__entrada {
+  width: 8ch;
+}
+
+/* Cuánto hay HOY de ese insumo, al lado de cuánto pide la receta: es donde se
+   ve de una que 40 g de cheddar por porción contra 200 g en la heladera dan
+   cinco hamburguesas y no cincuenta. */
+.receta__hay {
+  flex: 0 0 auto;
+  color: var(--tinta-suave);
+  font-size: var(--t-mini);
+  white-space: nowrap;
+}
+
+.receta__agregar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--e3);
+  margin-top: var(--e3);
+}
+
+.receta__campo-insumo {
+  flex: 1 1 200px;
+}
+
+.receta__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--e3);
+  margin-top: var(--e3);
+}

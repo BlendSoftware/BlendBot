@@ -2274,3 +2274,304 @@
     justify-content: space-between;
   }
 }
+
+/* ── Stock: las dos pestañas ─────────────────────────────────────────────────
+ *
+ * Platos e Insumos son dos cosas distintas, no dos vistas de lo mismo: el cupo
+ * es la foto del día y el insumo es un saldo corriente que no se reinicia
+ * nunca. Mismo lenguaje que las pestañas del informe del cierre: una pastilla
+ * chica, no un tab bar de escritorio.
+ */
+
+.stock__pestanas {
+  display: inline-flex;
+  gap: var(--e1);
+  padding: var(--e1);
+  margin-bottom: var(--e3);
+  border-radius: var(--radio-chico);
+  background: var(--panel);
+}
+
+.stock__pestana {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e2);
+  min-height: 44px;
+  padding: 0 var(--e3);
+  border: none;
+  border-radius: var(--radio-chico);
+  background: transparent;
+  color: var(--tinta-suave);
+  font-weight: 700;
+  transition: background-color var(--transicion), color var(--transicion);
+}
+
+.stock__pestana--activa {
+  background: var(--superficie);
+  color: var(--tinta);
+  box-shadow: var(--sombra-baja);
+}
+
+/* "2 para reponer" viaja en la pestaña para que se vea sin entrar: el aviso de
+   bajo mínimo no sirve si hay que ir a buscarlo. */
+.stock__pestana-marca {
+  padding: 2px var(--e2);
+  border-radius: 999px;
+  background: var(--apagado-fondo);
+  color: var(--apagado-tinta);
+  font-size: var(--t-mini);
+  font-weight: 800;
+}
+
+/* ── Stock · Platos con receta ───────────────────────────────────────────── */
+
+/* Un plato con receta NO acepta cupo a mano: donde iban los botones va la
+   explicación de por qué no están. */
+.stock__porreceta {
+  flex-shrink: 0;
+  color: var(--tinta-suave);
+  font-size: var(--t-mini);
+  font-weight: 600;
+}
+
+/* La dependencia entre platos que comparten materia prima. Va en su propia
+   línea porque es lo que evita que un número que se mueve solo parezca roto. */
+.stock__compartido {
+  margin-top: var(--e1);
+  color: var(--tinta-espera);
+  font-size: var(--t-mini);
+}
+
+/* ── Stock · Insumos ─────────────────────────────────────────────────────── */
+
+.insumos__lista {
+  margin: 0 0 var(--e3);
+  padding: 0;
+  list-style: none;
+}
+
+.insumos__fila {
+  padding: var(--e3);
+  margin-bottom: var(--e2);
+  border-radius: var(--radio-chico);
+  background: var(--superficie);
+  box-shadow: var(--sombra-baja);
+  transition: background-color var(--transicion);
+}
+
+/* Se lee de lejos por el color de fondo, como todo el resto del sistema: el
+   que hay que reponer entibia, el que se acabó se pone rojo. */
+.insumos__fila--bajo {
+  background: color-mix(in oklch, var(--pendiente) 12%, var(--superficie));
+}
+
+.insumos__fila--vacio {
+  background: color-mix(in oklch, var(--vencido) 12%, var(--superficie));
+}
+
+.insumos__cabeza {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--e3);
+}
+
+.insumos__datos {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.insumos__nombre {
+  font-size: var(--t-medio);
+  font-weight: 700;
+}
+
+.insumos__usos {
+  margin-top: 2px;
+  color: var(--tinta-suave);
+  font-size: var(--t-mini);
+  max-width: 68ch;
+}
+
+/* El saldo es el número que se busca de un vistazo, con la unidad pegada. */
+.insumos__saldo {
+  flex-shrink: 0;
+  font-size: var(--t-grande);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.insumos__marcas {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--e2);
+  margin-top: var(--e2);
+}
+
+.insumos__marca {
+  padding: 2px var(--e2);
+  border-radius: 999px;
+  font-size: var(--t-mini);
+  font-weight: 800;
+}
+
+.insumos__marca--bajo {
+  background: color-mix(in oklch, var(--pendiente) 30%, var(--superficie));
+  color: var(--tinta-pendiente);
+}
+
+.insumos__marca--vacio {
+  background: var(--apagado-fondo);
+  color: var(--apagado-tinta);
+}
+
+/* El mínimo se toca en el lugar, como todo lo demás del panel: ningún modal. */
+.insumos__minimo {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--tinta-suave);
+  font-size: var(--t-mini);
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+
+.insumos__minimo:hover {
+  color: var(--acento);
+}
+
+.insumos__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e2);
+  margin-top: var(--e3);
+}
+
+.insumos__panel,
+.insumos__alta {
+  margin-top: var(--e3);
+  padding: var(--e3);
+  border-radius: var(--radio-chico);
+  background: var(--panel);
+  box-shadow: inset 0 1px 3px oklch(0.24 0.012 55 / 0.06);
+}
+
+.insumos__alta {
+  margin-top: var(--e2);
+}
+
+.insumos__campos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--e3);
+}
+
+.insumos__campo-nombre {
+  flex: 1 1 220px;
+}
+
+.insumos__campo-motivo {
+  flex: 1 1 260px;
+}
+
+/*
+ * La unidad, pegada al campo. No es decoración: no hay conversión en ningún
+ * punto del sistema, así que esta etiqueta es la única defensa contra cargar
+ * la carne en kilos y la receta en gramos —que apaga la cocina entera por un
+ * factor de mil sin que el dueño tenga cómo darse cuenta—. Si alguien la saca
+ * para ganar espacio, está sacando el control, no el adorno.
+ */
+.insumos__conunidad,
+.receta__conunidad {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e2);
+}
+
+.insumos__conunidad .entrada {
+  width: 9ch;
+}
+
+.insumos__unidad,
+.receta__unidad {
+  color: var(--tinta-suave);
+  font-size: var(--t-mini);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.insumos__pista,
+.receta__pista {
+  margin-top: var(--e2);
+  color: var(--tinta-suave);
+  font-size: var(--t-mini);
+  max-width: 70ch;
+}
+
+.insumos__panel-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e2);
+  margin-top: var(--e3);
+}
+
+/* ── La historia de un saldo ─────────────────────────────────────────────── */
+
+.movimientos {
+  margin: var(--e2) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.movimientos__fila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--e2) var(--e3);
+  padding: var(--e2) 0;
+  border-top: 1px solid var(--borde);
+}
+
+.movimientos__cuando {
+  flex: 0 0 auto;
+  color: var(--tinta-suave);
+  font-size: var(--t-mini);
+}
+
+.movimientos__que {
+  flex: 1 1 180px;
+  font-weight: 600;
+}
+
+.movimientos__cuanto {
+  flex: 0 0 auto;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.movimientos__saldo {
+  flex: 0 0 auto;
+  color: var(--tinta-suave);
+  font-size: var(--t-mini);
+  white-space: nowrap;
+}
+
+.movimientos__motivo {
+  flex: 1 1 100%;
+  color: var(--tinta-suave);
+  font-size: var(--t-mini);
+  font-style: italic;
+}
+
+@media (max-width: 560px) {
+  .insumos__acciones .boton {
+    flex: 1 1 auto;
+  }
+
+  .insumos__conunidad .entrada {
+    width: 7ch;
+  }
+}

@@ -15,6 +15,10 @@ function servicio(over: Partial<Servicio> = {}): Servicio {
     precio_base: '8900',
     disponible: true,
     activo: true,
+    // Un plato sin cupo ni receta: `restante: null` es "no lleva cuenta", que
+    // sigue siendo el default de la carta.
+    restante: null,
+    agotado: false,
     ...over,
   }
 }

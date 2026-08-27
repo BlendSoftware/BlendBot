@@ -127,6 +127,8 @@ func main() {
 	jornadaRepo := repository.NewJornadaRepository(db)
 	reporteRepo := repository.NewReporteRepository(db)
 	cupoRepo := repository.NewCupoRepository(db)
+	recetaRepo := repository.NewRecetaRepository(db)
+	insumoRepo := repository.NewInsumoRepository(db)
 
 	// ── Cifrado fiscal ──────────────────────────────────────────────
 	// Sin FISCAL_CIPHER_KEY el módulo fiscal queda apagado: no se pueden
@@ -181,6 +183,10 @@ func main() {
 		NegocioSvc: service.NewNegocioService(db, negocioRepo, usuarioRepo),
 		CatalogoSvc: service.NewCatalogoService(categoriaRepo, recursoRepo, servicioRepo, coberturaRepo,
 			service.ConCupoEnCatalogo(cupoRepo, jornadaRepo),
+			// Las dos fuentes de `restante` se cablean juntas: la receta manda
+			// sobre el cupo manual, y un catálogo con una sola de las dos
+			// opciones le miente al agente sobre la mitad de la carta.
+			service.ConRecetasEnCatalogo(recetaRepo),
 		),
 		ClienteSvc: service.NewClienteService(clienteRepo, coberturaRepo),
 		AuditSvc:   service.NewAuditService(auditRepo),
@@ -188,16 +194,34 @@ func main() {
 			service.NewMotorService(compromisoRepo, holdRepo, service.ConNotificador(huecoLiberado)),
 			negDatosRepo,
 			service.ConAvisadorPedido(worker.NewAvisadorPedido(publicador)),
-			service.ConControlDeCupos(cupoRepo, jornadaRepo),
+			// Las dos capas del stock en una sola opción: el descontador mira
+			// plato por plato si baja insumos (tiene receta) o cupo del día
+			// (tiene cupo manual), y el que no tiene ninguno sigue siendo
+			// ilimitado. Un negocio sin insumos cargados se comporta
+			// exactamente como antes de esta capability.
+			service.ConControlDeStock(
+				service.NewDescontadorStock(recetaRepo, insumoRepo, cupoRepo),
+				jornadaRepo,
+			),
 		),
-		HoldSvc:      service.NewHoldService(holdRepo, compromisoRepo),
-		DispoSvc:     service.NewDisponibilidadService(dispoRepo),
-		TokenSvc:     service.NewNegocioTokenService(negDatosRepo),
-		ListaEspSvc:  service.NewListaEsperaService(listaEsperaRepo),
-		ConsultaSvc:  service.NewConsultaService(consultaRepo, worker.NewAvisadorConsulta(publicador)),
-		CobroSvc:     service.NewCobroService(cobroRepo, negDatosRepo, cifrador),
-		JornadaSvc:   service.NewJornadaService(jornadaRepo),
-		CupoSvc:      service.NewCupoService(cupoRepo, jornadaRepo, servicioRepo),
+		HoldSvc:     service.NewHoldService(holdRepo, compromisoRepo),
+		DispoSvc:    service.NewDisponibilidadService(dispoRepo),
+		TokenSvc:    service.NewNegocioTokenService(negDatosRepo),
+		ListaEspSvc: service.NewListaEsperaService(listaEsperaRepo),
+		ConsultaSvc: service.NewConsultaService(consultaRepo, worker.NewAvisadorConsulta(publicador)),
+		CobroSvc:    service.NewCobroService(cobroRepo, negDatosRepo, cifrador),
+		JornadaSvc:  service.NewJornadaService(jornadaRepo),
+		// La exclusión receta ⊕ cupo se cablea en LOS DOS sentidos, acá y en
+		// RecetaSvc. Con una sola mitad la regla se puede violar entrando por
+		// el lado que quedó suelto, y un plato con dos fuentes para el mismo
+		// número obliga a inventar una precedencia que nadie quiere explicar.
+		CupoSvc: service.NewCupoService(cupoRepo, jornadaRepo, servicioRepo,
+			service.ConExclusionDeReceta(recetaRepo),
+		),
+		InsumoSvc: service.NewInsumoService(insumoRepo),
+		RecetaSvc: service.NewRecetaService(recetaRepo, insumoRepo, servicioRepo,
+			service.ConExclusionDeCupo(cupoRepo, jornadaRepo),
+		),
 		ReporteSvc:   service.NewReporteService(reporteRepo, negDatosRepo),
 		NegDatosRepo: negDatosRepo,
 		HorarioH:     handler.NewHorariosHandler(horarioRepo),

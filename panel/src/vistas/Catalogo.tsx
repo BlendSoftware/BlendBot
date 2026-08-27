@@ -12,12 +12,15 @@ import {
   fijarPrecio,
   listarCategorias,
   listarCoberturas,
+  listarInsumos,
   listarPrecios,
   listarServicios,
   setDisponible,
 } from '../api/endpoints'
-import type { Categoria, Cobertura, PrecioCobertura, Servicio } from '../api/tipos'
+import type { Categoria, Cobertura, Insumo, PrecioCobertura, Servicio } from '../api/tipos'
 import { FilaServicio } from '../componentes/FilaServicio'
+import { EditorReceta } from '../componentes/EditorReceta'
+import { fraseLimitante, porciones } from '../dominio/insumos'
 import { Aviso, Esqueleto, Vacio, useAvisoBien } from '../componentes/basicos'
 
 const SIN_CATEGORIA = 'sin-categoria'
@@ -26,28 +29,32 @@ export function Catalogo() {
   const [servicios, setServicios] = useState<Servicio[]>([])
   const [categorias, setCategorias] = useState<Categoria[]>([])
   const [coberturas, setCoberturas] = useState<Cobertura[]>([])
+  const [insumos, setInsumos] = useState<Insumo[]>([])
   const [cargando, setCargando] = useState(true)
   const [problema, setProblema] = useState('')
   const [abierta, setAbierta] = useState<string | null>(null)
+  const [recetaAbierta, setRecetaAbierta] = useState<string | null>(null)
   const [nuevaCategoria, setNuevaCategoria] = useState('')
   const [bien, mostrarBien] = useAvisoBien()
 
-  const cargar = useCallback(async () => {
-    setCargando(true)
+  const cargar = useCallback(async (silencioso = false) => {
+    if (!silencioso) setCargando(true)
     try {
-      const [s, c, ob] = await Promise.all([
+      const [s, c, ob, ins] = await Promise.all([
         listarServicios({ incluirInactivos: false }),
         listarCategorias(),
         listarCoberturas(),
+        listarInsumos(),
       ])
       setServicios(s)
       setCategorias(c)
       setCoberturas(ob)
+      setInsumos(ins)
       setProblema('')
     } catch (e) {
       setProblema(e instanceof Error ? e.message : 'No se pudo traer el catálogo.')
     } finally {
-      setCargando(false)
+      if (!silencioso) setCargando(false)
     }
   }, [])
 
@@ -138,6 +145,24 @@ export function Catalogo() {
                   expandida={abierta === s.id}
                   alExpandir={() => setAbierta(abierta === s.id ? null : s.id)}
                   hayClubes={coberturas.length > 0}
+                  estadoStock={s.limitante ? <EstadoDeStock servicio={s} /> : undefined}
+                  tieneReceta={Boolean(s.limitante)}
+                  recetaAbierta={recetaAbierta === s.id}
+                  alAbrirReceta={() => setRecetaAbierta(recetaAbierta === s.id ? null : s.id)}
+                  receta={
+                    <EditorReceta
+                      servicioID={s.id}
+                      servicioNombre={s.nombre}
+                      insumos={insumos}
+                      // La receta cambia las porciones del plato: hay que volver
+                      // a leer la carta para que la fila diga el número nuevo y
+                      // nombre al insumo nuevo. Silencioso: nadie quiere ver la
+                      // pantalla parpadear después de guardar.
+                      alGuardar={() => void cargar(true)}
+                      alFallar={setProblema}
+                      alExito={mostrarBien}
+                    />
+                  }
                 >
                   <PreciosPorCobertura
                     servicioID={s.id}
@@ -168,6 +193,39 @@ export function Catalogo() {
         />
       )}
     </section>
+  )
+}
+
+/**
+ * Lo que el stock tiene para decir de este plato, en la fila y sin desplegar
+ * nada.
+ *
+ * Sólo habla de los platos que se controlan por RECETA — el cupo del día ya
+ * tiene su pantalla y repetirlo acá sería ruido. Y cuando uno se apaga, nombra
+ * al insumo que lo apagó con sus números: un plato que se apaga solo y no dice
+ * por qué es indistinguible de un bug, y el dueño lo resuelve apagando la
+ * feature entera. Nombrar al culpable no cuesta una consulta más —el limitante
+ * es el mismo mínimo del que salieron las porciones— y es la diferencia entre
+ * "esto anda mal" y "ah, cargué mal el pan".
+ */
+function EstadoDeStock({ servicio }: { servicio: Servicio }) {
+  const l = servicio.limitante
+  if (!l) return null
+
+  const frase = fraseLimitante(servicio.restante, l)
+
+  if (servicio.agotado) {
+    return (
+      <span className="servicio__stock-texto servicio__stock-texto--agotado">
+        Se apagó solo: {frase}. Si ese número está mal, corregilo en Stock → Insumos.
+      </span>
+    )
+  }
+
+  return (
+    <span className="servicio__stock-texto">
+      Alcanza para {porciones(servicio.restante ?? 0)} · {frase}
+    </span>
   )
 }
 

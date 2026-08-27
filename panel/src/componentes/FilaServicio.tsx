@@ -24,6 +24,25 @@ interface Props {
    *  colgar un "Precios por club" en cada fila que sólo abre a un vacío. */
   hayClubes?: boolean
   children?: React.ReactNode
+
+  /**
+   * Lo que el stock tiene para decir de este plato, ya escrito: cuántas
+   * porciones quedan y —si se apaga por receta— qué insumo lo apagó, con sus
+   * números. Se arma afuera porque la frase necesita la lista de insumos, que
+   * la fila no tiene ni tiene por qué tener.
+   *
+   * Va sin envolver en el interruptor a propósito: el plato que se apagó solo
+   * porque falta el pan tiene que decirlo SIN que nadie despliegue nada. Un
+   * plato que se apaga solo y no dice por qué es indistinguible de un bug.
+   */
+  estadoStock?: React.ReactNode
+  /** El editor de receta. Sin estas cuatro props la fila queda igual que antes. */
+  receta?: React.ReactNode
+  recetaAbierta?: boolean
+  alAbrirReceta?: () => void
+  /** Cambia el texto del disparador: ponerle una receta no es lo mismo que
+   *  mirar la que ya tiene. */
+  tieneReceta?: boolean
 }
 
 export function FilaServicio({
@@ -35,6 +54,11 @@ export function FilaServicio({
   alExpandir,
   hayClubes = true,
   children,
+  estadoStock,
+  receta,
+  recetaAbierta = false,
+  alAbrirReceta,
+  tieneReceta = false,
 }: Props) {
   const [editando, setEditando] = useState(false)
   const [nombre, setNombre] = useState(servicio.nombre)
@@ -140,6 +164,17 @@ export function FilaServicio({
           </button>
         )}
 
+        {!editando && alAbrirReceta && (
+          <button
+            type="button"
+            className="boton boton--fantasma servicio__receta-boton"
+            onClick={alAbrirReceta}
+            aria-expanded={recetaAbierta}
+          >
+            {recetaAbierta ? 'Cerrar receta' : tieneReceta ? 'Receta' : '+ Ponerle receta'}
+          </button>
+        )}
+
         <Switch
           activo={servicio.disponible}
           etiquetaSi="disponible"
@@ -150,7 +185,11 @@ export function FilaServicio({
         />
       </div>
 
+      {estadoStock && <p className="servicio__stock">{estadoStock}</p>}
+
       {hayClubes && expandida && <div className="servicio__precios">{children}</div>}
+
+      {recetaAbierta && receta && <div className="servicio__receta">{receta}</div>}
     </li>
   )
 }

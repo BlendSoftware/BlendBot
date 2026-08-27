@@ -142,6 +142,8 @@ func armarRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) *gin.Engine
 	cobroRepo := repository.NewCobroRepository(db)
 	jornadaRepo := repository.NewJornadaRepository(db)
 	cupoRepo := repository.NewCupoRepository(db)
+	recetaRepo := repository.NewRecetaRepository(db)
+	insumoRepo := repository.NewInsumoRepository(db)
 	reporteRepo := repository.NewReporteRepository(db)
 
 	// El cifrado fiscal va con una clave de test: sin cifrador, cargar
@@ -157,12 +159,14 @@ func armarRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) *gin.Engine
 	huecoLiberado := worker.NewListaEsperaNotificador(
 		listaEsperaRepo, avisoRepo, worker.NewPublicador(rdb), nil)
 
-	// El control de cupos va cableado como en producción (main.go): el catálogo
-	// informa el stock del día y confirmar un pedido lo descuenta. Sin esto el
-	// e2e no probaba una sola línea de la feature de stock sobre HTTP —ni
-	// siquiera el 409 de ErrSinCupo—, y peor: el catálogo salía MUDO (todo
-	// `restante: null`, `agotado: false`), así que un test de stock fallaría
-	// por falta de datos y no por el bug que busca.
+	// El control de stock va cableado como en producción (main.go) y con LAS DOS
+	// capas: el cupo del día (Capa 1) y los insumos con sus recetas (Capa 2). El
+	// catálogo informa cuánto queda de cada plato y confirmar un pedido lo
+	// descuenta de donde corresponda. Sin esto el e2e no probaría una sola línea
+	// de la feature sobre HTTP —ni siquiera los 409 de ErrSinCupo y ErrSinStock—,
+	// y peor: el catálogo saldría MUDO (todo `restante: null`, `agotado: false`),
+	// así que un test de stock fallaría por falta de datos y no por el bug que
+	// busca.
 	return router.New(router.Deps{
 		Cfg:        cfg,
 		DB:         db,
@@ -171,22 +175,35 @@ func armarRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) *gin.Engine
 		NegocioSvc: service.NewNegocioService(db, negocioRepo, usuarioRepo),
 		CatalogoSvc: service.NewCatalogoService(categoriaRepo, recursoRepo, servicioRepo, coberturaRepo,
 			service.ConCupoEnCatalogo(cupoRepo, jornadaRepo),
+			service.ConRecetasEnCatalogo(recetaRepo),
 		),
 		ClienteSvc: service.NewClienteService(clienteRepo, coberturaRepo),
 		AuditSvc:   service.NewAuditService(auditRepo),
 		MotorSvc: service.NewMotorGastro(
 			service.NewMotorService(compromisoRepo, holdRepo, service.ConNotificador(huecoLiberado)),
 			negDatosRepo,
-			service.ConControlDeCupos(cupoRepo, jornadaRepo),
+			service.ConControlDeStock(
+				service.NewDescontadorStock(recetaRepo, insumoRepo, cupoRepo),
+				jornadaRepo,
+			),
 		),
-		HoldSvc:      service.NewHoldService(holdRepo, compromisoRepo),
-		DispoSvc:     service.NewDisponibilidadService(dispoRepo),
-		TokenSvc:     service.NewNegocioTokenService(negDatosRepo),
-		ListaEspSvc:  service.NewListaEsperaService(listaEsperaRepo),
-		ConsultaSvc:  service.NewConsultaService(consultaRepo, worker.NewAvisadorConsulta(worker.NewPublicador(rdb))),
-		CobroSvc:     service.NewCobroService(cobroRepo, negDatosRepo, cifrador),
-		JornadaSvc:   service.NewJornadaService(jornadaRepo),
-		CupoSvc:      service.NewCupoService(cupoRepo, jornadaRepo, servicioRepo),
+		HoldSvc:     service.NewHoldService(holdRepo, compromisoRepo),
+		DispoSvc:    service.NewDisponibilidadService(dispoRepo),
+		TokenSvc:    service.NewNegocioTokenService(negDatosRepo),
+		ListaEspSvc: service.NewListaEsperaService(listaEsperaRepo),
+		ConsultaSvc: service.NewConsultaService(consultaRepo, worker.NewAvisadorConsulta(worker.NewPublicador(rdb))),
+		CobroSvc:    service.NewCobroService(cobroRepo, negDatosRepo, cifrador),
+		JornadaSvc:  service.NewJornadaService(jornadaRepo),
+		// La exclusión receta ⊕ cupo va cableada en LOS DOS sentidos, como en
+		// main.go. Con una sola mitad la regla se viola entrando por el lado
+		// que quedó suelto, y un e2e que sólo cablee una probaría media regla.
+		CupoSvc: service.NewCupoService(cupoRepo, jornadaRepo, servicioRepo,
+			service.ConExclusionDeReceta(recetaRepo),
+		),
+		InsumoSvc: service.NewInsumoService(insumoRepo),
+		RecetaSvc: service.NewRecetaService(recetaRepo, insumoRepo, servicioRepo,
+			service.ConExclusionDeCupo(cupoRepo, jornadaRepo),
+		),
 		ReporteSvc:   service.NewReporteService(reporteRepo, negDatosRepo),
 		NegDatosRepo: negDatosRepo,
 		HorarioH:     handler.NewHorariosHandler(horarioRepo),

@@ -75,7 +75,11 @@ El descuento de insumos al confirmar copia la forma de `cupoRepo.mover`: una tra
 
 ### 6. Una salida visible para la receta mal cargada
 
-Cuando un plato queda en `agotado` **por receta**, el panel dice cuál insumo lo apagó y con qué número: *"Hamburguesa: 0 porciones — falta pan de papa (quedan 2, la receta pide 1... )"*. Y el interruptor `disponible` sigue estando para forzar la venta a mano.
+Cuando un plato queda en `agotado` **por receta**, el panel dice cuál insumo lo apagó y con qué número: *"Hamburguesa: 0 porciones — falta pan de papa (quedan 2 unidades, la receta pide 3 unidades)"*, y lo lleva a corregir ese saldo.
+
+> **Corregido durante el apply.** La versión original decía que el interruptor `disponible` quedaba como salida de emergencia para forzar la venta. **Es falso y era una promesa peligrosa.** Un plato agotado por receta ya tiene `disponible: true` —por eso se ve como agotado—, así que apagarlo lo esconde y prenderlo lo devuelve a agotado. Y aunque se pudiera forzar dentro de la lista vendible, confirmar el pedido fallaría con `ErrSinStock`: la salida habría dejado al cliente pidiendo algo que no se le puede cobrar. Una salida que falla más tarde es peor que no tener salida.
+>
+> La salida real es **corregir el saldo del insumo**, y es mejor: arregla el número equivocado en vez de taparlo, y deja un movimiento de `ajuste` explicando qué pasó. El panel ya lleva del plato apagado al insumo — *"Si ese número está mal, corregilo en Stock → Insumos"*.
 
 *Por qué:* es el riesgo que la decisión original del proyecto anticipó y la razón por la que estos sistemas se abandonan. Un plato que se apaga solo y no dice por qué es indistinguible de un bug, y el dueño lo resuelve apagando la feature entera. El insumo culpable ya está calculado — es el `argmin` del mismo `min()` que derivó las porciones — así que mostrarlo no cuesta nada y es la diferencia entre "esto anda mal" y "ah, cargué mal el pan".
 

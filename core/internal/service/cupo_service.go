@@ -37,14 +37,46 @@ type cupoService struct {
 	cupos     repository.CupoRepository
 	jornadas  repository.JornadaRepository
 	servicios repository.ServicioRepository
+	// recetas es la mitad "cupo sobre plato con receta" de la exclusión
+	// receta ⊕ cupo. Opcional: sin la Capa 2 cableada no hay recetas contra
+	// las que chocar y el cupo se comporta como antes de este cambio.
+	recetas recetaExistente
+}
+
+// recetaExistente es lo único que el cupo necesita saber de la Capa 2: si este
+// plato ya se controla por receta. Lo implementa repository.RecetaRepository.
+//
+// Con cero líneas devuelve false: una receta vacía es un plato sin receta, así
+// que vaciarla es la forma de habilitar el cupo manual otra vez.
+type recetaExistente interface {
+	TieneReceta(ctx context.Context, negocioID, servicioID string) (bool, error)
+}
+
+// OpcionCupo configura el service sin romperle la firma al constructor, igual
+// que OpcionCatalogo y OpcionGastro. Existe para no obligar a los tres o
+// cuatro llamadores de NewCupoService a aprender la Capa 2.
+type OpcionCupo func(*cupoService)
+
+// ConExclusionDeReceta hace que poner cupo manual rebote si el plato ya tiene
+// receta. Es la mitad de la exclusión que se valida acá; la otra
+// (ConExclusionDeCupo, en RecetaService) valida el sentido inverso. Las dos
+// tienen que estar cableadas: con una sola, la regla se puede violar entrando
+// por el lado que quedó suelto.
+func ConExclusionDeReceta(r recetaExistente) OpcionCupo {
+	return func(s *cupoService) { s.recetas = r }
 }
 
 func NewCupoService(
 	cupos repository.CupoRepository,
 	jornadas repository.JornadaRepository,
 	servicios repository.ServicioRepository,
+	opts ...OpcionCupo,
 ) CupoService {
-	return &cupoService{cupos: cupos, jornadas: jornadas, servicios: servicios}
+	s := &cupoService{cupos: cupos, jornadas: jornadas, servicios: servicios}
+	for _, o := range opts {
+		o(s)
+	}
+	return s
 }
 
 func (s *cupoService) DelDia(ctx context.Context, negocioID string) ([]dto.CupoResponse, error) {
@@ -76,6 +108,21 @@ func (s *cupoService) Set(ctx context.Context, negocioID string, in dto.SetCupoI
 	}
 	if err != nil {
 		return nil, err
+	}
+
+	// Exclusión receta ⊕ cupo, sentido "cupo sobre plato con receta" (design
+	// §2). Rebota ANTES de escribir y diciendo cuál de los dos hay que sacar:
+	// un plato con dos fuentes para el mismo número obliga a inventar una regla
+	// de precedencia, y esa regla es una pregunta que el dueño se hace en el
+	// peor momento posible.
+	if s.recetas != nil {
+		tiene, err := s.recetas.TieneReceta(ctx, negocioID, in.ServicioID)
+		if err != nil {
+			return nil, err
+		}
+		if tiene {
+			return nil, ErrPlatoConReceta
+		}
 	}
 
 	asignado := 0

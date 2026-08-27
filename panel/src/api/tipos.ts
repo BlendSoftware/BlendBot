@@ -144,6 +144,21 @@ export interface Servicio {
   precio_base: Plata
   disponible: boolean
   activo: boolean
+  /**
+   * Porciones que quedan. `null` NO es cero: `null` es "este plato no lleva
+   * cuenta" —ilimitado es el default— y `0` es "lleva cuenta y no queda". El
+   * que confunde los dos apaga el plato equivocado o vende el que se terminó.
+   *
+   * De dónde sale el número lo decide el core, en este orden: receta → cupo
+   * del día → ilimitado. Acá llega ya resuelto.
+   */
+  restante: number | null
+  /** `restante === 0`. Viaja aparte para que nadie tenga que decidir de nuevo
+   *  qué significa un cero, y para que un plato ilimitado diga `false`. */
+  agotado: boolean
+  /** Sólo viaja si el plato se controla por receta: su presencia ES la forma de
+   *  saber que este plato lleva receta y no cupo a mano. */
+  limitante?: InsumoLimitante
 }
 
 export interface Recurso {
@@ -340,6 +355,114 @@ export interface CupoStock {
   restante: number
   agotado: boolean
   disponible: boolean
+}
+
+// ─── Insumos: la materia prima ───────────────────────────────────────────────
+//
+// Espejo de los DTO de insumos y recetas. La diferencia con el cupo no es de
+// detalle y define todo lo demás: el cupo es una foto del día y se reinicia al
+// abrir la caja; el insumo es un saldo corriente del negocio y la carne que
+// sobra hoy sigue estando mañana. Nada de esto cuelga de la jornada.
+//
+// La unidad la define el insumo y NADIE la convierte: no hay kg↔g ni l↔ml en
+// ningún punto del sistema. Toda cantidad escrita contra un insumo —en una
+// receta, en una compra, en un ajuste— va en ESTA unidad, y la pantalla la
+// muestra siempre pegada al campo.
+
+export type Unidad = 'g' | 'ml' | 'unidad'
+
+export interface Insumo {
+  id: string
+  nombre: string
+  unidad: Unidad
+  stock: number
+  /**
+   * `null` es "no me avises", no "avisame siempre": un insumo sin mínimo
+   * cargado NUNCA se marca, aunque quede en 1.
+   */
+  stock_minimo: number | null
+  bajo_minimo: boolean
+  activo: boolean
+}
+
+export type TipoMovimiento = 'compra' | 'consumo' | 'devolucion' | 'ajuste'
+
+/**
+ * Una línea de la historia del saldo. `cantidad` es SIEMPRE positiva: el signo
+ * lo dice el tipo. Existe para poder contestar "compré 20 kg, ¿por qué me
+ * quedan 3?", que es la primera pregunta que aparece cuando el sistema y la
+ * heladera no coinciden.
+ */
+export interface MovimientoInsumo {
+  id: string
+  tipo: TipoMovimiento
+  cantidad: number
+  saldo_resultante: number
+  /** El pedido que se lo llevó, cuando lo hubo. */
+  compromiso_id: string | null
+  motivo: string | null
+  creado_en: string
+}
+
+/**
+ * Una línea de receta como la manda el panel: cuánto de un insumo lleva UNA
+ * porción del plato. No lleva unidad porque la unidad es del insumo y la receta
+ * la hereda — ofrecer elegirla acá reintroduciría el error de conversión que
+ * todo el módulo está diseñado para hacer imposible.
+ */
+export interface RecetaItem {
+  insumo_id: string
+  cantidad: number
+}
+
+/** Una línea de receta como vuelve del core: ya resuelta para mostrar, con el
+ *  nombre del insumo, su unidad y cuánto hay de él ahora mismo. */
+export interface LineaReceta {
+  insumo_id: string
+  insumo_nombre: string
+  unidad: Unidad
+  cantidad: number
+  /** Cuánto hay de ese insumo hoy: al lado de lo que pide la receta se ve de
+   *  una de dónde salen las porciones. */
+  stock: number
+}
+
+/** La receta de un plato más lo que se deriva de ella. */
+export interface Receta {
+  servicio_id: string
+  tiene_receta: boolean
+  items: LineaReceta[]
+  /** `null` cuando el plato no tiene receta. `null` NO es cero, igual que en el
+   *  catálogo: una receta vacía deja el plato ilimitado, no agotado. */
+  porciones: number | null
+  /** Vacío cuando no hay receta. */
+  insumo_limitante: string
+  stock_limitante: number
+  pide_la_receta: number
+}
+
+/**
+ * Quién le fijó las porciones al plato: el insumo más escaso de su receta, con
+ * su saldo y lo que la receta le pide por porción.
+ *
+ * Existe por una sola razón: un plato que se apaga solo y no dice por qué es
+ * indistinguible de un bug, y el dueño lo resuelve apagando la feature entera.
+ * Viaja también cuando el plato NO está agotado — es el que se va a quedar
+ * corto primero.
+ */
+export interface InsumoLimitante {
+  /** Nombre, no id: es para leer. */
+  insumo: string
+  /**
+   * La unidad viaja pegada a los números y no se resuelve afuera. Sin ella
+   * "quedan 2" es ambiguo, que es el riesgo de las unidades entrando por la
+   * puerta de atrás: el panel tendría que cruzar el nombre contra la lista de
+   * insumos, y ese cruce se rompe con dos insumos homónimos o con un rename
+   * entre dos lecturas.
+   */
+  unidad: Unidad
+  stock: number
+  pide_la_receta: number
 }
 
 export type MedioPago = 'efectivo' | 'transferencia' | 'debito' | 'credito' | 'qr'
