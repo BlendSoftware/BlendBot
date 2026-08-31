@@ -2,11 +2,13 @@
 
 ### Requirement: Toda hora que sale de la API está en la timezone del negocio
 
-Cualquier campo de fecha u hora de un response de `/api/*` SHALL viajar en formato RFC3339 con el offset de la timezone del negocio dueño del dato, tomada de `negocio.timezone`.
+Cualquier campo de fecha u hora de un response de una ruta **con negocio** SHALL viajar en formato RFC3339 con el offset de la timezone de ese negocio, tomada de `negocio.timezone`.
 
 La TZ del proceso, del contenedor o del sistema operativo NO SHALL influir en la hora que se serializa. Un core corriendo en UTC y uno corriendo en `America/Argentina/Buenos_Aires` SHALL producir byte por byte la misma respuesta para el mismo dato.
 
-Esto aplica a todos los responses, sin lista de excepciones: compromisos, consultas, clientes, cobros, comprobantes, jornadas, holds, excepciones de horario, movimientos de insumo y lista de espera.
+Esto aplica a todos los responses de negocio, sin excepciones: compromisos, consultas, clientes, cobros, comprobantes, jornadas, holds, excepciones de horario, movimientos de insumo y lista de espera.
+
+Las rutas de plataforma (`/api/admin/*`) quedan fuera de este requisito y las gobierna el suyo propio, más abajo: no tienen un negocio único del cual tomar la timezone.
 
 #### Scenario: Una consulta creada de noche no salta de día
 - **WHEN** el negocio está en `America/Argentina/Buenos_Aires` y se crea una consulta a las 22:48 hora local (01:48 UTC del día siguiente)
@@ -22,9 +24,10 @@ Esto aplica a todos los responses, sin lista de excepciones: compromisos, consul
 - **THEN** cada uno los ve con el offset de su propia timezone
 - **AND** ninguno ve el offset del otro
 
-#### Scenario: Ningún endpoint devuelve `Z`
-- **WHEN** se recorren los endpoints de lectura de la API con un negocio cuya timezone no es UTC
+#### Scenario: Ninguna ruta de negocio devuelve `Z`
+- **WHEN** se recorren los endpoints de lectura de negocio con una timezone que no es UTC
 - **THEN** ningún campo de hora del cuerpo termina en `Z`
+- **AND** `medicion.sh` sale 0
 
 ### Requirement: Un response nuevo no puede omitir la timezone por descuido
 
@@ -63,21 +66,31 @@ Los services NO SHALL leer el negocio para resolver la timezone. Armar un respon
 - **THEN** el request falla con un error que nombra el negocio y el valor
 - **AND** NO se cae a UTC en silencio
 
-### Requirement: Sin negocio en el contexto no se serializan horas
+### Requirement: Las rutas de plataforma expresan la hora en UTC, explícitamente
 
-Cuando el request no tiene negocio asociado —las rutas de plataforma bajo `/api/admin/*`, donde el JWT del admin trae `negocio_id` vacío— el middleware NO SHALL poner location en el contexto.
+Los responses de `/api/admin/*` operan sobre varios negocios a la vez y no tienen una timezone única. Sus campos de hora SHALL viajar en UTC.
 
-Un response de esas rutas que intente serializar una `Hora` SHALL fallar. NO SHALL existir un fallback a UTC.
+Ese UTC SHALL construirse con un constructor que lo nombre (`dto.HoraUTC`), NO SHALL obtenerse por omisión de location ni por fallback del serializador. La distinción es el punto: una hora en UTC porque alguien lo decidió es correcta; la misma hora porque nadie se acordó es el bug que esta capability existe para eliminar.
 
-#### Scenario: El admin opera sin timezone y sin romperse
+El middleware de timezone NO SHALL poner location para estas rutas, y una `Hora` sin location SHALL seguir fallando al serializarse.
+
+#### Scenario: El alta de un negocio se ve en UTC
 - **WHEN** el admin de plataforma llama a `GET /api/admin/negocios`
-- **THEN** el request funciona normalmente
-- **AND** no se resuelve ninguna timezone, porque la respuesta no expone horas
+- **THEN** `creado_en` de cada negocio viaja en UTC, terminado en `Z`
+- **AND** el valor es el mismo sin importar la timezone de cada negocio listado
 
-#### Scenario: Un response de admin con hora falla ruidosamente
-- **WHEN** alguien agrega un campo `Hora` a un response de `/api/admin/*`
-- **THEN** el endpoint falla en el primer test que lo serialice
-- **AND** el error empuja a decidir a propósito en qué huso mostrar una hora que cruza negocios
+#### Scenario: La lista cross-tenant se lee como secuencia
+- **WHEN** dos negocios en husos distintos se dieron de alta con diez minutos de diferencia
+- **THEN** el orden de sus `creado_en` leídos como hora de pared coincide con el orden real de alta
+
+#### Scenario: Olvidarse sigue fallando, también en admin
+- **WHEN** un response de `/api/admin/*` construye una `Hora` sin location y sin usar `HoraUTC`
+- **THEN** la serialización falla
+- **AND** el error empuja a elegir a propósito, no a heredar un default
+
+#### Scenario: La ficha fiscal también
+- **WHEN** el admin llama a `GET /api/admin/negocios/:id/fiscal` de un negocio con configuración fiscal
+- **THEN** `actualizado_en` viaja en UTC, construido explícitamente
 
 ### Requirement: Cómo entra la hora y cómo se guarda no cambian
 

@@ -73,13 +73,31 @@ Cuelga después del middleware de auth, que es quien ya extrajo el `negocio_id` 
 
 *Consecuencia buscada:* `localizado()` y `locNegocio()` se eliminan. Este cambio agrega un tipo y borra dos funciones.
 
-### 4. Sin negocio en el contexto, el response no lleva horas
+### 4. Las rutas de plataforma van en UTC, pero elegido y no por omisión
 
-Las rutas de `/api/admin/*` operan sobre la plataforma: el admin no tiene `negocio_id` (lo verificamos: su JWT trae `negocio_id: ""` y el login devuelve `negocio_id: null`). Ahí no hay TZ que resolver.
+> **Corregida por la tarea 1.2.** La versión original de esta decisión decía
+> *"hoy ningún response de admin expone timestamps, así que la regla no rompe
+> nada"*. **Es falso.** La verificación encontró dos:
+>
+> - `model.Negocio.CreadoEn` — `GET /api/admin/negocios` lo devuelve hoy en UTC
+>   (`2026-08-31T22:51:05.938268Z`, medido).
+> - `ConfigFiscalResponse.ActualizadoEn` (`cobro_dto.go:185`) — lo devuelven
+>   `GET` y `PUT /api/admin/negocios/:id/fiscal`.
+>
+> Fue exactamente el trabajo de la tarea bloqueante: el supuesto era cómodo y
+> era mentira. La decisión se rehace abajo.
 
-La regla es explícita y no accidental: **si no hay negocio en el contexto, el middleware no pone location, y un response que intente serializar una `Hora` falla.** No hay fallback a UTC ni a la TZ del proceso.
+Las rutas de `/api/admin/*` operan sobre la plataforma: el admin no tiene `negocio_id` (su JWT trae `negocio_id: ""` y el login devuelve `negocio_id: null`), así que el middleware de §3 no tiene de dónde sacar una location. Pero sí hay horas que mostrar.
 
-*Por qué tan duro:* un fallback silencioso a UTC reintroduce exactamente el bug que este cambio elimina, y lo reintroduce en el lugar donde menos se mira. Hoy ningún response de admin expone timestamps, así que la regla no rompe nada. El día que alguien agregue uno, se va a enterar en el acto y va a tener que decidir a propósito en qué hora lo muestra — que es la decisión correcta para un panel de plataforma con negocios en husos distintos.
+**Los responses de plataforma se serializan en UTC, con un constructor que lo dice** — `dto.HoraUTC(t)` frente a `dto.NuevaHora(t, loc)`. La propiedad central del cambio sobrevive intacta: no se puede **olvidar** la timezone, sólo se puede **elegir**, y la elección queda escrita en el sitio de construcción, donde alguien la puede discutir.
+
+*Por qué UTC y no la TZ de cada negocio:* el listado de admin es cross-tenant. Si cada fila se rindiera en su propio huso, la columna "creado" deja de ser leíble como secuencia: un negocio dado de alta **después** puede mostrar una hora de pared **anterior** al de arriba. Una lista ordenada por fecha que se ve desordenada es peor que una en un huso ajeno. UTC es el único huso neutral entre tenants.
+
+*Por qué no la TZ del operador:* el core no la conoce y no debería. Si algún día el panel de plataforma quiere mostrarlo en la hora de quien mira, esa conversión es del navegador y sobre un instante que ya viaja bien — que es justamente lo que UTC con `Z` garantiza.
+
+*Consecuencia de alcance:* `admin_negocios.go:38` y `:84` hoy serializan `model.Negocio` **directo**, sin DTO. Meter `dto.Hora` dentro de `model` invertiría la dependencia (hoy `dto` importa `model`) y crearía un ciclo. Se introduce `dto.NegocioResponse` y las rutas de admin dejan de serializar el modelo. Es trabajo que no estaba en el plan original y sale de esta verificación.
+
+*Alternativa descartada:* mover `Hora` a un paquete propio (`internal/tipos`) que importen `model` y `dto` por igual. Evita el DTO nuevo y es menos código hoy. Se descarta porque deja a `model` cargando una preocupación de serialización, y porque el test de §5 tendría que recorrer dos paquetes en vez de uno para dar la misma garantía. El DTO nuevo es más código y menos superficie que vigilar.
 
 ### 5. El test que evita la octava regresión
 

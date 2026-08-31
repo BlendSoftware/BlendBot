@@ -39,7 +39,9 @@ Lo que hace que esto **no** se arregle con seis llamadas a `EnTimezone` es la fo
 ## Impact
 
 **Core (Go)**
-- `core/internal/dto/hora.go` — **nuevo**. El tipo `Hora`, su `MarshalJSON` y el constructor que exige location.
+- `core/internal/dto/hora.go` — **nuevo**. El tipo `Hora`, su `MarshalJSON`, el constructor que exige location y `HoraUTC` para las rutas de plataforma.
+- `core/internal/dto/negocio_dto.go` — `NegocioResponse` **nuevo**, para que `/api/admin/negocios` deje de serializar `model.Negocio` directo.
+- `core/cmd/server/main.go` — `import _ "time/tzdata"`, para que la hora no dependa de la base de la imagen.
 - `core/internal/dto/` — `cliente_dto.go`, `cobro_dto.go`, `consulta_dto.go`, `hold_dto.go`, `horario_dto.go` (sólo `ExcepcionResponse`), `insumo_dto.go`, `jornada_dto.go`, `lista_espera_dto.go`, `compromiso_dto.go`: los campos de respuesta pasan a `Hora`. Los DTOs de **request** quedan como están.
 - `core/internal/middleware/` — **nuevo**. Resuelve `negocio.Timezone` una vez por request y lo deja en el contexto. Cuelga después del middleware de auth, que es el que ya sabe el `negocio_id`.
 - `core/internal/service/motor_gastro.go` — `localizado()` y `locNegocio()` se van: su trabajo lo hace el middleware. Es la única eliminación de código del cambio.
@@ -51,12 +53,16 @@ Lo que hace que esto **no** se arregle con seis llamadas a `EnTimezone` es la fo
 **Agente (Python)**
 - A verificar, no a cambiar a ciegas: el agente lee holds y consultas, y repite horas en el chat. Si hoy dice una hora corrida, este cambio lo arregla sin tocarlo. Hay que confirmarlo con un test, no asumirlo.
 
+**Evidencia**
+- `openspec/changes/la-hora-del-negocio/medicion.sh` — **nuevo**. Recorre la API y reporta qué campo viaja en qué huso, distinguiendo rutas de negocio (deben ir en local) de rutas de plataforma (deben ir en UTC). Sale 1 mientras quede alguna de negocio en UTC. Línea de base al abrir el cambio: **6 mal, 3 bien**.
+
 **Tests**
 - Go: unitarios del tipo `Hora` (que `MarshalJSON` falle sin location es *el* test del cambio).
 - Go: integración sobre los siete endpoints medidos arriba, con un negocio en una TZ que no sea UTC ni la del CI.
 - Go: un test que recorra los DTOs de respuesta por reflexión y falle si alguno expone `time.Time` desnudo. Es lo que evita la regresión número ocho.
 - `scripts/smoke.sh`: un assert de que ninguna hora de la API sale con `Z`.
 
-**Riesgo conocido**
-- El middleware necesita el `negocio_id`, que sale del JWT. Las rutas de `/api/admin/*` operan sobre la plataforma y no tienen negocio: ahí no hay TZ que resolver y los responses de admin no exponen horas. Hay que decidir explícitamente qué hace el middleware en ese caso en vez de dejarlo pasar de casualidad — está en `design.md` §4.
-- `time.LoadLocation` necesita la tzdata. El `Dockerfile` del core tiene que tenerla o `LoadLocation` falla en runtime; hoy funciona, así que está, pero el cambio la vuelve crítica para **toda** la API y no sólo para compromisos. Verificarlo es una tarea, no un supuesto.
+**Riesgo conocido** *(los dos primeros ya se verificaron — ver `tasks.md` grupo 1)*
+- ~~Los responses de admin no exponen horas.~~ **Falso, verificado.** `GET /api/admin/negocios` devuelve `creado_en` (medido en UTC) y `ConfigFiscalResponse` devuelve `actualizado_en`. La decisión §4 del design se rehízo: las rutas de plataforma van en UTC **elegido explícitamente** (`dto.HoraUTC`), porque son cross-tenant y rendir cada fila en su propio huso rompe el orden de lectura de la lista. Sale alcance nuevo: un `dto.NegocioResponse` para que admin deje de serializar `model.Negocio` directo.
+- ~~Hay que verificar que la imagen tenga tzdata.~~ **Verificado: la tiene**, vía `apk add tzdata` en `core/Dockerfile:33`. Pero el binario **no** la embebe: `import _ "time/tzdata"` sólo está en 4 archivos de test. Eso significa que **ninguna suite puede detectar que la imagen se quedó sin tzdata**, porque los tests traen la suya. Se agrega el import al binario de producción (~450 KB sobre 34,7 MB).
+- Queda vivo: `model.Servicio` se serializa directo al panel, sin DTO. Hoy no lleva horas, pero el test guardián del grupo 7 tiene que recorrer también los modelos que viajan crudos, o deja un agujero de la forma exacta del que encontró la verificación 1.2.

@@ -7,6 +7,11 @@
 #  · `tzdata`: el core hace time.LoadLocation("America/Argentina/Mendoza") para
 #    resolver la agenda y el cierre en la zona del negocio. Sin la base de
 #    zonas, eso devuelve error y los huecos salen en UTC (turnos a las 6 AM).
+#    OJO: la garantía real NO vive acá. `cmd/server/main.go` importa
+#    `_ "time/tzdata"` y embebe la base en el binario, justamente para que la
+#    hora de la API no dependa de qué base de imagen se elija. Este `apk add`
+#    queda porque sirve adentro del contenedor (`date`, logs del shell) y no
+#    cuesta nada, pero borrarlo ya no rompe las horas.
 #  · `migrations/`: golang-migrate las lee del disco (file://$MIGRATIONS_PATH),
 #    no están embebidas en el binario. Si no viajan con la imagen, el core no
 #    arranca.

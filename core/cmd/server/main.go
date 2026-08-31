@@ -15,6 +15,17 @@ import (
 	"syscall"
 	"time"
 
+	// La base de zonas horarias, embebida en el binario (~450 KB sobre 34,7 MB).
+	//
+	// No es redundante con el `apk add tzdata` del Dockerfile: ése la pone en la
+	// imagen, y mientras sea lo único que la sostiene, la hora de TODA la API
+	// depende de qué base de imagen se use. Un cambio a `scratch` o a
+	// `distroless` haría que `time.LoadLocation` falle en runtime, y ninguna
+	// suite lo detectaría: los tests importan su propia tzdata (`e2e/main_test.go`,
+	// `integration/cobro_test.go`, y dos más), así que pasan igual con la imagen
+	// rota. Embeberla acá es la garantía que sí viaja con el código.
+	_ "time/tzdata"
+
 	"copiloto/core/internal/config"
 	"copiloto/core/internal/handler"
 	"copiloto/core/internal/infra"
