@@ -20,6 +20,18 @@
 # de prueba en la base de desarrollo y ningún error.
 #
 # Variables:
+# Gotcha de Windows: NO pasa entero desde el Git Bash de Windows, y no es culpa
+# del producto. Dos cosas de ese shell lo rompen:
+#
+#   · su `curl` manda los acentos mal ("Choripán" llega como "Chorip?n"), así
+#     que el assert del catálogo del agente falla. Los mismos datos cargados con
+#     python o desde el panel entran perfectos: es el shell, no el core.
+#   · su `date` no tiene tzdata con nombres IANA — `TZ=America/Argentina/Mendoza`
+#     devuelve UTC. Por eso el día del negocio se le pregunta al core y no se
+#     calcula acá (ver «Cierre del día»).
+#
+# En Linux/CI pasa entero. En Windows, WSL.
+#
 #   CORE_PORT ARCA_PORT GATEWAY_PORT PANEL_PORT   puertos publicados (ver .env)
 #   ADMIN_USERNAME ADMIN_PASSWORD                 credenciales del admin
 #   SMOKE_SKIP_UP=1                               no tocar el compose, sólo probar
@@ -162,8 +174,10 @@ contiene() {
 # sin que nadie tenga que acordarse de sumarlo a una lista.
 sin_horas_utc() {
   local encontradas
+  # `|| true`: no encontrar nada es el caso BUENO, pero grep sale 1 y con
+  # `set -Eeuo pipefail` eso dispararía el trap de error.
   encontradas=$(printf '%s' "$RESP" | grep -oE '"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?Z"' | tr '
-' ' ')
+' ' ' || true)
   [[ -z $encontradas ]] && { ok "$1"; return 0; }
   morir "$1" "hay horas en UTC: $encontradas" "toda hora de negocio va en la TZ del negocio" "cuerpo: ${RESP:0:400}"
 }
@@ -310,8 +324,10 @@ igual 5 "$(val '#')" "quedaron las cinco franjas semanales"
 # de ahí haría pasar igual todo el resto del flujo.
 titulo "Disponibilidad"
 LUNES=$(date -d 'next monday' +%F)
-INICIO="${LUNES}T09:00:00${OFFSET}"
-FIN="${LUNES}T09:30:00${OFFSET}"
+# TURNO_INICIO/TURNO_FIN y no INICIO/FIN: `FIN` ya es el reset ANSI de la
+# línea 60, y pisarlo hacía que cada ✓ saliera con un timestamp pegado.
+TURNO_INICIO="${LUNES}T09:00:00${OFFSET}"
+TURNO_FIN="${LUNES}T09:30:00${OFFSET}"
 
 api POST /api/disponibilidad/consultar "$TOKEN" \
   "$(printf '{"servicio_id":"%s","desde":"%s","dias":1}' "$SERVICIO_ID" "$LUNES")"
@@ -321,8 +337,8 @@ igual 30 "$(val duracion_min)" "duración del slot"
 igual "$LUNES" "$(val desde)" "día consultado"
 # 09:00–13:00 con paso de 30 minutos son ocho turnos.
 igual 8 "$(val 'huecos#')" "huecos del lunes"
-igual "$INICIO" "$(val 'huecos[0].inicio')" "inicio del primer hueco"
-igual "$FIN" "$(val 'huecos[0].fin')" "fin del primer hueco"
+igual "$TURNO_INICIO" "$(val 'huecos[0].inicio')" "inicio del primer hueco"
+igual "$TURNO_FIN" "$(val 'huecos[0].fin')" "fin del primer hueco"
 igual "$RECURSO_ID" "$(val 'huecos[0].recurso_id')" "recurso del primer hueco"
 contiene "$OFFSET" "$(val 'huecos[7].inicio')" "el último hueco también viene con offset (un 'Z' son turnos a las 6 AM)"
 igual "${LUNES}T12:30:00${OFFSET}" "$(val 'huecos[7].inicio')" "el último hueco arranca 12:30"
@@ -331,13 +347,13 @@ igual "${LUNES}T12:30:00${OFFSET}" "$(val 'huecos[7].inicio')" "el último hueco
 titulo "Hold"
 SESION="54926110${SUFIJO:0:5}"
 api POST /api/holds "$TOKEN" \
-  "$(printf '{"recurso_id":"%s","inicio":"%s","fin":"%s","sesion":"%s"}' "$RECURSO_ID" "$INICIO" "$FIN" "$SESION")"
+  "$(printf '{"recurso_id":"%s","inicio":"%s","fin":"%s","sesion":"%s"}' "$RECURSO_ID" "$TURNO_INICIO" "$TURNO_FIN" "$SESION")"
 exigir 201 "el hold se tomó"
 HOLD_ID=$(val id)
 igual "$SESION" "$(val sesion)" "sesión del hold"
 
 api POST /api/holds "$TOKEN" \
-  "$(printf '{"recurso_id":"%s","inicio":"%s","fin":"%s","sesion":"otra-sesion"}' "$RECURSO_ID" "$INICIO" "$FIN")"
+  "$(printf '{"recurso_id":"%s","inicio":"%s","fin":"%s","sesion":"otra-sesion"}' "$RECURSO_ID" "$TURNO_INICIO" "$TURNO_FIN")"
 exigir 409 "otra sesión no puede robar el hueco bloqueado"
 
 api POST /api/disponibilidad/consultar "$TOKEN" \
@@ -356,7 +372,7 @@ api POST /api/compromisos "$TOKEN" "$(printf '{
   "cliente_id":"%s","tipo":"turno","origen":"whatsapp","recurso_id":"%s",
   "inicio":"%s","fin":"%s","sesion":"%s",
   "lineas":[{"servicio_id":"%s","cantidad":1}]}' \
-  "$CLIENTE_ID" "$RECURSO_ID" "$INICIO" "$FIN" "$SESION" "$SERVICIO_ID")"
+  "$CLIENTE_ID" "$RECURSO_ID" "$TURNO_INICIO" "$TURNO_FIN" "$SESION" "$SERVICIO_ID")"
 exigir 201 "creación del turno"
 TURNO_ID=$(val id)
 igual pendiente "$(val estado)" "el turno nace pendiente"
@@ -414,9 +430,27 @@ igual "$COBRO_ID" "$(val id)" "es el mismo cobro"
 # El cierre cuenta por `cerrado_en` y `cobrado_en`, no por la fecha del turno:
 # lo que se cerró y se cobró hoy es de hoy, aunque el turno fuera del lunes.
 titulo "Cierre del día"
-HOY=$(TZ="$TZ_NEGOCIO" date +%F)
+# El día del negocio lo resuelve el CORE, no este script.
+#
+# `TZ="America/Argentina/Mendoza" date +%F` parece lo obvio y está mal: el Git
+# Bash de Windows no trae tzdata con nombres IANA —Mendoza, Buenos_Aires y
+# Sao_Paulo devuelven las tres UTC— así que entre las 21:00 y medianoche el
+# script pedía el día siguiente y el cierre daba 0 compromisos. Sólo fallaba en
+# esa ventana de tres horas, que es la peor forma de fallar.
+#
+# `GET /api/cierre` sin `fecha` ya resuelve "hoy" con la timezone del negocio
+# (ver el comentario de handler/cobros.go:85, que dice exactamente por qué). El
+# core es la autoridad sobre qué día es para ese local; preguntárselo es más
+# correcto que recalcularlo acá, en cualquier máquina.
+api GET "/api/cierre" "$TOKEN"
+exigir 200 "cierre del día (el core resuelve el día del negocio)"
+HOY=$(val fecha)
+[[ -n $HOY && $HOY != null ]] || morir "el cierre no devolvió la fecha del negocio"
+nota "día del negocio según el core: $HOY"
+
+# Y pedido explícitamente por esa fecha tiene que dar lo mismo.
 api GET "/api/cierre?fecha=${HOY}" "$TOKEN"
-exigir 200 "cierre del día"
+exigir 200 "cierre del día por fecha explícita"
 igual "$HOY" "$(val fecha)" "fecha del cierre en la zona del negocio"
 igual "$TZ_NEGOCIO" "$(val timezone)" "timezone del cierre"
 igual 1 "$(val compromisos)" "un compromiso cerrado hoy"
