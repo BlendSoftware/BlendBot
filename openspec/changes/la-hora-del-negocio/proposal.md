@@ -20,6 +20,23 @@ El panel no está roto y no hay que tocarlo. `formato.ts` documenta el contrato 
 
 Lo que hace que esto **no** se arregle con seis llamadas a `EnTimezone` es la forma del defecto: localizar es opt-in. Un response nuevo nace en UTC y nadie se entera hasta que un dueño mira la pantalla a la hora equivocada. Arreglar los seis de hoy deja intacta la razón por la que hubo seis.
 
+## Resultado
+
+`medicion.sh` contra el stack corriendo, antes y después del cambio:
+
+| campo | antes | después |
+|---|---|---|
+| `compromiso.creado_en` | `20:01:38-03:00` | `20:01:38-03:00` (ya estaba bien) |
+| `consulta.creado_en` | **`23:22:38Z`** | `20:22:38-03:00` |
+| `jornada.abierta_en` | **`23:01:38Z`** | `20:01:38-03:00` |
+| `cliente.creado_en` | **`23:01:37Z`** | `20:01:37-03:00` |
+| `cliente.ultimo_pedido` | **`23:16:38Z`** | `20:16:38-03:00` |
+| `movimiento.creado_en` | **`23:16:38Z`** | `20:16:38-03:00` |
+| `cobro.cobrado_en` | **`23:01:38Z`** | `20:01:38-03:00` |
+| `negocio(admin).creado_en` | `Z` | `Z` — UTC **elegido** (design §4) |
+
+De **6 mal / 3 bien** a **0 mal / 9 bien**. El script sale 0.
+
 ## What Changes
 
 - **Un tipo que no se puede serializar mal.** Los timestamps de los DTOs de respuesta pasan de `time.Time` a `dto.Hora`, que lleva su `*time.Location` adentro y cuyo `MarshalJSON` **falla** si no lo tiene. Olvidarse de localizar deja de producir una hora corrida en silencio y pasa a producir un error ruidoso, en el primer test que toque ese endpoint.

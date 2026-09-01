@@ -279,6 +279,28 @@ GET    /api/reportes/*                   la analítica
 **Las transiciones de estado se validan en el core, nunca en el agente.** Si el
 modelo intenta pasar de `PENDIENTE` a `COMPLETADO`, el core lo rechaza.
 
+**Toda hora que sale de la API va en la timezone del negocio.** La regla vive en
+un solo lugar y no se puede omitir por descuido:
+
+- `dto.Hora` (`core/internal/dto/hora.go`) es un instante que **no se puede
+  serializar sin huso**: `MarshalJSON` devuelve error si no lo tiene, sin caer a
+  UTC. Los campos de fecha de los responses son de ese tipo, no `time.Time`.
+- `middleware.TimezoneDelNegocio` resuelve `negocio.timezone` **una vez por
+  request** y lo deja en el `context.Context`; los constructores de DTO lo sacan
+  con `dto.HoraDe(ctx, t)`.
+- Las rutas de plataforma (`/api/admin/*`) van en UTC, porque listan negocios de
+  husos distintos y no tienen uno propio. Lo declara
+  `middleware.HusoDePlataforma()` en el router, no cada constructor.
+- Los **requests** siguen usando `time.Time` y aceptan cualquier offset: este
+  contrato es sobre cómo sale la hora, no sobre cómo entra. El almacenamiento
+  sigue siendo `timestamptz` en UTC.
+
+Si buscás esto en `motor_gastro.go`, ya no está: hasta la capability
+`hora-local` vivía ahí (`EnTimezone` + `localizado`), aplicado a un solo
+response de siete. El panel corta el `"HH:MM"` del string sin convertir husos
+(`panel/src/dominio/formato.ts`) y eso es correcto **porque** el core cumple
+este contrato.
+
 ---
 
 ## El agente: las tools

@@ -119,6 +119,6 @@
 
 ## 8. Cierre
 
-- [ ] 8.1 Correr la medición de 1.3 y pegar el antes/después en el `proposal.md`.
-- [ ] 8.2 Anotar en `openspec/changes/lo-que-el-producto-promete/proposal.md` §3 que queda resuelto acá, y que el alcance real era seis endpoints, no uno.
-- [ ] 8.3 `docs/ARQUITECTURA.md`: una línea sobre dónde vive la regla de timezone ahora, para que el próximo no la busque en `motor_gastro`.
+- [x] 8.1 Medición final corrida y pegada en el `proposal.md` como tabla antes/después: **de 6 mal / 3 bien a 0 mal / 9 bien**, `medicion.sh` sale 0.
+- [x] 8.2 `lo-que-el-producto-promete` §3 marcado como ✅ RESUELTO, anotando que el hallazgo era correcto pero el alcance estaba corto: no era un endpoint olvidado sino seis, y la causa no era el olvido sino su forma (localizar era opt-in). También queda escrito que se confirmó lo que ese documento decía del panel: `horaDe` estaba bien y no se tocó.
+- [x] 8.3 `docs/ARQUITECTURA.md`: bloque nuevo en «El core: qué expone» con dónde vive la regla ahora —el tipo, el middleware, la excepción de plataforma y que los requests no cambian— y una nota explícita de que en `motor_gastro.go` ya no está, para que el próximo no la busque ahí.

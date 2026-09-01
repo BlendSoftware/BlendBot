@@ -30,7 +30,21 @@ No hay una tercera que sea gratis. **Elegir es del dueño del producto.**
 
 El modelo no puede agrupar sin inventarse los títulos, que es exactamente lo que la regla 5 prohíbe. Se le pide un formato que las tools no pueden alimentar. Acá no hay decisión: falta el dato.
 
-### 3. Las consultas se muestran en UTC — bug
+### 3. Las consultas se muestran en UTC — bug — ✅ RESUELTO en `la-hora-del-negocio`
+
+> **El hallazgo era correcto y el alcance estaba corto.** No era un endpoint
+> olvidado: medidos los siete, **seis** salían en UTC (consultas, jornada,
+> clientes, `ultimo_pedido`, movimientos de insumo y cobros). El único bien era
+> compromisos, porque `EnTimezone` existía sólo ahí.
+>
+> La causa no era el olvido sino su forma: localizar era *opt-in*. El cambio
+> `la-hora-del-negocio` invierte el default con un tipo `dto.Hora` que no se
+> puede serializar sin huso, más un middleware que lo resuelve una vez por
+> request. Medición: de 6 mal / 3 bien a **0 mal / 9 bien**.
+>
+> Y confirmó lo que este documento decía del panel: `horaDe` está bien y no se
+> tocó. El bug estaba en el core.
+
 
 Una pregunta hecha 22:48 en Mendoza se ve **01:48** en la pantalla «Preguntas».
 
