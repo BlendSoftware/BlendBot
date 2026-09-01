@@ -27,20 +27,25 @@
 
 ## 2. El tipo `dto.Hora` (Go)
 
-- [ ] 2.1 `core/internal/dto/hora.go`: el tipo con `t time.Time` y `loc *time.Location` privados, el constructor que exige location, y un `Zero`/`nil`-safe para los campos opcionales (`*Hora` donde hoy hay `*time.Time`).
-- [ ] 2.2 `MarshalJSON`: falla con error nombrando el tipo si `loc == nil`; si no, `t.In(loc)` formateado RFC3339Nano. **Sin fallback a UTC** — es el corazón del cambio.
-- [ ] 2.3 `UnmarshalJSON`: decidir y documentar. Un response no se deserializa en producción, pero los tests sí lo hacen. Que exista y parsee como instante, o que no exista y los tests comparen strings; lo que no puede es existir y perder el offset en silencio.
-- [ ] 2.4 Tests unitarios del tipo. **El test que importa es el de 2.2**: serializar sin location devuelve error. Si ese test no existe, el cambio no tiene sentido.
-- [ ] 2.5 Test: misma `Hora` con `TZ=UTC` y con `TZ=Europe/Madrid` en el proceso produce el mismo JSON.
-- [ ] 2.6 **Sale de 1.2.** Constructor `HoraUTC(t)` para las rutas de plataforma. Que se llame así y no `NuevaHora(t, time.UTC)` es el punto: en el sitio de construcción tiene que leerse la decisión, no una location cualquiera que resulta ser UTC. Documentar en el godoc que es **sólo** para responses cross-tenant, con el porqué del design §4.
+- [x] 2.1 `core/internal/dto/hora.go`: `Hora` con `t` y `loc` **privados** — exponerlos invitaría a hacer aritmética sobre un valor cuyo huso depende de quién lo construyó, que es el error que el tipo existe para impedir. Constructores `NuevaHora(t, loc)` y `NuevaHoraPtr(*t, loc)` (nil entra, nil sale, para que un `confirmado_en` pendiente viaje como `null` y no como fecha cero).
+- [x] 2.2 `MarshalJSON` falla con error si `loc == nil`, sin fallback. El mensaje nombra los dos constructores válidos: lo va a leer alguien que agregó un campo y no conoce este tipo.
+- [x] 2.3 `UnmarshalJSON` existe, y **conserva el offset** en vez de normalizar a UTC. Sin eso, un test no puede afirmar "esto salió en -03:00", que es la aserción central del cambio. Documentado que en producción ningún response se deserializa.
+- [x] 2.4 8 tests unitarios, verdes. `TestMarshalSinTimezoneFalla` cubre el valor cero y el `nil` explícito, y exige que el error mencione `NuevaHora` y `HoraUTC`.
+- [x] 2.5 `TestMarshalNoDependeDeLaTZDelProceso`: el mismo instante con `time.Local` en UTC, Madrid y Kolkata da byte por byte el mismo JSON. Es la regresión concreta que causaba el bug.
+- [x] 2.6 `HoraUTC(t)` y `HoraUTCPtr(t)` para plataforma, con el porqué del design §4 en el godoc y la advertencia de que es sólo para responses cross-tenant.
+- [x] 2.7 **Guardián verificado** (no estaba en el plan; sale de la disciplina de 7.3, aplicada acá también). Se saboteó `MarshalJSON` para que cayera a UTC en vez de fallar: `TestMarshalSinTimezoneFalla` y `TestCampoValorSinConstruirRompeElResponse` se pusieron rojos, los dos que tenían que hacerlo. Restaurado y verde. Un test que nunca se vio fallar no es un test.
+
+  `TestMarshalUsaLaTimezoneDada` usa `Asia/Kolkata` (+05:30) además de Buenos_Aires: un huso de offset no entero atrapa el bug de asumir horas redondas, que con husos argentinos solamente pasaría desapercibido.
 
 ## 3. El middleware de timezone (Go)
 
-- [ ] 3.1 Middleware nuevo que corre **después** del de auth: toma el `negocio_id` de los claims, lee el negocio, `time.LoadLocation`, deja el `*time.Location` en el contexto de gin.
-- [ ] 3.2 `negocio_id` vacío (admin de plataforma) → no pone nada en el contexto y sigue. Sin error, sin default. Decisión §4.
-- [ ] 3.3 `time.LoadLocation` falla → el request falla con un error que nombra el negocio y el valor de la columna. Nunca caer a UTC.
-- [ ] 3.4 Cablearlo en `router.go` en el grupo correcto: todas las rutas de negocio, ninguna de `/api/admin/*`.
-- [ ] 3.5 Test: una consulta a `negocio` por request, no una por response. Verificable contando queries o con un repo espía.
+- [x] 3.1 `core/internal/middleware/timezone.go`. Declara su propia interfaz mínima `LectorDeNegocio` (sólo `Negocio(ctx, id)`) en vez de importar `NegocioDatosRepository` entero: al middleware no le interesan las coberturas ni el hash del token del agente. Expone `Location(c)` para que los handlers saquen el huso.
+- [x] 3.2 `negocio_id` vacío → no pone nada y `c.Next()`. Sin error y sin default. Si el middleware se colgara fuera de `RequireNegocio`, el request sigue sin huso y cualquier `dto.Hora` falla al serializarse: ruidoso, no un UTC silencioso.
+- [x] 3.3 `time.LoadLocation` falla → 500 y el request se corta **antes** del handler. El detalle (negocio y valor de la columna) va al log con zerolog; el cuerpo devuelve `"Error interno"` genérico, siguiendo el doc del paquete `apierror` —*"prevent leaking internal details"*—. Hay un test que verifica que el cuerpo NO filtre ni el id ni la timezone rota.
+- [x] 3.4 Cableado en `router.go` sobre el grupo `tenant`, después de `RequireNegocio()`. `admin` queda afuera a propósito, con el porqué escrito al lado del grupo.
+- [x] 3.5 `TestUnaSolaLecturaPorRequest`: un handler que pide `Location(c)` 50 veces —como al armar un listado— produce **1** lectura del negocio. Es la consulta por response que hacía `locNegocio` y que este middleware vino a sacar; si el número vuelve a subir, el middleware perdió la mitad de su razón de ser.
+
+6 tests, verdes. `go build ./... && go vet ./...` verdes sobre el módulo entero, y las 6 suites unitarias (`dto`, `middleware`, `model`, `service`, `worker`, `infra`) pasan.
 
 ## 4. Migrar los DTOs de respuesta (Go) — paralelizable
 

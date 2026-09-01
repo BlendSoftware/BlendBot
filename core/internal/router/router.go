@@ -91,7 +91,17 @@ func New(d Deps) *gin.Engine {
 	// RestringirAgente aplica la allowlist de RolAgente (el token cop_): el
 	// agente sólo alcanza lo que necesita para atender WhatsApp; para los demás
 	// roles es transparente y el control lo llevan RequireNegocio/RequireRole.
-	tenant := priv.Group("", middleware.RequireNegocio(), middleware.RestringirAgente())
+	//
+	// TimezoneDelNegocio va DESPUÉS de RequireNegocio —que es quien garantiza
+	// que hay tenant— y resuelve el huso una vez para todo el request. Cuelga
+	// acá y no en `priv` a propósito: `admin` no tiene un negocio único del cual
+	// tomar la hora y sus responses usan dto.HoraUTC (ver la capability
+	// `hora-local`).
+	tenant := priv.Group("",
+		middleware.RequireNegocio(),
+		middleware.RestringirAgente(),
+		middleware.TimezoneDelNegocio(d.NegDatosRepo),
+	)
 
 	// Operación del mostrador: la ve el operador (y el dueño, y el agente en su
 	// allowlist). Nada de plata acá.
