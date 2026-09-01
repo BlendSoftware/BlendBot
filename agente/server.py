@@ -80,6 +80,34 @@ async def _negocio() -> dict[str, Any]:
     return s.negocio
 
 
+async def _categorias() -> dict[str, str]:
+    """Mapa `categoria_id -> nombre`, cacheado por sesión.
+
+    El `SKILL.md` le muestra al modelo la carta agrupada bajo títulos legibles
+    («Para compartir», «Bebidas»), pero la tool le venía dando `categoria_id`, un
+    UUID. Agrupar con eso obliga a inventarse los nombres, que es exactamente lo
+    que la regla 5 le prohíbe. Faltaba el dato, no había nada que decidir.
+
+    Se cachea, al revés que el catálogo: lo que se mueve a mitad de conversación
+    es el stock, no cómo se llaman los rubros de la carta. Sin cache, esto sería
+    una lectura extra en cada mensaje.
+    """
+    s = sesion()
+    if s.categorias is None:
+        try:
+            s.categorias = {
+                str(c["id"]): str(c["nombre"])
+                for c in await core().categorias()
+                if c.get("id") and c.get("nombre")
+            }
+        except Exception:  # noqa: BLE001
+            # Quedarse sin los nombres degrada la respuesta; tumbar la
+            # conversación por eso sería peor. El modelo simplemente no va a
+            # poder agrupar, que es donde estábamos antes de este cambio.
+            s.categorias = {}
+    return s.categorias
+
+
 def _agotado(servicio: dict[str, Any]) -> bool:
     """Si el plato lleva cuenta de porciones y hoy no queda ninguna.
 
@@ -298,7 +326,7 @@ def _sin_encontrar(
     }
 
 
-def _servicio_visible(s: dict[str, Any]) -> dict[str, Any]:
+def _servicio_visible(s: dict[str, Any], categorias: dict[str, str] | None = None) -> dict[str, Any]:
     precio = _precio_de(s)
     visible = {
         "nombre": s.get("nombre"),
@@ -307,6 +335,17 @@ def _servicio_visible(s: dict[str, Any]) -> dict[str, Any]:
         "duracion_min": s.get("duracion_min"),
         "categoria_id": s.get("categoria_id"),
     }
+    # El nombre del rubro, para que el modelo pueda agrupar la carta sin
+    # inventarse los títulos. `categoria_id` se queda: sacarlo sería incompatible
+    # sin ninguna ganancia.
+    #
+    # Un plato sin categoría no trae el campo, igual que la descripción no
+    # cargada: si no está, el modelo no lo sabe y no lo afirma.
+    cat_id = s.get("categoria_id")
+    if cat_id and categorias:
+        nombre_cat = categorias.get(str(cat_id))
+        if nombre_cat:
+            visible["categoria_nombre"] = nombre_cat
     # La descripción es lo que lleva el plato ("doble medallón, cheddar, panceta"):
     # sirve para responder "¿qué tiene la Doble bacon?" sin inventar. Sólo va si el
     # local la cargó; si no, ni aparece (no se rellena con nada).
@@ -432,6 +471,10 @@ async def ver_catalogo(categoria: str | None = None) -> dict[str, Any]:
     Los precios que le digas al cliente salen de acá TAL CUAL. Si un precio no está en
     esta respuesta, no lo digas: no se estima ni se redondea.
 
+    Cada ítem puede traer `categoria_nombre` (el rubro de la carta: «Para compartir»,
+    «Bebidas»). Agrupá por ESE nombre cuando le leas la carta al cliente. Si un ítem no
+    lo trae, va suelto: no le inventes un rubro ni lo metas en otro por parecido.
+
     Cada ítem puede traer `descripcion` (lo que lleva el plato). Si el cliente pregunta
     "¿qué tiene la Doble bacon?", respondé con ESA descripción textual. Si un ítem no la
     trae, no la sabés: no la inventes — usá `dejar_consulta` para que el local responda.
@@ -440,6 +483,7 @@ async def ver_catalogo(categoria: str | None = None) -> dict[str, Any]:
     esta tool consulta fresco cada vez.
     """
     servicios, agotados = await _catalogo_partido(categoria)
+    categorias = await _categorias()
     # Sólo el nombre: con precio, `agotados_hoy` parecería una carta paralela y sería
     # cuestión de tiempo que el modelo cotice de ahí.
     agotados_hoy = [str(s.get("nombre")) for s in agotados if s.get("nombre")]
@@ -457,7 +501,7 @@ async def ver_catalogo(categoria: str | None = None) -> dict[str, Any]:
         }
     return {
         "ok": True,
-        "servicios": [_servicio_visible(s) for s in servicios],
+        "servicios": [_servicio_visible(s, categorias) for s in servicios],
         **hoy,
         "nota": "Precios y duraciones son los reales: leelos textuales, no los estimes.",
     }

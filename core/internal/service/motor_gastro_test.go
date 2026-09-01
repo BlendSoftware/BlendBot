@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -117,11 +118,20 @@ func TestMotorGastroLocalizaTimestampsALaTZDelNegocio(t *testing.T) {
 }
 
 // avisadorFake captura el aviso en vez de publicarlo a Redis.
-type avisadorFake struct{ avisos []AvisoPedidoConfirmado }
+type avisadorFake struct {
+	avisos []AvisoPedidoConfirmado
+	listos []AvisoPedidoListo
+	falla  error // para probar que un aviso roto no voltea la transición
+}
 
 func (a *avisadorFake) PedidoConfirmado(_ context.Context, av AvisoPedidoConfirmado) error {
 	a.avisos = append(a.avisos, av)
-	return nil
+	return a.falla
+}
+
+func (a *avisadorFake) PedidoListo(_ context.Context, av AvisoPedidoListo) error {
+	a.listos = append(a.listos, av)
+	return a.falla
 }
 
 // innerTrans devuelve un response fijo desde Transicionar (para el test del aviso).
@@ -195,5 +205,98 @@ func TestMotorGastroLocalizaEnListar(t *testing.T) {
 	}
 	if got := campo(t, &lista[0], "inicio"); !strings.HasPrefix(got, "2026-08-19T15:00:00") || strings.HasSuffix(got, "Z") {
 		t.Fatalf("Listar no localizó el inicio: %s", got)
+	}
+}
+
+// ── El aviso de "tu pedido está listo" ───────────────────────────────────────
+//
+// El segundo de los dos avisos que manda el producto. `FLUJOS.md` prometía tres
+// (EN_COCINA → LISTO → ENTREGADO) y había uno solo; se decidió mandar dos, que
+// son los momentos en que el cliente HACE algo con la información.
+
+func pedidoListo(entrega *model.TipoEntrega, origen model.OrigenCompromiso, tel string) *dto.CompromisoResponse {
+	nombre := "Juani"
+	return &dto.CompromisoResponse{
+		ID: "comp-1", NegocioID: "neg-1",
+		Tipo: model.CompromisoPedido, Estado: model.EstadoListo,
+		Origen: origen, Entrega: entrega,
+		ClienteNombre: &nombre, ClienteTelefono: tel,
+	}
+}
+
+func entrega(e model.TipoEntrega) *model.TipoEntrega { return &e }
+
+func TestAvisoAlPasarAListo(t *testing.T) {
+	casos := []struct {
+		nombre string
+		resp   *dto.CompromisoResponse
+		avisa  bool
+	}{
+		{"retira → avisa que pase a buscarlo",
+			pedidoListo(entrega(model.EntregaRetira), model.OrigenWhatsApp, "549260111"), true},
+		{"delivery → avisa que salió",
+			pedidoListo(entrega(model.EntregaDelivery), model.OrigenWhatsApp, "549260111"), true},
+		// El mozo se lo lleva a la mesa: un WhatsApp acá es ruido que se paga.
+		{"en_local → NO avisa",
+			pedidoListo(entrega(model.EntregaEnLocal), model.OrigenWhatsApp, "549260111"), false},
+		{"sin entrega → no avisa (no hay frase posible)",
+			pedidoListo(nil, model.OrigenWhatsApp, "549260111"), false},
+		{"origen panel → no avisa (no hay WhatsApp del otro lado)",
+			pedidoListo(entrega(model.EntregaRetira), model.OrigenPanel, "549260111"), false},
+		{"sin teléfono → no avisa",
+			pedidoListo(entrega(model.EntregaRetira), model.OrigenWhatsApp, ""), false},
+	}
+	for _, c := range casos {
+		t.Run(c.nombre, func(t *testing.T) {
+			av := &avisadorFake{}
+			motor := NewMotorGastro(innerTrans{resp: c.resp}, negocioFake{tz: "America/Argentina/Mendoza"}, ConAvisadorPedido(av))
+			if _, err := motor.Transicionar(context.Background(), "neg-1", "comp-1", model.EstadoListo, OpcionesTransicion{}); err != nil {
+				t.Fatalf("Transicionar: %v", err)
+			}
+			if c.avisa && len(av.listos) != 1 {
+				t.Fatalf("esperaba 1 aviso de listo, hubo %d", len(av.listos))
+			}
+			if !c.avisa && len(av.listos) != 0 {
+				t.Fatalf("no debía avisar, hubo %d", len(av.listos))
+			}
+			if c.avisa && av.listos[0].Entrega != string(*c.resp.Entrega) {
+				t.Fatalf("la entrega no llegó al aviso: %q", av.listos[0].Entrega)
+			}
+		})
+	}
+}
+
+// TestElAvisoDeListoNoExigeDemora es la diferencia deliberada con el aviso de
+// confirmación, que sí la exige porque su texto la usa. Copiar esa condición sin
+// pensarla dejaría mudo el aviso justo en los pedidos que se confirmaron sin
+// cargar demora — donde el cliente MÁS necesita que le avisen.
+func TestElAvisoDeListoNoExigeDemora(t *testing.T) {
+	resp := pedidoListo(entrega(model.EntregaRetira), model.OrigenWhatsApp, "549260111")
+	resp.DemoraMin = nil
+
+	av := &avisadorFake{}
+	motor := NewMotorGastro(innerTrans{resp: resp}, negocioFake{tz: "America/Argentina/Mendoza"}, ConAvisadorPedido(av))
+	if _, err := motor.Transicionar(context.Background(), "neg-1", "comp-1", model.EstadoListo, OpcionesTransicion{}); err != nil {
+		t.Fatalf("Transicionar: %v", err)
+	}
+	if len(av.listos) != 1 {
+		t.Fatalf("sin demora tenía que avisar igual, hubo %d avisos", len(av.listos))
+	}
+}
+
+// TestUnAvisoRotoNoVolteaLaTransicion: el aviso es best-effort. La transición ya
+// está persistida cuando se intenta avisar; hacerla fallar por un Redis caído
+// dejaría el pedido en un estado distinto del que la cocina ya ejecutó.
+func TestUnAvisoRotoNoVolteaLaTransicion(t *testing.T) {
+	resp := pedidoListo(entrega(model.EntregaDelivery), model.OrigenWhatsApp, "549260111")
+	av := &avisadorFake{falla: errors.New("redis caído")}
+	motor := NewMotorGastro(innerTrans{resp: resp}, negocioFake{tz: "America/Argentina/Mendoza"}, ConAvisadorPedido(av))
+
+	out, err := motor.Transicionar(context.Background(), "neg-1", "comp-1", model.EstadoListo, OpcionesTransicion{})
+	if err != nil {
+		t.Fatalf("un aviso roto volteó la transición: %v", err)
+	}
+	if out == nil || out.Estado != model.EstadoListo {
+		t.Fatal("la transición tenía que quedar hecha igual")
 	}
 }

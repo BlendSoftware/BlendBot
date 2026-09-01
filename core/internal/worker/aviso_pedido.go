@@ -42,6 +42,42 @@ func (a *avisadorPedido) PedidoConfirmado(ctx context.Context, av service.AvisoP
 	})
 }
 
+// PedidoListo avisa que el pedido está pronto.
+//
+// El texto cambia según cómo se entrega, porque lo que el cliente tiene que
+// hacer es distinto: retira → moverse; delivery → esperar en la puerta. Mandar
+// la misma frase para los dos sería mandar una frase que a la mitad no le sirve.
+//
+// `en_local` no llega acá (el vertical lo filtra antes) y si llegara igual se
+// devuelve nil sin publicar: avisarle por WhatsApp a alguien sentado en la mesa
+// que su comida está lista es ruido, y el mozo se la está llevando.
+func (a *avisadorPedido) PedidoListo(ctx context.Context, av service.AvisoPedidoListo) error {
+	saludo := "¡Tu pedido está listo!"
+	if av.ClienteNombre != "" {
+		saludo = av.ClienteNombre + ", tu pedido está listo"
+	}
+
+	var texto string
+	switch av.Entrega {
+	case "retira":
+		texto = saludo + " 🍔 Ya podés pasar a buscarlo por el local."
+	case "delivery":
+		texto = saludo + " 🛵 Ya salió para tu dirección."
+	default:
+		// en_local, o cualquier cosa que no conozcamos: no se inventa una frase.
+		return nil
+	}
+
+	return a.pub.Publicar(ctx, MensajeSalida{
+		NegocioID:    av.NegocioID,
+		WaPhoneID:    av.WaPhoneID,
+		Telefono:     av.ClienteTelefono,
+		Tipo:         "texto",
+		Texto:        texto,
+		CompromisoID: av.CompromisoID,
+	})
+}
+
 // plataAR formatea un decimal como plata argentina: "$26.300" (punto de miles,
 // sin decimales para montos redondos de comida).
 func plataAR(d decimal.Decimal) string {

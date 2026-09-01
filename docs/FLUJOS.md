@@ -106,19 +106,46 @@ Cliente ─▶ Juani
 |---|---|
 | El bot dijo "sale en 25 minutos, a las 21:10" | **El bot no promete demoras.** La demora la pone el local desde el panel. |
 | El bot pedía la hora al cliente | Si dijo "lo antes posible", **no se le pregunta la hora**: se le pregunta el nombre y decide el local |
-| El compromiso entraba al panel recién al final | **Entra apenas hay ítems.** La cocina lo ve venir mientras el tipo todavía escribe |
+| El compromiso entraba al panel recién al final | Sigue entrando al confirmar, y el prompt ahora lo dice así. Ver la nota de abajo |
 | Presets de demora 15/25/40 | El local eligió 30. **Presets sí, pero con campo libre siempre** |
 
 ### El orden que quedó
 
 ```
-armar ítems  →  entra al panel PENDIENTE  →  pedir nombre
+armar ítems  →  resumen con el total  →  pedir nombre
+     →  el cliente da el OK  →  ENTRA AL PANEL como PENDIENTE
      →  avisar que espera confirmación
      →  el local: CONFIRMAR + demora  |  RECHAZAR
-     →  avisar al cliente
+     →  aviso al cliente  ①
      →  estados: EN_COCINA → LISTO → ENTREGADO
-     →  cada cambio dispara aviso por WhatsApp
+     →  aviso al cliente en LISTO  ②
 ```
+
+**El pedido entra al panel cuando el cliente da el OK, no antes.** Este documento
+prometía que entraba "apenas hay ítems", con la cocina viéndolo venir mientras el
+cliente todavía escribe. **No era cierto**: `armar_compromiso` arma un borrador en
+la sesión del proceso y `confirmar` es lo que lo escribe. El prompt decía una
+cosa y la tool devolvía `"persistido": false`; el modelo recibía las dos
+versiones en el mismo turno.
+
+Se corrigió el documento y no el código, a propósito. Persistir el borrador de
+verdad es deseable, pero el precio no es escribir antes: es el **ciclo de vida**
+del borrador — expirar solo, distinguirse del pedido real en la pantalla de la
+cocina, no contar en el cierre de caja, no descontar stock, no ensuciar los
+reportes. Sin esas cinco cosas, "persistir" no cumple la promesa: muda el
+problema del chat a la pantalla del cocinero, donde sí hay alguien mirando.
+Cuando exista ese ciclo de vida, la promesa vuelve.
+
+**Los avisos al cliente son DOS, no uno por estado.**
+
+① `CONFIRMADO` — le dice cuánto esperar.
+② `LISTO` — le dice que pase a buscarlo (retira) o que salió (delivery). Un
+pedido `en_local` no recibe ninguno: el mozo se lo lleva a la mesa.
+
+`EN_COCINA` y `ENTREGADO` no avisan, y es deliberado: no le cambian la conducta
+a nadie. "Entró a la plancha" es ruido, y "te entregamos tu pedido" le llega a
+alguien que ya lo tiene en la mano. Cada mensaje se paga en la API de Meta, así
+que el default es no mandarlo salvo que el cliente haga algo con esa información.
 
 **El aviso de vuelta es la mitad del valor.** Es la diferencia entre un bot que
 toma pedidos y un sistema que atiende.

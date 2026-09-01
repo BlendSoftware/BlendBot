@@ -152,7 +152,64 @@ func (m *motorGastro) Transicionar(ctx context.Context, negocioID, id string, nu
 
 	m.devolverStockSiSeCayo(ctx, negocioID, antes, nuevo)
 	m.avisarConfirmacion(ctx, negocioID, resp)
+	m.avisarListo(ctx, negocioID, resp)
 	return resp, nil
+}
+
+// avisarListo le avisa al cliente que su pedido está pronto. Es el segundo de
+// los dos avisos que el producto manda (docs/FLUJOS.md).
+//
+// Sigue las MISMAS tres reglas que avisarConfirmacion: sólo pedidos que entraron
+// por WhatsApp —si no, no hay a quién avisarle—, sólo con teléfono, y
+// best-effort: un aviso que falla no voltea la transición, que ya está
+// persistida.
+//
+// Con UNA diferencia deliberada: acá NO se exige `DemoraMin`. El aviso de
+// confirmación lo pide porque su texto la usa; éste no la menciona. Copiar la
+// condición sin pensarla dejaría mudo el aviso justo en los pedidos que se
+// confirmaron sin cargar demora, que es donde el cliente MÁS necesita que le
+// avisen.
+//
+// `en_local` se filtra acá: el mozo lleva la comida a la mesa y un WhatsApp
+// diciendo "está listo" a alguien sentado adentro es ruido que se paga.
+func (m *motorGastro) avisarListo(ctx context.Context, negocioID string, resp *dto.CompromisoResponse) {
+	if m.avisador == nil || resp == nil {
+		return
+	}
+	if resp.Estado != model.EstadoListo || resp.Tipo != model.CompromisoPedido {
+		return
+	}
+	if resp.Origen != model.OrigenWhatsApp || resp.ClienteTelefono == "" {
+		return
+	}
+	// Sin entrega no hay frase posible: no se inventa una.
+	if resp.Entrega == nil || *resp.Entrega == model.EntregaEnLocal {
+		return
+	}
+
+	neg, err := m.negocios.Negocio(ctx, negocioID)
+	if err != nil {
+		return
+	}
+	waPhone := ""
+	if neg.WaPhoneID != nil {
+		waPhone = *neg.WaPhoneID
+	}
+	nombre := ""
+	if resp.ClienteNombre != nil {
+		nombre = *resp.ClienteNombre
+	}
+	aviso := AvisoPedidoListo{
+		NegocioID:       negocioID,
+		CompromisoID:    resp.ID,
+		WaPhoneID:       waPhone,
+		ClienteTelefono: resp.ClienteTelefono,
+		ClienteNombre:   nombre,
+		Entrega:         string(*resp.Entrega),
+	}
+	if err := m.avisador.PedidoListo(ctx, aviso); err != nil {
+		log.Warn().Err(err).Str("compromiso", resp.ID).Msg("no se pudo avisar que el pedido está listo")
+	}
 }
 
 // tomarStock descuenta si esta transición es la que compromete la cocina:

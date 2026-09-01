@@ -121,6 +121,11 @@ class Sesion:
     # es el dato que se mueve a mitad de conversación, y una carta cacheada sigue
     # ofreciendo el último plato después de vendido. Los recursos sí se cachean: no
     # cambian durante una charla.
+    # Las categorías SÍ se cachean, y no contradice lo de arriba: el catálogo se
+    # mueve durante una charla (se agota un plato), el mapa de categorías de la
+    # carta no. Cachearlo evita una lectura por cada `ver_catalogo`, que el
+    # agente llama en cada mensaje de cada conversación.
+    categorias: dict[str, str] | None = None
     recursos: list[dict[str, Any]] = field(default_factory=list)
     ultimos_huecos: list[dict[str, Any]] = field(default_factory=list)
     borrador: Borrador | None = None

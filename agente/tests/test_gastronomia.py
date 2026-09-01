@@ -40,10 +40,19 @@ GASTRO_NEGOCIO = {
 # (`disponible=false`), así que el core no la manda y para el agente no existe.
 # Lo que se agotó hoy es otra cosa y SÍ llega, marcado — ver MENU_CON_STOCK. La
 # comida no lleva `duracion_min` (no ocupa agenda).
+CATEGORIAS = [
+    {"id": "cat-burgers", "nombre": "Hamburguesas", "orden": 1},
+    {"id": "cat-bebidas", "nombre": "Bebidas", "orden": 2},
+]
+
 MENU = [
-    {"id": "sv-doble", "nombre": "Doble cheddar", "precio_base": "8900.00", "disponible": True},
+    {"id": "sv-doble", "nombre": "Doble cheddar", "precio_base": "8900.00", "disponible": True,
+     "categoria_id": "cat-burgers"},
+    # Las papas van sin categoría a propósito: el caso "no la cargaron" tiene que
+    # existir en la carta base, no sólo en un test aparte.
     {"id": "sv-papas", "nombre": "Papas", "precio_base": "4500.00", "disponible": True},
-    {"id": "sv-gaseosa", "nombre": "Gaseosa 500ml", "precio_base": "2500.00", "disponible": True},
+    {"id": "sv-gaseosa", "nombre": "Gaseosa 500ml", "precio_base": "2500.00", "disponible": True,
+     "categoria_id": "cat-bebidas"},
 ]
 
 # La misma carta un rato después, con el cupo del día resuelto por el core. Las
@@ -121,6 +130,9 @@ def _carta(respx_mock, menu):
     )
     # un local de comida no tiene coberturas: el fallback pega al endpoint
     respx_mock.get("/api/coberturas").mock(return_value=httpx.Response(200, json=[]))
+    respx_mock.get("/api/categorias").mock(
+        return_value=httpx.Response(200, json=copy.deepcopy(CATEGORIAS))
+    )
     return respx_mock.get("/api/servicios").mock(
         return_value=httpx.Response(200, json=copy.deepcopy(menu))
     )
@@ -519,3 +531,77 @@ async def test_dejar_consulta_vacia_no_postea_nada(core):
     # Sin pregunta no hay nada que dejar: guard, sin tocar el core.
     r = await server.dejar_consulta("   ")
     assert r["ok"] is False and r["codigo"] == "sin_pregunta"
+
+
+# ── El rubro de la carta: `ver_catalogo` da el nombre, no sólo el UUID ────────
+#
+# El SKILL.md le muestra al modelo la carta agrupada bajo títulos legibles, pero
+# la tool le daba `categoria_id`. Agrupar con eso obliga a inventarse los
+# nombres, que es justo lo que la regla 5 prohíbe.
+
+
+@respx.mock(base_url=BASE, assert_all_called=False)
+async def test_el_catalogo_trae_el_nombre_del_rubro(respx_mock, core):
+    _base(respx_mock)
+    r = await server.ver_catalogo()
+
+    por_nombre = {s["nombre"]: s for s in r["servicios"]}
+    assert por_nombre["Doble cheddar"]["categoria_nombre"] == "Hamburguesas"
+    assert por_nombre["Gaseosa 500ml"]["categoria_nombre"] == "Bebidas"
+
+
+@respx.mock(base_url=BASE, assert_all_called=False)
+async def test_un_plato_sin_categoria_no_trae_el_campo(respx_mock, core):
+    # Igual que la descripción no cargada: si no está, el modelo no lo sabe y no
+    # lo afirma. Un rubro inventado es peor que ninguno.
+    _base(respx_mock)
+    r = await server.ver_catalogo()
+
+    papas = next(s for s in r["servicios"] if s["nombre"] == "Papas")
+    assert "categoria_nombre" not in papas
+
+
+@respx.mock(base_url=BASE, assert_all_called=False)
+async def test_el_id_de_categoria_sigue_viajando(respx_mock, core):
+    # Sacarlo sería un cambio incompatible sin ninguna ganancia.
+    _base(respx_mock)
+    r = await server.ver_catalogo()
+
+    doble = next(s for s in r["servicios"] if s["nombre"] == "Doble cheddar")
+    assert doble["categoria_id"] == "cat-burgers"
+
+
+@respx.mock(base_url=BASE, assert_all_called=False)
+async def test_las_categorias_se_leen_una_sola_vez_por_sesion(respx_mock, core):
+    # El catálogo se lee fresco en cada llamada porque el stock se mueve; el mapa
+    # de rubros no. Sin cache, esto sería una lectura extra en cada mensaje de
+    # cada conversación — el N+1 que `stock-visible-al-agente` vino a sacar.
+    _base(respx_mock)
+    ruta = respx_mock.get("/api/categorias")
+
+    await server.ver_catalogo()
+    await server.ver_catalogo()
+    await server.ver_catalogo()
+
+    assert ruta.call_count == 1
+
+
+@respx.mock(base_url=BASE, assert_all_called=False)
+async def test_si_las_categorias_no_cargan_la_carta_sigue_saliendo(respx_mock, core):
+    # Quedarse sin los nombres degrada la respuesta: el modelo no va a poder
+    # agrupar, que es donde estábamos antes de este cambio. Tumbar la
+    # conversación por eso sería mucho peor.
+    respx_mock.get("/api/negocio").mock(
+        return_value=httpx.Response(200, json=copy.deepcopy(GASTRO_NEGOCIO))
+    )
+    respx_mock.get("/api/coberturas").mock(return_value=httpx.Response(200, json=[]))
+    respx_mock.get("/api/categorias").mock(return_value=httpx.Response(500))
+    respx_mock.get("/api/servicios").mock(
+        return_value=httpx.Response(200, json=copy.deepcopy(MENU))
+    )
+
+    r = await server.ver_catalogo()
+
+    assert r["ok"] is True
+    assert [s["nombre"] for s in r["servicios"]] == ["Doble cheddar", "Papas", "Gaseosa 500ml"]
+    assert all("categoria_nombre" not in s for s in r["servicios"])

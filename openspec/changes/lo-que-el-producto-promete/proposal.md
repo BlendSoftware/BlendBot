@@ -10,7 +10,7 @@ Los cuatro son de la misma familia y por eso van juntos: **el sistema le dice al
 
 Este documento **no decide**: propone y pone las opciones sobre la mesa. Dos de los cuatro son decisiones de producto con consecuencias operativas reales para un local, y no se toman a las once de la noche leyendo un diff.
 
-### 1. El pedido dice que entra al panel y no entra — **decisión de producto**
+### 1. El pedido dice que entra al panel y no entra — ✅ **DECIDIDO: que el prompt diga la verdad**
 
 `SKILL.md` lo promete tres veces (líneas 44, 99, 111) y `FLUJOS.md` una cuarta (línea 115): *"el pedido entra al panel apenas hay ítems"*. `armar_compromiso` (`agente/server.py:580`) guarda un borrador en la sesión del proceso y devuelve `"persistido": False` **más un aviso que dice lo contrario del prompt**: *"Esto TODAVÍA NO está confirmado"*. El compromiso lo escribe `confirmar`. Hay un test que lo fija a propósito (`test_arma_pedido_de_dos_items_con_total_y_no_persiste`).
 
@@ -24,7 +24,7 @@ Y hay algo más grande en juego: `FLUJOS.md` vende como diferencial que *"la coc
 
 No hay una tercera que sea gratis. **Elegir es del dueño del producto.**
 
-### 2. `ver_catalogo` no puede dar lo que el prompt pide — gap, no decisión
+### 2. `ver_catalogo` no puede dar lo que el prompt pide — ✅ **RESUELTO: `categoria_nombre`**
 
 `_servicio_visible` (`agente/server.py:308`) devuelve `categoria_id`, un UUID. El `SKILL.md` (líneas 282-292) le muestra al modelo la carta agrupada bajo **Hamburguesas / Para compartir / Bebidas**.
 
@@ -50,11 +50,33 @@ Una pregunta hecha 22:48 en Mendoza se ve **01:48** en la pantalla «Preguntas»
 
 `horaDe` (`panel/src/dominio/formato.ts:28`) lee la hora del string tal cual, y **está bien**: su contrato dice que el core manda la hora ya localizada. Los compromisos pasan por `localizado()` (`motor_gastro.go`); las consultas no. El bug está en el core, no en el panel.
 
-### 4. Sólo `confirmado` le avisa al cliente — alcance
+### 4. Sólo `confirmado` le avisa al cliente — ✅ **DECIDIDO: dos avisos, `confirmado` y `listo`**
 
 `FLUJOS.md:120` dice *"cada cambio dispara aviso por WhatsApp"* para EN_COCINA → LISTO → ENTREGADO. `core/internal/worker/aviso_pedido.go` sólo tiene `PedidoConfirmado`.
 
 Puede ser que sólo se haya implementado uno, o que el documento prometa de más a propósito (tres avisos por pedido es mucho WhatsApp, y cada uno cuesta plata en la API de Meta). **Hay que decidir cuál de las dos es**, y que el documento y el código digan lo mismo.
+
+## Lo que se decidió
+
+Las dos decisiones de producto se tomaron con recomendación puesta y aceptada por
+el dueño del producto, no por default de implementación. El razonamiento completo
+y lo que se resigna en cada una están en `design.md`; el resumen:
+
+**§1 — no se persiste el borrador; el prompt pasa a decir la verdad.** Se elige
+honestidad sobre diferenciación, y hay que decir que es la decisión más
+discutible de las cuatro. Lo que la sostiene no es que persistir esté mal, sino
+que persistir *bien* pide cinco cosas que no existen (expiración, distinción
+visual en la cocina, y no contar en cierre, stock ni reportes) y persistir *mal*
+es peor que no persistir: muda el problema del chat a la pantalla del cocinero,
+donde sí hay alguien mirando. **Lo que se resigna es real**: se cae la promesa que
+`FLUJOS.md` usaba para diferenciar el producto.
+
+**§4 — dos avisos, `confirmado` y `listo`.** Son los dos momentos en que el
+cliente *hace algo* con la información: cuánto esperar, y cuándo moverse.
+`en_curso` no le cambia la conducta a nadie y `entregado` le llega a alguien que
+ya tiene la comida en la mano. Cada mensaje se paga en la API de Meta, así que el
+default es no mandarlo. `en_local` no recibe el de listo: el mozo se lo lleva a
+la mesa.
 
 ## Capabilities
 
