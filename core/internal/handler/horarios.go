@@ -115,7 +115,7 @@ func (h *HorariosHandler) ListarExcepciones(c *gin.Context) {
 		responderErrorMotor(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, dto.ExcepcionesDesdeModelos(es))
+	c.JSON(http.StatusOK, dto.ExcepcionesDesdeModelos(c.Request.Context(), es))
 }
 
 func (h *HorariosHandler) CrearExcepcion(c *gin.Context) {
@@ -143,7 +143,7 @@ func (h *HorariosHandler) CrearExcepcion(c *gin.Context) {
 		responderErrorMotor(c, err)
 		return
 	}
-	c.JSON(http.StatusCreated, dto.ExcepcionDesdeModel(exc))
+	c.JSON(http.StatusCreated, dto.ExcepcionDesdeModel(c.Request.Context(), exc))
 }
 
 func (h *HorariosHandler) BorrarExcepcion(c *gin.Context) {

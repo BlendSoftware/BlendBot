@@ -1,7 +1,5 @@
 package dto
 
-import "time"
-
 // CrearConsultaInput registra una pregunta que el bot no supo responder. El
 // cliente ya viene resuelto (el agente lo obtiene por su teléfono antes); el
 // negocio sale del token.
@@ -32,6 +30,6 @@ type ConsultaResponse struct {
 	Pregunta      string     `json:"pregunta"`
 	Respuesta     *string    `json:"respuesta"`
 	Estado        string     `json:"estado"`
-	CreadoEn      time.Time  `json:"creado_en"`
-	RespondidaEn  *time.Time `json:"respondida_en"`
+	CreadoEn      Hora       `json:"creado_en"`
+	RespondidaEn  *Hora      `json:"respondida_en"`
 }

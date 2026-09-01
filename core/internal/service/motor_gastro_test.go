@@ -13,29 +13,26 @@ import (
 	"gorm.io/datatypes"
 )
 
-// innerFake es un MotorService de mentira: devuelve compromisos con las horas
-// en UTC, tal como las deja el motor real (pgx en un contenedor UTC). El sujeto
-// del test es que el vertical las corrija a la TZ del negocio antes de salir.
-type innerFake struct {
-	resp *dto.CompromisoResponse
-}
+// innerFake es un MotorService de mentira. Arma el response leyendo el huso del
+// contexto, igual que hace el motor real desde que existe `dto.Hora`: la
+// localización dejó de ser un paso posterior del vertical y pasó a estar en la
+// construcción del DTO (capability `hora-local`).
+//
+// El sujeto del test no cambió —que un compromiso salga en la hora del negocio
+// y nunca con Z— pero el mecanismo sí, y el test lo sigue.
+type innerFake struct{}
 
-func (f innerFake) Crear(context.Context, string, dto.CrearCompromisoInput) (*dto.CompromisoResponse, error) {
-	return f.copia(), nil
+func (f innerFake) Crear(ctx context.Context, _ string, _ dto.CrearCompromisoInput) (*dto.CompromisoResponse, error) {
+	return respDelCtx(ctx), nil
 }
-func (f innerFake) Obtener(context.Context, string, string) (*dto.CompromisoResponse, error) {
-	return f.copia(), nil
+func (f innerFake) Obtener(ctx context.Context, _, _ string) (*dto.CompromisoResponse, error) {
+	return respDelCtx(ctx), nil
 }
-func (f innerFake) Listar(context.Context, string, dto.FiltroCompromisos) ([]dto.CompromisoResponse, error) {
-	return []dto.CompromisoResponse{*f.copia()}, nil
+func (f innerFake) Listar(ctx context.Context, _ string, _ dto.FiltroCompromisos) ([]dto.CompromisoResponse, error) {
+	return []dto.CompromisoResponse{*respDelCtx(ctx)}, nil
 }
-func (f innerFake) Transicionar(context.Context, string, string, model.EstadoCompromiso, OpcionesTransicion) (*dto.CompromisoResponse, error) {
-	return f.copia(), nil
-}
-
-func (f innerFake) copia() *dto.CompromisoResponse {
-	c := *f.resp
-	return &c
+func (f innerFake) Transicionar(ctx context.Context, _, _ string, _ model.EstadoCompromiso, _ OpcionesTransicion) (*dto.CompromisoResponse, error) {
+	return respDelCtx(ctx), nil
 }
 
 // negocioFake resuelve un negocio con la timezone que le pasemos.
@@ -49,19 +46,31 @@ func (n negocioFake) Negocio(context.Context, string) (*model.Negocio, error) {
 	}, nil
 }
 
-// respUTC arma un compromiso con inicio, fin y timestamps en UTC.
-func respUTC() *dto.CompromisoResponse {
+// respDelCtx arma un compromiso cuyos instantes están guardados en UTC —como
+// los devuelve Postgres— y los envuelve con el huso que traiga el contexto,
+// que es exactamente lo que hace el motor real.
+func respDelCtx(ctx context.Context) *dto.CompromisoResponse {
 	inicio := time.Date(2026, 8, 19, 18, 0, 0, 0, time.UTC) // 15:00 en Mendoza
 	fin := time.Date(2026, 8, 19, 19, 0, 0, 0, time.UTC)
 	confirmado := time.Date(2026, 8, 19, 17, 30, 0, 0, time.UTC)
 	return &dto.CompromisoResponse{
 		ID:           "comp-1",
 		NegocioID:    "neg-1",
-		Inicio:       &inicio,
-		Fin:          &fin,
-		CreadoEn:     time.Date(2026, 8, 19, 17, 0, 0, 0, time.UTC),
-		ConfirmadoEn: &confirmado,
+		Inicio:       dto.HoraPtrDe(ctx, &inicio),
+		Fin:          dto.HoraPtrDe(ctx, &fin),
+		CreadoEn:     dto.HoraDe(ctx, time.Date(2026, 8, 19, 17, 0, 0, 0, time.UTC)),
+		ConfirmadoEn: dto.HoraPtrDe(ctx, &confirmado),
 	}
+}
+
+// ctxEnMendoza es el contexto que arma el middleware de timezone en producción.
+func ctxEnMendoza(t *testing.T) context.Context {
+	t.Helper()
+	loc, err := time.LoadLocation("America/Argentina/Mendoza")
+	if err != nil {
+		t.Fatalf("LoadLocation: %v", err)
+	}
+	return dto.ConLocation(context.Background(), loc)
 }
 
 func campo(t *testing.T, resp *dto.CompromisoResponse, nombre string) string {
@@ -82,9 +91,9 @@ func campo(t *testing.T, resp *dto.CompromisoResponse, nombre string) string {
 }
 
 func TestMotorGastroLocalizaTimestampsALaTZDelNegocio(t *testing.T) {
-	motor := NewMotorGastro(innerFake{resp: respUTC()}, negocioFake{tz: "America/Argentina/Mendoza"})
+	motor := NewMotorGastro(innerFake{}, negocioFake{tz: "America/Argentina/Mendoza"})
 
-	resp, err := motor.Obtener(context.Background(), "neg-1", "comp-1")
+	resp, err := motor.Obtener(ctxEnMendoza(t), "neg-1", "comp-1")
 	if err != nil {
 		t.Fatalf("Obtener: %v", err)
 	}
@@ -175,9 +184,9 @@ func TestAvisoAlConfirmarPedidoDeWhatsApp(t *testing.T) {
 }
 
 func TestMotorGastroLocalizaEnListar(t *testing.T) {
-	motor := NewMotorGastro(innerFake{resp: respUTC()}, negocioFake{tz: "America/Argentina/Mendoza"})
+	motor := NewMotorGastro(innerFake{}, negocioFake{tz: "America/Argentina/Mendoza"})
 
-	lista, err := motor.Listar(context.Background(), "neg-1", dto.FiltroCompromisos{})
+	lista, err := motor.Listar(ctxEnMendoza(t), "neg-1", dto.FiltroCompromisos{})
 	if err != nil {
 		t.Fatalf("Listar: %v", err)
 	}

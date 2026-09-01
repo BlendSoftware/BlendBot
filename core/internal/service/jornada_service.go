@@ -47,7 +47,7 @@ func (s *jornadaService) Actual(ctx context.Context, negocioID string) (*dto.Jor
 	}
 	return &dto.JornadaActualResponse{
 		Abierta: j != nil,
-		Jornada: dto.JornadaDesdeModel(j),
+		Jornada: dto.JornadaDesdeModel(ctx, j),
 	}, nil
 }
 
@@ -63,7 +63,7 @@ func (s *jornadaService) Abrir(ctx context.Context, negocioID string, usuarioID 
 		}
 		return nil, err
 	}
-	return dto.JornadaDesdeModel(j), nil
+	return dto.JornadaDesdeModel(ctx, j), nil
 }
 
 func (s *jornadaService) Cerrar(ctx context.Context, negocioID string, usuarioID *string) (*dto.JornadaResponse, error) {
@@ -74,5 +74,5 @@ func (s *jornadaService) Cerrar(ctx context.Context, negocioID string, usuarioID
 	if j == nil {
 		return nil, ErrSinJornadaAbierta
 	}
-	return dto.JornadaDesdeModel(j), nil
+	return dto.JornadaDesdeModel(ctx, j), nil
 }

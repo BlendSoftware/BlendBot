@@ -1,7 +1,7 @@
 package dto
 
 import (
-	"time"
+	"context"
 
 	"copiloto/core/internal/model"
 )
@@ -12,14 +12,14 @@ type JornadaResponse struct {
 	ID         string     `json:"id"`
 	NegocioID  string     `json:"negocio_id"`
 	Abierta    bool       `json:"abierta"`
-	AbiertaEn  time.Time  `json:"abierta_en"`
-	CerradaEn  *time.Time `json:"cerrada_en"`
+	AbiertaEn  Hora       `json:"abierta_en"`
+	CerradaEn  *Hora      `json:"cerrada_en"`
 	AbiertaPor *string    `json:"abierta_por"`
 	CerradaPor *string    `json:"cerrada_por"`
 }
 
 // JornadaDesdeModel mapea la jornada; nil devuelve nil.
-func JornadaDesdeModel(j *model.Jornada) *JornadaResponse {
+func JornadaDesdeModel(ctx context.Context, j *model.Jornada) *JornadaResponse {
 	if j == nil {
 		return nil
 	}
@@ -27,8 +27,8 @@ func JornadaDesdeModel(j *model.Jornada) *JornadaResponse {
 		ID:         j.ID,
 		NegocioID:  j.NegocioID,
 		Abierta:    j.Abierta(),
-		AbiertaEn:  j.AbiertaEn,
-		CerradaEn:  j.CerradaEn,
+		AbiertaEn:  HoraDe(ctx, j.AbiertaEn),
+		CerradaEn:  HoraPtrDe(ctx, j.CerradaEn),
 		AbiertaPor: j.AbiertaPor,
 		CerradaPor: j.CerradaPor,
 	}

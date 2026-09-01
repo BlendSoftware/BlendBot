@@ -115,6 +115,18 @@ func (h *Hora) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+// String es para logs y salida de tests.
+//
+// Una Hora sin huso se imprime diciéndolo, en vez de mostrar una hora de aspecto
+// correcto: si alguien está leyendo esto es porque algo salió mal, y "sin
+// timezone" es el dato que necesita.
+func (h Hora) String() string {
+	if h.loc == nil {
+		return h.t.UTC().Format(time.RFC3339Nano) + " (sin timezone)"
+	}
+	return h.t.In(h.loc).Format(time.RFC3339Nano)
+}
+
 // Time devuelve el instante. Para tests y para el código que necesite comparar
 // dos horas; el huso no cambia qué instante es.
 func (h Hora) Time() time.Time { return h.t }

@@ -207,10 +207,10 @@ func TestFlujoCompletoConsultorio(t *testing.T) {
 	noVacio(t, hold.ID, "id del hold")
 	igual(t, hold.RecursoID, recurso.ID, "recurso del hold")
 	igual(t, hold.Sesion, sesion, "sesión del hold")
-	if !hold.Inicio.Equal(inicioTurno) {
+	if !hold.Inicio.Time().Equal(inicioTurno) {
 		t.Errorf("inicio del hold: esperaba %s, obtuvo %s", inicioTurno, hold.Inicio)
 	}
-	if !hold.ExpiraEn.After(time.Now()) {
+	if !hold.ExpiraEn.Time().After(time.Now()) {
 		t.Errorf("el hold nació expirado: expira_en=%s", hold.ExpiraEn)
 	}
 
@@ -255,7 +255,7 @@ func TestFlujoCompletoConsultorio(t *testing.T) {
 	if turno.RecursoID == nil || *turno.RecursoID != recurso.ID {
 		t.Fatalf("recurso del turno: esperaba %s, obtuvo %v", recurso.ID, turno.RecursoID)
 	}
-	if turno.Inicio == nil || !turno.Inicio.Equal(inicioTurno) {
+	if turno.Inicio == nil || !turno.Inicio.Time().Equal(inicioTurno) {
 		t.Errorf("inicio del turno: esperaba %s, obtuvo %v", inicioTurno, turno.Inicio)
 	}
 	if turno.ConfirmadoEn != nil {

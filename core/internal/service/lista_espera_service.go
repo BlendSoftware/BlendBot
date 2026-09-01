@@ -61,7 +61,7 @@ func (s *listaEsperaService) Anotar(ctx context.Context, negocioID string, in dt
 	if a == nil {
 		return nil, ErrNoEncontrado
 	}
-	return anotadoDesdeFila(a), nil
+	return anotadoDesdeFila(ctx, a), nil
 }
 
 func (s *listaEsperaService) Listar(ctx context.Context, negocioID string, f dto.FiltroListaEspera) ([]dto.ListaEsperaResponse, error) {
@@ -74,13 +74,13 @@ func (s *listaEsperaService) Listar(ctx context.Context, negocioID string, f dto
 	}
 	out := make([]dto.ListaEsperaResponse, 0, len(filas))
 	for i := range filas {
-		out = append(out, *anotadoDesdeFila(&filas[i]))
+		out = append(out, *anotadoDesdeFila(ctx, &filas[i]))
 	}
 	return out, nil
 }
 
 // anotadoDesdeFila mapea la fila joineada al shape que sale por HTTP.
-func anotadoDesdeFila(a *repository.AnotadoEnCola) *dto.ListaEsperaResponse {
+func anotadoDesdeFila(ctx context.Context, a *repository.AnotadoEnCola) *dto.ListaEsperaResponse {
 	return &dto.ListaEsperaResponse{
 		ID:                   a.ID,
 		NegocioID:            a.NegocioID,
@@ -90,8 +90,8 @@ func anotadoDesdeFila(a *repository.AnotadoEnCola) *dto.ListaEsperaResponse {
 		ServicioID:           a.ServicioID,
 		ServicioNombre:       a.ServicioNombre,
 		Nota:                 a.Nota,
-		CreadoEn:             a.CreadoEn,
-		NotificadoEn:         a.NotificadoEn,
+		CreadoEn:             dto.HoraDe(ctx, a.CreadoEn),
+		NotificadoEn:         dto.HoraPtrDe(ctx, a.NotificadoEn),
 		CompromisoOfrecidoID: a.CompromisoOfrecidoID,
 	}
 }

@@ -1,8 +1,6 @@
 package dto
 
 import (
-	"time"
-
 	"github.com/shopspring/decimal"
 )
 
@@ -14,10 +12,10 @@ type ClienteResumen struct {
 	Telefono        string          `json:"telefono"`
 	Nombre          *string         `json:"nombre"`
 	CoberturaID     *string         `json:"cobertura_id"`
-	CreadoEn        time.Time       `json:"creado_en"`
+	CreadoEn        Hora            `json:"creado_en"`
 	CantidadPedidos int             `json:"cantidad_pedidos"`
 	TotalAcumulado  decimal.Decimal `json:"total_acumulado"`
-	UltimoPedido    *time.Time      `json:"ultimo_pedido"`
+	UltimoPedido    *Hora           `json:"ultimo_pedido"`
 }
 
 // CrearClienteRequest: mínimo dato necesario (Ley 25.326). Nada de motivo de

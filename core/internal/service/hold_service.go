@@ -94,7 +94,7 @@ func (s *holdService) Crear(ctx context.Context, negocioID, recursoID string, in
 	if err != nil {
 		return nil, err
 	}
-	return dto.HoldDesdeModel(h), nil
+	return dto.HoldDesdeModel(ctx, h), nil
 }
 
 func (s *holdService) Liberar(ctx context.Context, negocioID, id, sesion string) error {

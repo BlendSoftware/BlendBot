@@ -63,7 +63,7 @@ func (s *consultaService) Crear(ctx context.Context, negocioID string, in dto.Cr
 	if fila == nil {
 		return nil, ErrNoEncontrado
 	}
-	return consultaDesdeFila(fila), nil
+	return consultaDesdeFila(ctx, fila), nil
 }
 
 func (s *consultaService) Listar(ctx context.Context, negocioID string, f dto.FiltroConsultas) ([]dto.ConsultaResponse, error) {
@@ -73,7 +73,7 @@ func (s *consultaService) Listar(ctx context.Context, negocioID string, f dto.Fi
 	}
 	out := make([]dto.ConsultaResponse, 0, len(filas))
 	for i := range filas {
-		out = append(out, *consultaDesdeFila(&filas[i]))
+		out = append(out, *consultaDesdeFila(ctx, &filas[i]))
 	}
 	return out, nil
 }
@@ -110,11 +110,11 @@ func (s *consultaService) Responder(ctx context.Context, negocioID, id string, i
 	if fila == nil {
 		return nil, ErrNoEncontrado
 	}
-	return consultaDesdeFila(fila), nil
+	return consultaDesdeFila(ctx, fila), nil
 }
 
 // consultaDesdeFila mapea la fila joineada al shape que sale por HTTP.
-func consultaDesdeFila(c *repository.ConsultaConDatos) *dto.ConsultaResponse {
+func consultaDesdeFila(ctx context.Context, c *repository.ConsultaConDatos) *dto.ConsultaResponse {
 	return &dto.ConsultaResponse{
 		ID:            c.ID,
 		NegocioID:     c.NegocioID,
@@ -124,7 +124,7 @@ func consultaDesdeFila(c *repository.ConsultaConDatos) *dto.ConsultaResponse {
 		Pregunta:      c.Pregunta,
 		Respuesta:     c.Respuesta,
 		Estado:        c.Estado,
-		CreadoEn:      c.CreadoEn,
-		RespondidaEn:  c.RespondidaEn,
+		CreadoEn:      dto.HoraDe(ctx, c.CreadoEn),
+		RespondidaEn:  dto.HoraPtrDe(ctx, c.RespondidaEn),
 	}
 }

@@ -1,6 +1,7 @@
 package dto
 
 import (
+	"context"
 	"time"
 
 	"copiloto/core/internal/model"
@@ -71,22 +72,22 @@ type CompromisoResponse struct {
 	RecursoID       *string                   `json:"recurso_id"`
 	Tipo            model.TipoCompromiso      `json:"tipo"`
 	Estado          model.EstadoCompromiso    `json:"estado"`
-	Inicio          *time.Time                `json:"inicio"`
-	Fin             *time.Time                `json:"fin"`
+	Inicio          *Hora                     `json:"inicio"`
+	Fin             *Hora                     `json:"fin"`
 	DemoraMin       *int                      `json:"demora_min"`
 	Entrega         *model.TipoEntrega        `json:"entrega"`
 	Direccion       *string                   `json:"direccion"`
 	Total           decimal.Decimal           `json:"total"`
 	Origen          model.OrigenCompromiso    `json:"origen"`
 	Nota            *string                   `json:"nota"`
-	CreadoEn        time.Time                 `json:"creado_en"`
-	ConfirmadoEn    *time.Time                `json:"confirmado_en"`
-	CerradoEn       *time.Time                `json:"cerrado_en"`
+	CreadoEn        Hora                      `json:"creado_en"`
+	ConfirmadoEn    *Hora                     `json:"confirmado_en"`
+	CerradoEn       *Hora                     `json:"cerrado_en"`
 	Lineas          []LineaCompromisoResponse `json:"lineas"`
 }
 
 // CompromisoDesdeModel arma la respuesta a partir del modelo.
-func CompromisoDesdeModel(c *model.Compromiso) *CompromisoResponse {
+func CompromisoDesdeModel(ctx context.Context, c *model.Compromiso) *CompromisoResponse {
 	if c == nil {
 		return nil
 	}
@@ -110,52 +111,27 @@ func CompromisoDesdeModel(c *model.Compromiso) *CompromisoResponse {
 		RecursoID:       c.RecursoID,
 		Tipo:            c.Tipo,
 		Estado:          c.Estado,
-		Inicio:          c.Inicio,
-		Fin:             c.Fin,
+		Inicio:          HoraPtrDe(ctx, c.Inicio),
+		Fin:             HoraPtrDe(ctx, c.Fin),
 		DemoraMin:       c.DemoraMin,
 		Entrega:         c.Entrega,
 		Direccion:       c.Direccion,
 		Total:           c.Total,
 		Origen:          c.Origen,
 		Nota:            c.Nota,
-		CreadoEn:        c.CreadoEn,
-		ConfirmadoEn:    c.ConfirmadoEn,
-		CerradoEn:       c.CerradoEn,
+		CreadoEn:        HoraDe(ctx, c.CreadoEn),
+		ConfirmadoEn:    HoraPtrDe(ctx, c.ConfirmadoEn),
+		CerradoEn:       HoraPtrDe(ctx, c.CerradoEn),
 		Lineas:          lineas,
 	}
 }
 
 // CompromisosDesdeModelos mapea una lista del tablero.
-func CompromisosDesdeModelos(cs []model.Compromiso) []CompromisoResponse {
+func CompromisosDesdeModelos(ctx context.Context, cs []model.Compromiso) []CompromisoResponse {
 	out := make([]CompromisoResponse, 0, len(cs))
 	for i := range cs {
-		out = append(out, *CompromisoDesdeModel(&cs[i]))
+		out = append(out, *CompromisoDesdeModel(ctx, &cs[i]))
 	}
 	return out
 }
 
-// EnTimezone reescribe los timestamps del response a la timezone del negocio,
-// igual que hace la agenda. El motor los arma con la TZ del proceso (UTC en el
-// contenedor) y el panel lee la hora de pared directamente del string
-// (`horaDe`/`minutosDe` cortan el "HH:MM" sin mirar el offset), así que sin
-// esto la ficha del cliente y el board muestran horas —y a veces días—
-// corridas. No cambia el contrato: los mismos campos JSON, con el offset del
-// negocio (p.ej. -03:00) en lugar de Z. El motor sigue sin saber de timezones.
-func (r *CompromisoResponse) EnTimezone(loc *time.Location) {
-	if r == nil || loc == nil {
-		return
-	}
-	r.CreadoEn = r.CreadoEn.In(loc)
-	r.Inicio = enTimezone(r.Inicio, loc)
-	r.Fin = enTimezone(r.Fin, loc)
-	r.ConfirmadoEn = enTimezone(r.ConfirmadoEn, loc)
-	r.CerradoEn = enTimezone(r.CerradoEn, loc)
-}
-
-func enTimezone(t *time.Time, loc *time.Location) *time.Time {
-	if t == nil {
-		return nil
-	}
-	v := t.In(loc)
-	return &v
-}

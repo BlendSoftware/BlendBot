@@ -186,7 +186,7 @@ func (s *insumoService) Movimientos(ctx context.Context, negocioID, id string, l
 	}
 	out := make([]dto.MovimientoResponse, 0, len(movs))
 	for _, m := range movs {
-		out = append(out, dto.MovimientoDesde(m))
+		out = append(out, dto.MovimientoDesde(ctx, m))
 	}
 	return out, nil
 }

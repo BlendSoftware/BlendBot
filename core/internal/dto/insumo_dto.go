@@ -1,7 +1,7 @@
 package dto
 
 import (
-	"time"
+	"context"
 
 	"copiloto/core/internal/model"
 )
@@ -100,11 +100,11 @@ type MovimientoResponse struct {
 	SaldoResultante int       `json:"saldo_resultante"`
 	CompromisoID    *string   `json:"compromiso_id"`
 	Motivo          *string   `json:"motivo"`
-	CreadoEn        time.Time `json:"creado_en"`
+	CreadoEn        Hora      `json:"creado_en"`
 }
 
 // MovimientoDesde arma la línea de historia a partir del modelo.
-func MovimientoDesde(m model.MovimientoInsumo) MovimientoResponse {
+func MovimientoDesde(ctx context.Context, m model.MovimientoInsumo) MovimientoResponse {
 	return MovimientoResponse{
 		ID:              m.ID,
 		Tipo:            m.Tipo,
@@ -112,6 +112,6 @@ func MovimientoDesde(m model.MovimientoInsumo) MovimientoResponse {
 		SaldoResultante: m.SaldoResultante,
 		CompromisoID:    m.CompromisoID,
 		Motivo:          m.Motivo,
-		CreadoEn:        m.CreadoEn,
+		CreadoEn:        HoraDe(ctx, m.CreadoEn),
 	}
 }

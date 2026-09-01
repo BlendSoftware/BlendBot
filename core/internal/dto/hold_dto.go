@@ -1,6 +1,7 @@
 package dto
 
 import (
+	"context"
 	"time"
 
 	"copiloto/core/internal/model"
@@ -19,23 +20,23 @@ type CrearHoldInput struct {
 type HoldResponse struct {
 	ID        string    `json:"id"`
 	RecursoID string    `json:"recurso_id"`
-	Inicio    time.Time `json:"inicio"`
-	Fin       time.Time `json:"fin"`
-	ExpiraEn  time.Time `json:"expira_en"`
+	Inicio    Hora      `json:"inicio"`
+	Fin       Hora      `json:"fin"`
+	ExpiraEn  Hora      `json:"expira_en"`
 	Sesion    string    `json:"sesion"`
 }
 
 // HoldDesdeModel arma la respuesta a partir del modelo.
-func HoldDesdeModel(h *model.Hold) *HoldResponse {
+func HoldDesdeModel(ctx context.Context, h *model.Hold) *HoldResponse {
 	if h == nil {
 		return nil
 	}
 	return &HoldResponse{
 		ID:        h.ID,
 		RecursoID: h.RecursoID,
-		Inicio:    h.Inicio,
-		Fin:       h.Fin,
-		ExpiraEn:  h.ExpiraEn,
+		Inicio:    HoraDe(ctx, h.Inicio),
+		Fin:       HoraDe(ctx, h.Fin),
+		ExpiraEn:  HoraDe(ctx, h.ExpiraEn),
 		Sesion:    h.Sesion,
 	}
 }

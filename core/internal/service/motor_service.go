@@ -166,13 +166,13 @@ func (s *motorService) Crear(ctx context.Context, negocioID string, in dto.Crear
 		if err != nil {
 			return nil, err
 		}
-		return dto.CompromisoDesdeModel(c), nil
+		return dto.CompromisoDesdeModel(ctx, c), nil
 	}
 
 	if err := s.repo.Create(ctx, c); err != nil {
 		return nil, err
 	}
-	return dto.CompromisoDesdeModel(c), nil
+	return dto.CompromisoDesdeModel(ctx, c), nil
 }
 
 func (s *motorService) Obtener(ctx context.Context, negocioID, id string) (*dto.CompromisoResponse, error) {
@@ -183,7 +183,7 @@ func (s *motorService) Obtener(ctx context.Context, negocioID, id string) (*dto.
 	if err != nil {
 		return nil, err
 	}
-	return dto.CompromisoDesdeModel(c), nil
+	return dto.CompromisoDesdeModel(ctx, c), nil
 }
 
 func (s *motorService) Listar(ctx context.Context, negocioID string, f dto.FiltroCompromisos) ([]dto.CompromisoResponse, error) {
@@ -191,7 +191,7 @@ func (s *motorService) Listar(ctx context.Context, negocioID string, f dto.Filtr
 	if err != nil {
 		return nil, err
 	}
-	return dto.CompromisosDesdeModelos(cs), nil
+	return dto.CompromisosDesdeModelos(ctx, cs), nil
 }
 
 // ── Transicionar ──────────────────────────────────────────────────────────

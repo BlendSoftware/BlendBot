@@ -82,7 +82,15 @@ func New(d Deps) *gin.Engine {
 	authH.RegisterProtegidas(priv.Group("/auth"))
 
 	// Panel admin de la plataforma: alta/baja de negocios (D20).
-	admin := priv.Group("/admin/negocios", middleware.RequireRole(middleware.RolAdmin))
+	//
+	// HusoDePlataforma fija UTC para estas rutas: son cross-tenant y no tienen
+	// una timezone única de la cual tomar la hora (ver la capability
+	// `hora-local`). Va acá, al lado de lo que define qué es una ruta de
+	// plataforma, y no repartido por los constructores de DTO.
+	admin := priv.Group("/admin/negocios",
+		middleware.RequireRole(middleware.RolAdmin),
+		middleware.HusoDePlataforma(),
+	)
 	handler.NewAdminNegociosHandler(d.NegocioSvc, d.AuditSvc).Register(admin)
 	handler.NewAdminTokenHandler(d.TokenSvc, d.AuditSvc).Register(admin)
 	handler.NewAdminFiscalHandler(d.CobroSvc, d.AuditSvc).Register(admin)

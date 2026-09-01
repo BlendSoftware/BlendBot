@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"copiloto/core/internal/apierror"
+	"copiloto/core/internal/dto"
 	"copiloto/core/internal/model"
 
 	"github.com/gin-gonic/gin"
@@ -69,7 +70,38 @@ func TimezoneDelNegocio(repo LectorDeNegocio) gin.HandlerFunc {
 			return
 		}
 
+		// Dos lugares, un solo dato:
+		//  · el contexto de gin, para los handlers;
+		//  · el context.Context del request, para los services, que arman los
+		//    responses y no conocen a gin. Ver dto/hora_ctx.go.
 		c.Set(LocationKey, loc)
+		c.Request = c.Request.WithContext(dto.ConLocation(c.Request.Context(), loc))
+		c.Next()
+	}
+}
+
+// HusoDePlataforma pone UTC como huso del request, para `/api/admin/*`.
+//
+// Esas rutas listan negocios de husos distintos y no tienen una TZ única.
+// Rendir cada fila en la suya rompería la lectura de la lista: un negocio dado
+// de alta después podría mostrar una hora de pared anterior al de arriba. UTC
+// es el único huso neutral entre tenants.
+//
+// Va como middleware y no como `dto.HoraUTC` en cada constructor por dos
+// razones. Una: la decisión queda escrita UNA vez, en el router, al lado del
+// `RequireRole(RolAdmin)` que define qué es una ruta de plataforma — que es
+// donde alguien la va a buscar. Dos: `ConfigFiscalResponse` sale por dos rutas
+// distintas, `/api/negocio/fiscal` (el dueño, huso del negocio) y
+// `/api/admin/negocios/:id/fiscal` (plataforma, UTC). Con el huso decidido en
+// el constructor haría falta duplicarlo; con el huso en el contexto, el mismo
+// constructor sirve para las dos y cada ruta trae el suyo.
+//
+// La garantía no se afloja: esto PONE un huso, no lo inventa cuando falta. Una
+// ruta sin ningún middleware de huso sigue sin location y sigue fallando.
+func HusoDePlataforma() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Set(LocationKey, time.UTC)
+		c.Request = c.Request.WithContext(dto.ConLocation(c.Request.Context(), time.UTC))
 		c.Next()
 	}
 }

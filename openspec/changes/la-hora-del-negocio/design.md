@@ -63,7 +63,7 @@ Es el mismo criterio que el resto del repo ya aplica: el `CHECK (consumido <= as
 
 *Alternativa descartada:* dejar `time.Time` y agregar las seis llamadas faltantes. Arregla lo medido hoy y garantiza la séptima regresión. Es exactamente el arreglo que `lo-que-el-producto-promete` §3 propone, y es por eso que este cambio existe aparte: el hallazgo era correcto, el alcance era chico.
 
-*Alternativa descartada:* un middleware que recorra el response por reflexión reescribiendo `time.Time`. Una sola línea de código y cero cambios en los DTOs, pero es magia: nadie que lea un handler entiende por qué la hora que devuelve no es la que puso. Este repo elige lo explícito de forma consistente (ver `resolverRestante`, que documenta el orden de sus fuentes "para que el día que alguien rompa esa validación el catálogo no cambie de opinión"). La reflexión va contra esa línea. **Pero sí se usa reflexión en un test** — ver §5.
+*Alternativa descartada:* un middleware que recorra el response por reflexión reescribiendo `time.Time`. Una sola línea de código y cero cambios en los DTOs, pero es magia: nadie que lea un handler entiende por qué la hora que devuelve no es la que puso. Este repo elige lo explícito de forma consistente (ver `resolverRestante`, que documenta el orden de sus fuentes "para que el día que alguien rompa esa validación el catálogo no cambie de opinión"). La reflexión va contra esa línea. **Pero sí se usa reflexión en un test** — ver §6.
 
 ### 3. La timezone se resuelve una vez por request, en un middleware
 
@@ -97,9 +97,48 @@ Las rutas de `/api/admin/*` operan sobre la plataforma: el admin no tiene `negoc
 
 *Consecuencia de alcance:* `admin_negocios.go:38` y `:84` hoy serializan `model.Negocio` **directo**, sin DTO. Meter `dto.Hora` dentro de `model` invertiría la dependencia (hoy `dto` importa `model`) y crearía un ciclo. Se introduce `dto.NegocioResponse` y las rutas de admin dejan de serializar el modelo. Es trabajo que no estaba en el plan original y sale de esta verificación.
 
+> **Refinada otra vez al implementar (grupo 4).** La versión de arriba decía
+> que las rutas de plataforma construyeran con `dto.HoraUTC` en cada sitio. Al
+> migrar `cobro_dto.go` apareció el caso que lo desarma: **`ConfigFiscalResponse`
+> sale por DOS rutas** — `/api/negocio/fiscal` (el dueño mirando lo suyo, huso
+> del negocio) y `/api/admin/negocios/:id/fiscal` (plataforma, UTC). Con el huso
+> decidido en el constructor hacían falta dos constructores para el mismo DTO.
+>
+> La salida es mejor que lo planeado: el huso de plataforma se declara **en el
+> router**, como middleware `HusoDePlataforma()`, al lado del
+> `RequireRole(RolAdmin)` que define qué es una ruta de plataforma. Los
+> constructores quedan todos iguales (`HoraDe(ctx, t)`) y cada ruta trae su
+> huso. La decisión se lee en un solo lugar, que además es donde alguien la va
+> a buscar.
+>
+> `dto.HoraUTC` sigue existiendo para construir fuera de un request, pero ya no
+> es el mecanismo de las rutas de admin. La garantía intacta: el middleware
+> **pone** un huso, no lo inventa cuando falta — una ruta sin ningún middleware
+> de huso sigue sin location y sigue fallando al serializar.
+
 *Alternativa descartada:* mover `Hora` a un paquete propio (`internal/tipos`) que importen `model` y `dto` por igual. Evita el DTO nuevo y es menos código hoy. Se descarta porque deja a `model` cargando una preocupación de serialización, y porque el test de §5 tendría que recorrer dos paquetes en vez de uno para dar la misma garantía. El DTO nuevo es más código y menos superficie que vigilar.
 
-### 5. El test que evita la octava regresión
+### 5. El huso viaja en el `context.Context`, no en las firmas
+
+Los services arman los responses y no conocen a gin. Para que puedan construir
+`dto.Hora` necesitan el huso, y hay dos formas de dárselo.
+
+*Elegida:* el middleware lo deja en el `context.Context` del request y los
+constructores lo sacan con `dto.HoraDe(ctx, t)`. Los services **ya reciben**
+`ctx context.Context` como primer argumento, así que esto no cambia una sola
+firma ni un solo mock.
+
+*Alternativa descartada:* agregarle `loc *time.Location` a las ~20 funciones que
+arman un response. Es más explícito, pero toca todas las interfaces de service y
+todos sus dobles de test para transportar un dato que es exactamente lo que un
+contexto es —*request-scoped*—, que es el caso de uso que la documentación de
+`context` nombra textualmente.
+
+La garantía no se afloja: si nadie puso el huso, `LocationDe` devuelve nil,
+`NuevaHora` construye una `Hora` sin location y la serialización falla. El
+contexto es por dónde viaja el dato, no una segunda forma de olvidárselo.
+
+### 6. El test que evita la octava regresión
 
 Un test que recorra por reflexión los structs de respuesta de `internal/dto` y falle si alguno expone un `time.Time` (o `*time.Time`) en un campo con tag `json`.
 

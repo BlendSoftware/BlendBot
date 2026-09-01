@@ -35,7 +35,7 @@ func (h *AdminNegociosHandler) Listar(c *gin.Context) {
 		errorDeServicio(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, negocios)
+	c.JSON(http.StatusOK, dto.NegociosDesdeModelos(c.Request.Context(), negocios))
 }
 
 func (h *AdminNegociosHandler) Alta(c *gin.Context) {
@@ -81,7 +81,7 @@ func (h *AdminNegociosHandler) Actualizar(c *gin.Context) {
 		EntidadID: n.ID,
 	})
 
-	c.JSON(http.StatusOK, n)
+	c.JSON(http.StatusOK, dto.NegocioDesdeModel(c.Request.Context(), n))
 }
 
 func (h *AdminNegociosHandler) Baja(c *gin.Context) {

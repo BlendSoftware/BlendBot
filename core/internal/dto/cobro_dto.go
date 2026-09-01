@@ -1,8 +1,8 @@
 package dto
 
 import (
+	"context"
 	"fmt"
-	"time"
 
 	"copiloto/core/internal/model"
 
@@ -33,7 +33,7 @@ type ComprobanteResponse struct {
 	Importe          decimal.Decimal `json:"importe"`
 	Intentos         int             `json:"intentos"`
 	UltimoError      *string         `json:"ultimo_error"`
-	EmitidoEn        *time.Time      `json:"emitido_en"`
+	EmitidoEn        *Hora           `json:"emitido_en"`
 }
 
 // CobroResponse es lo que devuelve POST /api/cobros y GET /api/cobros/:id.
@@ -46,7 +46,7 @@ type CobroResponse struct {
 	CompromisoID string               `json:"compromiso_id"`
 	MedioPago    string               `json:"medio_pago"`
 	Monto        decimal.Decimal      `json:"monto"`
-	CobradoEn    time.Time            `json:"cobrado_en"`
+	CobradoEn    Hora                 `json:"cobrado_en"`
 	Comprobante  *ComprobanteResponse `json:"comprobante"`
 	// Facturacion explica en castellano qué va a pasar con la factura. El panel
 	// lo puede mostrar tal cual.
@@ -54,7 +54,7 @@ type CobroResponse struct {
 }
 
 // CobroDesdeModel arma la respuesta. comp puede ser nil.
-func CobroDesdeModel(c *model.Cobro, comp *model.Comprobante) *CobroResponse {
+func CobroDesdeModel(ctx context.Context, c *model.Cobro, comp *model.Comprobante) *CobroResponse {
 	if c == nil {
 		return nil
 	}
@@ -63,8 +63,8 @@ func CobroDesdeModel(c *model.Cobro, comp *model.Comprobante) *CobroResponse {
 		CompromisoID: c.CompromisoID,
 		MedioPago:    string(c.MedioPago),
 		Monto:        c.Monto,
-		CobradoEn:    c.CobradoEn,
-		Comprobante:  ComprobanteDesdeModel(comp),
+		CobradoEn:    HoraDe(ctx, c.CobradoEn),
+		Comprobante:  ComprobanteDesdeModel(ctx, comp),
 		Facturacion:  motivoSinFactura(c),
 	}
 	if comp != nil {
@@ -91,7 +91,7 @@ func motivoSinFactura(c *model.Cobro) string {
 }
 
 // ComprobanteDesdeModel mapea el comprobante; nil devuelve nil.
-func ComprobanteDesdeModel(c *model.Comprobante) *ComprobanteResponse {
+func ComprobanteDesdeModel(ctx context.Context, c *model.Comprobante) *ComprobanteResponse {
 	if c == nil {
 		return nil
 	}
@@ -105,7 +105,7 @@ func ComprobanteDesdeModel(c *model.Comprobante) *ComprobanteResponse {
 		Importe:     c.Importe,
 		Intentos:    c.RetryCount,
 		UltimoError: c.LastError,
-		EmitidoEn:   c.EmitidoEn,
+		EmitidoEn:   HoraPtrDe(ctx, c.EmitidoEn),
 	}
 	if c.Numero != nil {
 		f := NumeroComprobante(c.PuntoVenta, *c.Numero)
@@ -182,11 +182,11 @@ type ConfigFiscalResponse struct {
 	PuntoVenta        int       `json:"punto_venta"`
 	Modo              string    `json:"modo"`
 	TieneCertificados bool      `json:"tiene_certificados"`
-	ActualizadoEn     time.Time `json:"actualizado_en"`
+	ActualizadoEn     Hora      `json:"actualizado_en"`
 }
 
 // ConfigFiscalDesdeModel arma la ficha pública. nil devuelve nil.
-func ConfigFiscalDesdeModel(cf *model.ConfigFiscal) *ConfigFiscalResponse {
+func ConfigFiscalDesdeModel(ctx context.Context, cf *model.ConfigFiscal) *ConfigFiscalResponse {
 	if cf == nil {
 		return nil
 	}
@@ -198,6 +198,6 @@ func ConfigFiscalDesdeModel(cf *model.ConfigFiscal) *ConfigFiscalResponse {
 		PuntoVenta:        cf.PuntoVenta,
 		Modo:              cf.Modo,
 		TieneCertificados: cf.TieneCertificados(),
-		ActualizadoEn:     cf.ActualizadoEn,
+		ActualizadoEn:     HoraDe(ctx, cf.ActualizadoEn),
 	}
 }

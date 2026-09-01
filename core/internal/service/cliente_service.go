@@ -64,10 +64,10 @@ func (s *clienteService) Listar(ctx context.Context, negocioID string) ([]dto.Cl
 			Telefono:        f.Telefono,
 			Nombre:          f.Nombre,
 			CoberturaID:     f.CoberturaID,
-			CreadoEn:        f.CreadoEn,
+			CreadoEn:        dto.HoraDe(ctx, f.CreadoEn),
 			CantidadPedidos: f.CantidadPedidos,
 			TotalAcumulado:  f.TotalAcumulado,
-			UltimoPedido:    f.UltimoPedido,
+			UltimoPedido:    dto.HoraPtrDe(ctx, f.UltimoPedido),
 		})
 	}
 	return out, nil

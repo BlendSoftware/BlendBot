@@ -1,7 +1,5 @@
 package dto
 
-import "time"
-
 // AnotarEnListaEsperaInput anota a alguien para un servicio. El negocio no
 // viaja: sale del token.
 type AnotarEnListaEsperaInput struct {
@@ -28,8 +26,8 @@ type ListaEsperaResponse struct {
 	ServicioID           string     `json:"servicio_id"`
 	ServicioNombre       string     `json:"servicio_nombre"`
 	Nota                 *string    `json:"nota"`
-	CreadoEn             time.Time  `json:"creado_en"`
-	NotificadoEn         *time.Time `json:"notificado_en"`
+	CreadoEn             Hora       `json:"creado_en"`
+	NotificadoEn         *Hora      `json:"notificado_en"`
 	CompromisoOfrecidoID *string    `json:"compromiso_ofrecido_id"`
 }
 

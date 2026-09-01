@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"errors"
-	"time"
 
 	"copiloto/core/internal/dto"
 	"copiloto/core/internal/model"
@@ -107,34 +106,15 @@ func (m *motorGastro) Crear(ctx context.Context, negocioID string, in dto.CrearC
 		// que la distancia al negocio no supere cfg.RadioDeliveryKm. Por ahora el
 		// radio es un hook: sólo se valida que el negocio ofrezca delivery.
 	}
-	resp, err := m.inner.Crear(ctx, negocioID, in)
-	if err != nil {
-		return nil, err
-	}
-	return m.localizado(ctx, negocioID, resp)
+	return m.inner.Crear(ctx, negocioID, in)
 }
 
 func (m *motorGastro) Obtener(ctx context.Context, negocioID, id string) (*dto.CompromisoResponse, error) {
-	resp, err := m.inner.Obtener(ctx, negocioID, id)
-	if err != nil {
-		return nil, err
-	}
-	return m.localizado(ctx, negocioID, resp)
+	return m.inner.Obtener(ctx, negocioID, id)
 }
 
 func (m *motorGastro) Listar(ctx context.Context, negocioID string, f dto.FiltroCompromisos) ([]dto.CompromisoResponse, error) {
-	resp, err := m.inner.Listar(ctx, negocioID, f)
-	if err != nil {
-		return nil, err
-	}
-	loc, err := m.locNegocio(ctx, negocioID)
-	if err != nil {
-		return nil, err
-	}
-	for i := range resp {
-		resp[i].EnTimezone(loc)
-	}
-	return resp, nil
+	return m.inner.Listar(ctx, negocioID, f)
 }
 
 /*
@@ -172,7 +152,7 @@ func (m *motorGastro) Transicionar(ctx context.Context, negocioID, id string, nu
 
 	m.devolverStockSiSeCayo(ctx, negocioID, antes, nuevo)
 	m.avisarConfirmacion(ctx, negocioID, resp)
-	return m.localizado(ctx, negocioID, resp)
+	return resp, nil
 }
 
 // tomarStock descuenta si esta transición es la que compromete la cocina:
@@ -295,31 +275,3 @@ func (m *motorGastro) avisarConfirmacion(ctx context.Context, negocioID string, 
 	}
 }
 
-// localizado reescribe los timestamps del response a la TZ del negocio. Es la
-// misma corrección que la agenda: el motor deja las horas en la TZ del proceso
-// (UTC en el contenedor) y el panel las lee como hora de pared, así que sin
-// esto muestra horas y días corridos. El motor no se toca; la timezone se
-// resuelve acá, en el vertical, donde ya vive el acceso a la config del negocio.
-func (m *motorGastro) localizado(ctx context.Context, negocioID string, resp *dto.CompromisoResponse) (*dto.CompromisoResponse, error) {
-	loc, err := m.locNegocio(ctx, negocioID)
-	if err != nil {
-		return nil, err
-	}
-	resp.EnTimezone(loc)
-	return resp, nil
-}
-
-func (m *motorGastro) locNegocio(ctx context.Context, negocioID string) (*time.Location, error) {
-	neg, err := m.negocios.Negocio(ctx, negocioID)
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, ErrNoEncontrado
-	}
-	if err != nil {
-		return nil, err
-	}
-	loc, err := time.LoadLocation(neg.Timezone)
-	if err != nil {
-		return nil, ErrTimezoneInvalida
-	}
-	return loc, nil
-}

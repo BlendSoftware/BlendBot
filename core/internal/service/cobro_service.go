@@ -95,7 +95,7 @@ func (s *cobroService) Cobrar(ctx context.Context, negocioID string, usuarioID *
 		return nil, err
 	}
 
-	return dto.CobroDesdeModel(cobro, comprobante), nil
+	return dto.CobroDesdeModel(ctx, cobro, comprobante), nil
 }
 
 // armarComprobante devuelve nil (sin error) si el negocio todavía no cargó su
@@ -143,7 +143,7 @@ func (s *cobroService) PorCompromiso(ctx context.Context, negocioID, compromisoI
 	if cobro == nil {
 		return nil, ErrNoEncontrado
 	}
-	return dto.CobroDesdeModel(cobro, comp), nil
+	return dto.CobroDesdeModel(ctx, cobro, comp), nil
 }
 
 // ── Cierre del día ────────────────────────────────────────────────────────
@@ -283,7 +283,7 @@ func (s *cobroService) ConfigurarFiscal(ctx context.Context, negocioID string, i
 	if err != nil {
 		return nil, err
 	}
-	return dto.ConfigFiscalDesdeModel(guardada), nil
+	return dto.ConfigFiscalDesdeModel(ctx, guardada), nil
 }
 
 // cifrarPEM devuelve nil si no hay nada que guardar. Si hay PEM y no hay
@@ -310,7 +310,7 @@ func (s *cobroService) ObtenerFiscal(ctx context.Context, negocioID string) (*dt
 	if cf == nil {
 		return nil, ErrNoEncontrado
 	}
-	return dto.ConfigFiscalDesdeModel(cf), nil
+	return dto.ConfigFiscalDesdeModel(ctx, cf), nil
 }
 
 func soloDigitos(s string) string {

@@ -28,7 +28,7 @@ func TestHoldSolapadoEsRechazado(t *testing.T) {
 	if err != nil {
 		t.Fatalf("primer hold: %v", err)
 	}
-	if primero.ExpiraEn.Before(time.Now()) {
+	if primero.ExpiraEn.Time().Before(time.Now()) {
 		t.Errorf("el hold nace expirado: %v", primero.ExpiraEn)
 	}
 

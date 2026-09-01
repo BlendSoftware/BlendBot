@@ -47,29 +47,36 @@
 
 6 tests, verdes. `go build ./... && go vet ./...` verdes sobre el módulo entero, y las 6 suites unitarias (`dto`, `middleware`, `model`, `service`, `worker`, `infra`) pasan.
 
-## 4. Migrar los DTOs de respuesta (Go) — paralelizable
+## 4. Migrar los DTOs de respuesta (Go)
 
-> Uno por ítem, cada uno con su test de integración. El orden sugerido va del
-> que tiene el bug confirmado al que sólo lo tiene por inspección.
+> **El huso viaja en el `context.Context`** (design §5). Los services ya reciben
+> `ctx` como primer argumento, así que la migración no cambió NI UNA firma de
+> interfaz de service ni un solo mock: sólo la de los constructores de DTO.
 
-- [ ] 4.1 `consulta_dto.go` — `creado_en`, `respondida_en`. Es el bug reportado en `lo-que-el-producto-promete` §3; cerrarlo primero y anotarlo allá.
-- [ ] 4.2 `jornada_dto.go` — `abierta_en`, `cerrada_en`.
-- [ ] 4.3 `cliente_dto.go` — `creado_en`, `ultimo_pedido`.
-- [ ] 4.4 `cobro_dto.go` — `cobrado_en`, `emitido_en`, `actualizado_en`. **Ojo con `CAEVence`**: es `*string` `YYYY-MM-DD` y es una fecha fiscal de ARCA en su propio huso. Queda fuera del alcance y hay que documentarlo en el campo (design, Open Questions).
-- [ ] 4.5 `insumo_dto.go` — `MovimientoResponse.creado_en`.
-- [ ] 4.6 `hold_dto.go` — `inicio`, `fin`, `expira_en` del **response**. `CrearHoldInput` no se toca.
-- [ ] 4.7 `horario_dto.go` — `ExcepcionResponse.desde/hasta`. `CrearExcepcionInput` no se toca. `HorarioResponse` usa `string` `"HH:MM"` y queda fuera: no es un instante.
-- [ ] 4.8 `lista_espera_dto.go` — `creado_en`, `notificado_en`.
-- [ ] 4.9 `compromiso_dto.go` — migrar al tipo nuevo. **No cambia el comportamiento**: ya salía localizado. Es lo que permite borrar `EnTimezone`.
-- [ ] 4.10 **Sale de 1.2.** `dto.NegocioResponse` nuevo, con `creado_en` construido con `HoraUTC`. `admin_negocios.go:38` y `:84` dejan de serializar `model.Negocio` directo. No se toca `model.Negocio`: meterle `dto.Hora` invertiría la dependencia y haría ciclo (design §4).
-- [ ] 4.11 **Sale de 1.2.** `ConfigFiscalResponse.ActualizadoEn` (`cobro_dto.go:185`) → `HoraUTC`. Es una ruta de plataforma aunque el DTO viva en `cobro_dto.go`.
+- [x] 4.1 `consulta_dto.go` — el bug reportado en `lo-que-el-producto-promete` §3, cerrado. Medido: `23:22:38Z` → `20:22:38-03:00`.
+- [x] 4.2 `jornada_dto.go` — `abierta_en`, `cerrada_en`.
+- [x] 4.3 `cliente_dto.go` — `creado_en`, `ultimo_pedido`.
+- [x] 4.4 `cobro_dto.go` — `cobrado_en`, `emitido_en`, `actualizado_en`. `CAEVence` queda afuera: es `*string` `YYYY-MM-DD`, fecha fiscal que ARCA define en su propio huso, y convertirla sería incorrecto.
+- [x] 4.5 `insumo_dto.go` — `MovimientoResponse.creado_en`.
+- [x] 4.6 `hold_dto.go` — `inicio`, `fin`, `expira_en`. `CrearHoldInput` intacto.
+- [x] 4.7 `horario_dto.go` — `ExcepcionResponse.desde/hasta`. `HorarioResponse` queda afuera: usa `string` `"HH:MM"`, no es un instante.
+- [x] 4.8 `lista_espera_dto.go` — `creado_en`, `notificado_en`.
+- [x] 4.9 `compromiso_dto.go` — migrado. Los campos de `CrearCompromisoInput` y `FiltroCompromisos` siguen en `time.Time`, como corresponde a un request.
+- [x] 4.10 `dto.NegocioResponse` nuevo; `admin_negocios.go` ya no serializa `model.Negocio` directo.
+- [x] 4.11 `ConfigFiscalResponse.ActualizadoEn` migrado — resuelto por 4.12, no con `HoraUTC` en el constructor.
+- [x] 4.12 **Hallazgo del grupo 4, cambia el design §4.** `ConfigFiscalResponse` sale por **dos** rutas: `/api/negocio/fiscal` (el dueño, huso del negocio) y `/api/admin/negocios/:id/fiscal` (plataforma, UTC). Con el huso decidido en el constructor hacían falta dos constructores para el mismo DTO.
+
+  La salida es mejor que lo planeado: `middleware.HusoDePlataforma()` fija UTC **en el router**, al lado del `RequireRole(RolAdmin)` que define qué es una ruta de plataforma. Todos los constructores quedan iguales (`HoraDe(ctx, t)`) y cada ruta trae su huso. La decisión se lee en un solo lugar.
+
+- [x] 4.13 `dto.Hora` implementa `String()`. Salió de `go vet`, que marcó dos `%s` en los tests e2e. Una `Hora` sin huso se imprime diciendo `(sin timezone)` en vez de mostrar una hora de aspecto correcto: si alguien la está leyendo es porque algo salió mal.
 
 ## 5. Borrar lo que sobra (Go)
 
-- [ ] 5.1 Eliminar `CompromisoResponse.EnTimezone` (`compromiso_dto.go:144`).
-- [ ] 5.2 Eliminar `localizado()` (`motor_gastro.go:303`) y `locNegocio()` (`:312`), sus tres llamadas (`:114`, `:122`, `:175`) y el `EnTimezone` suelto del listado (`:135`), que es el único que no pasa por `localizado`.
-- [ ] 5.3 Si `motor_gastro` ya no usa `m.negocios` para nada más, sacar la dependencia. Si la usa, dejarla y anotar para qué.
-- [ ] 5.4 `go build ./... && go vet ./...` verdes.
+- [x] 5.1 `CompromisoResponse.EnTimezone` y su helper `enTimezone`, eliminados.
+- [x] 5.2 `localizado()` y `locNegocio()` eliminadas de `motor_gastro.go`, con sus cuatro sitios de uso. `Crear`, `Obtener` y `Listar` quedaron como delegaciones de una línea al inner: el vertical ya no tiene nada que corregir después.
+- [x] 5.3 `m.negocios` **se queda**: `motorGastro` la sigue usando para leer `config.acepta_delivery` y la política de confirmación. Sólo se fue el uso de timezone.
+- [x] 5.4 `go build ./...` y `go vet ./...` verdes.
+- [x] 5.5 **Los dos tests de `motor_gastro_test.go` que verificaban la localización se reapuntaron, no se borraron.** Afirmaban que el vertical corregía la hora; ahora el DTO nace localizado desde el ctx. Las aserciones valiosas —sin `Z`, con `-03:00`, hora de pared 15:00 en Mendoza— quedaron **idénticas**; lo único que cambió es que el `innerFake` construye leyendo el huso del contexto, como hace el motor real.
 
 ## 6. Tests de verificación (dueño: agente de test)
 

@@ -1,6 +1,7 @@
 package dto
 
 import (
+	"context"
 	"time"
 
 	"copiloto/core/internal/model"
@@ -34,8 +35,8 @@ type CrearExcepcionInput struct {
 type ExcepcionResponse struct {
 	ID        string    `json:"id"`
 	RecursoID string    `json:"recurso_id"`
-	Desde     time.Time `json:"desde"`
-	Hasta     time.Time `json:"hasta"`
+	Desde     Hora      `json:"desde"`
+	Hasta     Hora      `json:"hasta"`
 	Motivo    *string   `json:"motivo"`
 }
 
@@ -63,24 +64,24 @@ func HorariosDesdeModelos(hs []model.Horario) []HorarioResponse {
 }
 
 // ExcepcionDesdeModel arma la respuesta a partir del modelo.
-func ExcepcionDesdeModel(e *model.Excepcion) *ExcepcionResponse {
+func ExcepcionDesdeModel(ctx context.Context, e *model.Excepcion) *ExcepcionResponse {
 	if e == nil {
 		return nil
 	}
 	return &ExcepcionResponse{
 		ID:        e.ID,
 		RecursoID: e.RecursoID,
-		Desde:     e.Desde,
-		Hasta:     e.Hasta,
+		Desde:     HoraDe(ctx, e.Desde),
+		Hasta:     HoraDe(ctx, e.Hasta),
 		Motivo:    e.Motivo,
 	}
 }
 
 // ExcepcionesDesdeModelos mapea los bloqueos de un recurso.
-func ExcepcionesDesdeModelos(es []model.Excepcion) []ExcepcionResponse {
+func ExcepcionesDesdeModelos(ctx context.Context, es []model.Excepcion) []ExcepcionResponse {
 	out := make([]ExcepcionResponse, 0, len(es))
 	for i := range es {
-		out = append(out, *ExcepcionDesdeModel(&es[i]))
+		out = append(out, *ExcepcionDesdeModel(ctx, &es[i]))
 	}
 	return out
 }
