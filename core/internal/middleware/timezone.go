@@ -32,9 +32,9 @@ type LectorDeNegocio interface {
 // localizados porque era el único lugar que se acordaba de llamarlo.
 //
 // Va colgado del grupo `tenant`, después de `RequireNegocio()`, que es quien ya
-// garantizó que el token trae negocio. Las rutas de plataforma
-// (`/api/admin/*`) NO lo tienen y eso es deliberado: listan negocios de husos
-// distintos, no tienen una TZ única, y sus responses usan `dto.HoraUTC`.
+// garantizó que el token trae negocio. Las rutas de plataforma (`/api/admin/*`)
+// NO lo tienen y eso es deliberado: listan negocios de husos distintos, no
+// tienen una TZ única, y llevan `HusoDePlataforma()` en su lugar.
 func TimezoneDelNegocio(repo LectorDeNegocio) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		negocioID := NegocioID(c)

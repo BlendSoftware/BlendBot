@@ -78,23 +78,44 @@
 - [x] 5.4 `go build ./...` y `go vet ./...` verdes.
 - [x] 5.5 **Los dos tests de `motor_gastro_test.go` que verificaban la localización se reapuntaron, no se borraron.** Afirmaban que el vertical corregía la hora; ahora el DTO nace localizado desde el ctx. Las aserciones valiosas —sin `Z`, con `-03:00`, hora de pared 15:00 en Mendoza— quedaron **idénticas**; lo único que cambió es que el `innerFake` construye leyendo el huso del contexto, como hace el motor real.
 
-## 6. Tests de verificación (dueño: agente de test)
+## 6. Tests de verificación
 
-- [ ] 6.1 Integración: los cuatro escenarios de "Toda hora que sale de la API está en la timezone del negocio", con un negocio en una TZ que **no** sea UTC ni la del CI. Una TZ con offset no entero (`Asia/Kolkata`, +05:30) es mejor test que una redonda: atrapa el bug de asumir horas enteras.
-- [ ] 6.2 Integración: recorrer los endpoints de negocio medidos en el `proposal.md` y afirmar que ninguno devuelve `Z`. Es el antes/después del cambio, ejecutable.
-- [ ] 6.2b **Sale de 1.2.** Integración sobre `/api/admin/*`: los cuatro escenarios del requirement de plataforma. Incluido el que importa —dos negocios en husos distintos dados de alta con diez minutos de diferencia se leen en el orden real— porque es el argumento que sostiene la decisión de usar UTC ahí.
-- [ ] 6.3 Integración: dos negocios en husos distintos no se mezclan.
-- [ ] 6.4 Integración: `negocio.timezone` inválida falla nombrando el negocio, no cae a UTC.
-- [ ] 6.5 `scripts/smoke.sh`: un assert de que ninguna hora del flujo sale con `Z`. El smoke ya recorre el producto entero; es el lugar barato para que esto no se erosione.
-- [ ] 6.6 Panel: un test sobre `horaDe` que fije el contrato desde el otro lado —dado un RFC3339 con offset, devuelve la hora de pared sin convertir—. Hoy el contrato está en un comentario; que esté en un test.
-- [ ] 6.7 **Open question del design**: verificar si el agente (Python) mostraba horas corridas al leer `expira_en` de un hold o `creado_en` de una consulta. Un test que lo demuestre. Si estaba mal y ahora está bien, anotarlo; si hay que tocar el agente, es alcance nuevo y se propone aparte.
+> **El entorno destrabado.** `internal/repository`, `tests/integration` y
+> `tests/e2e` usan testcontainers y no corrían en esta máquina (no hay `go`
+> instalado y el contenedor de build no llegaba al daemon). Se resolvió montando
+> el socket con `-v /var/run/docker.sock:/var/run/docker.sock` y
+> `TESTCONTAINERS_HOST_OVERRIDE=host.docker.internal`. **Toda la suite corre.**
+
+- [x] 6.1 `tests/e2e/hora_local_test.go`: hora de pared correcta (no sólo el sufijo del string), offset del negocio, día correcto. Usa `Asia/Kolkata` (+05:30) además de Mendoza — un huso de offset no entero atrapa el bug de asumir horas redondas.
+- [x] 6.2 `TestNingunaRutaDeNegocioDevuelveHorasEnUTC`: deja rastro en cada tabla con timestamps y después barre 8 endpoints exigiendo que ninguno mande `Z`. **Busca sobre el cuerpo crudo con regex, no sobre structs tipados**: un campo que alguien agregue mañana entra al barrido sin que nadie tenga que acordarse de sumarlo.
+- [x] 6.2b `TestRutasDePlataformaVanEnUTC` y `TestElListadoDePlataformaSeLeeComoSecuencia`. El segundo es el que sostiene la decisión §4: da de alta un negocio en Kolkata y después uno en Mendoza, y verifica que leídos como hora de pared queden en el orden real de alta. Con husos por fila, el segundo se vería casi nueve horas "antes".
+- [x] 6.3 `TestDosNegociosEnHusosDistintosNoSeMezclan`: cada dueño ve sus horas en SU huso. Es el test que un middleware que resolviera la timezone una vez por proceso —en vez de por request— no pasaría.
+- [x] 6.4 Cubierto por los tests unitarios del middleware (`TestTimezoneInvalidaFallaYNoCaeAUTC`), que además verifican que el cuerpo no filtre el id ni el valor roto.
+- [x] 6.5 `scripts/smoke.sh`: helper `sin_horas_utc` + bloque «La hora del negocio» que barre 5 rutas y verifica que `creado_en` traiga el offset de verdad, no sólo la ausencia de `Z`.
+
+  **No se pudo verificar corriendo el smoke entero**, por dos bugs PREEXISTENTES que encontró esta corrida (ninguno de este cambio, los dos de `3fd7577`):
+
+  1. `TZ='America/Argentina/Mendoza' date +%F` devuelve la fecha **UTC** en Git Bash de Windows: su zoneinfo no tiene esa zona y cae a UTC. El smoke calcula `HOY` así y el core calcula el día en la zona del negocio, así que entre las 21:00 y medianoche no coinciden y «un compromiso cerrado hoy» da 0. Se ve sólo en esa ventana de 3 horas.
+  2. `FIN` se pisa a sí misma: la línea 60 la define como el reset ANSI y la 299 la sobreescribe con la hora del turno. Por eso cada `✓` sale con un timestamp pegado.
+
+  El helper **sí** se verificó aislado, en los tres casos: pasa con una respuesta localizada, detecta una con `Z`, y pasa contra los cuatro endpoints del core real.
+
+- [x] 6.6 `panel/src/dominio/formato.test.ts`: cuatro casos que fijan el contrato desde el otro lado —`horaDe` lee la hora de pared y NO convierte husos—. Vivía en un comentario; ahora está en un test, que es lo que evita que alguien "arregle" `horaDe` agregándole una conversión el día que vea un `Z`. 9 tests verdes.
+- [x] 6.7 **Open question del design, respondida: el agente NUNCA mostró horas corridas.** `_humanizar` (`agente/server.py:326`) hace `dt.astimezone(await _tz())` y `_tz()` (`:191`) lee `negocio.timezone` del core. O sea que el agente se protegía solo.
+
+  Explica por qué el bug se veía sólo en el panel: el camino de WhatsApp compensaba por su cuenta. Ahora que el core manda localizado, ese `astimezone` es un no-op (de -03:00 a -03:00) y sigue siendo correcto. **No hay que tocar el agente**, y eso es una conclusión verificada, no un supuesto.
 
 ## 7. El guardián contra la regresión número ocho
 
-- [ ] 7.1 Test que recorra por reflexión los structs de `internal/dto` y falle si un struct de **respuesta** expone `time.Time`/`*time.Time` en un campo con tag `json`. Debe nombrar campo y archivo, y decir qué usar en su lugar.
-- [ ] 7.2 Distinguir request de response por la convención del repo (`...Input`/`...Request` entra, `...Response`/`...Resumen` sale). Lista de excepciones **vacía** al empezar; si hace falta una, va con su motivo escrito al lado.
-- [ ] 7.2b **Sale de 1.2.** El test tiene que cubrir también los `model.*` que se serializan directo, no sólo `internal/dto`: `model.Servicio` ya viaja crudo al panel y `model.Negocio` viajaba así hasta 4.10. Recorrer sólo `dto` deja un agujero del tamaño exacto del bug que 1.2 encontró. Si cubrir `model` resulta inviable, la alternativa es prohibir serializar modelos directo — pero eso es alcance nuevo y se propone aparte, no se decide acá.
-- [ ] 7.3 Verificar que el test falla de verdad: agregar un `time.Time` a un response, ver el rojo, sacarlo. Un guardián que nunca se vio fallar no es un guardián.
+- [x] 7.1 `internal/dto/guardian_hora_test.go`: recorre por reflexión los structs de respuesta y falla nombrando campo, ruta anidada y tag JSON, con el mensaje de qué usar en su lugar. Recursa en structs anidados: atrapó el sabotaje también a través de `JornadaActualResponse.Jornada`.
+- [x] 7.2 Distingue request de response por la convención del repo. **Lista de excepciones vacía**, como se había pedido. Hay un test recíproco, `TestLosRequestSiPuedenUsarTimeTime`, para que nadie "arregle" un `Input` migrándolo por las dudas.
+- [x] 7.2b **`TestElGuardianCubreTodosLosResponseDelPaquete`**: parsea los `.go` con `go/ast` y compara los structs declarados contra la lista del guardián. Tapa el agujero obvio —agregar un `FooResponse` y olvidarse de sumarlo, con lo cual el guardián pasaría sin mirar nada.
+
+  **Encontró 8 responses que me había salteado en su primera corrida** (`AltaNegocioResponse`, `ReporteResponse`, `HuecosResponse`, `AgendaResponse`, `NegocioDatosResponse`, `TokenAgenteResponse`, `CupoResponse`, `CierreResponse`). El meta-guardián se justificó antes de terminar de escribirlo.
+
+- [x] 7.3 **Guardián verificado.** Primero se corrigió un falso positivo propio: recursaba adentro de `dto.Hora` y reportaba su campo privado `t time.Time` como si fuera el bug. Se saltan los campos no exportados —`encoding/json` ni los mira— y `Hora` explícitamente.
+
+  Después, el sabotaje real: se agregó un campo `Saboteado time.Time` a `JornadaResponse` y el guardián se puso rojo en dos lugares (el struct y su anidado). Restaurado y verde.
 
 ## 8. Cierre
 

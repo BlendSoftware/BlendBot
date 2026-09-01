@@ -153,6 +153,21 @@ contiene() {
   morir "$3" "esperaba que contuviera: $1" "obtuvo: $2"
 }
 
+# sin_horas_utc falla si la última respuesta trae algún timestamp terminado en
+# `Z`. Toda hora de una ruta de negocio viaja en la TZ del negocio (capability
+# `hora-local`); una `Z` significa que un endpoint volvió a salir en la hora del
+# proceso, que es el bug de las horas corridas en el panel.
+#
+# Se busca sobre el cuerpo crudo a propósito: un campo nuevo entra al control
+# sin que nadie tenga que acordarse de sumarlo a una lista.
+sin_horas_utc() {
+  local encontradas
+  encontradas=$(printf '%s' "$RESP" | grep -oE '"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?Z"' | tr '
+' ' ')
+  [[ -z $encontradas ]] && { ok "$1"; return 0; }
+  morir "$1" "hay horas en UTC: $encontradas" "toda hora de negocio va en la TZ del negocio" "cuerpo: ${RESP:0:400}"
+}
+
 # igual_num compara plata por valor y no por texto: numeric(12,2) vuelve de la
 # base como "8500.00" y eso es el MISMO número que 8500. Comparar los strings
 # haría fallar el smoke por una diferencia que no existe.
@@ -414,6 +429,24 @@ igual_num 8500 "$(val total_cobrado)" "total cobrado"
 igual_num 8500 "$(val ticket_promedio)" "ticket promedio"
 igual_num 8500 "$(val por_medio_pago.efectivo)" "desglose por medio de pago"
 igual 0 "$(val comprobantes.emitidos)" "ningún comprobante emitido (módulo fiscal apagado)"
+
+# ── 10b. Ninguna hora sale en UTC ────────────────────────────────────────────
+# Capability `hora-local`. Antes de eso, seis de siete endpoints con timestamps
+# devolvían la hora del proceso: una consulta hecha 22:48 en Mendoza se leía
+# 01:48 del día siguiente. El panel corta el "HH:MM" del string sin convertir
+# husos (`horaDe`, a propósito), así que una `Z` acá es una hora corrida en la
+# pantalla del dueño.
+titulo "La hora del negocio"
+for RUTA in /api/compromisos /api/clientes /api/consultas /api/jornada/actual "/api/cobros/${TURNO_ID}"; do
+  api GET "$RUTA" "$TOKEN"
+  exigir 200 "GET $RUTA"
+  sin_horas_utc "$RUTA sin horas en UTC"
+done
+
+# El offset del negocio tiene que estar de verdad, no sólo faltar la Z.
+api GET "/api/compromisos/${TURNO_ID}" "$TOKEN"
+exigir 200 "compromiso para verificar el offset"
+contiene "$OFFSET" "$(val creado_en)" "creado_en trae el offset del negocio ($OFFSET)"
 
 # ── 11. El token del agente ──────────────────────────────────────────────────
 # Es la credencial con la que el MCP entra al core. Va a tenants.json y es lo
