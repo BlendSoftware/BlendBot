@@ -36,6 +36,17 @@ const TOOLS_DE_PRECIO = ['mcp__copiloto__ver_catalogo', 'mcp__copiloto__armar_co
 const FRASES_DE_CONFIRMACION = ['confirmad', 'ya está en el local', 'le pasé', 'se envió al local', 'ya lo pasé'];
 const REGEX_PRECIO = /\$\s?\d/;
 const TEXTO_SEGURO = 'Perdón, no pude registrar tu pedido todavía. ¿Me lo repetís así lo cargo?';
+/**
+ * Caso de producción del 15/10: con el MCP sin conectar (ver más abajo), el
+ * modelo contestó en inglés "I can't use the `ver_catalogo` tool as it seems
+ * to be unavailable..." y le pidió los precios al cliente. El cliente nunca
+ * tiene que ver un nombre de tool interna ni el idioma del modelo filtrado:
+ * se trata igual que una afirmación sin respaldo (mismo reintento, mismo
+ * `TEXTO_SEGURO` de arriba — no es un mecanismo nuevo).
+ */
+const NOMBRES_DE_TOOLS_INTERNAS = ['mcp__', 'ver_catalogo', 'armar_compromiso', 'confirmar', 'tool'];
+/** Texto fijo cuando el MCP `copiloto` no conectó ni en el reintento (ver `estadoCopiloto`). */
+const TEXTO_SEGURO_MCP = 'Perdón, tuve un problema técnico y no pude leer la carta. ¿Me escribís de nuevo?';
 
 /** @returns {boolean} si el texto afirma algo que el set de tools usadas no respalda. */
 function afirmaSinRespaldo(texto, toolsUsadas) {
@@ -44,7 +55,8 @@ function afirmaSinRespaldo(texto, toolsUsadas) {
   const afirmaPrecio = REGEX_PRECIO.test(texto);
   const faltaConfirmar = afirmaConfirmacion && !toolsUsadas.has(TOOL_CONFIRMAR);
   const faltaToolDePrecio = afirmaPrecio && !TOOLS_DE_PRECIO.some((nombre) => toolsUsadas.has(nombre));
-  return faltaConfirmar || faltaToolDePrecio;
+  const nombraToolInterna = NOMBRES_DE_TOOLS_INTERNAS.some((nombre) => minusculas.includes(nombre));
+  return faltaConfirmar || faltaToolDePrecio || nombraToolInterna;
 }
 
 /** Se tira cuando la query pasó el techo de tiempo. El caller se disculpa. */
@@ -160,14 +172,44 @@ export function crearAgente({
 
   async function intentar(p, resume) {
     const primero = await unIntento(p, resume);
-    if (!afirmaSinRespaldo(primero.texto, primero.toolsUsadas)) return primero;
+    if (!primero.copilotoConectado) {
+      // Caso del 15/10: el MCP tardó en arrancar (compiló bytecode en el
+      // primer `uv run`) y el modelo respondió sin tools — no se manda ese
+      // texto. Reintentar una vez alcanza casi siempre: el segundo `uv run`
+      // encuentra el bytecode ya compilado del intento anterior.
+      console.warn('[agente] %s: el MCP copiloto no conectó — reintento', p.clave);
+      const segundo = await unIntento(p, resume);
+      if (!segundo.copilotoConectado) {
+        console.warn('[agente] %s: el MCP copiloto no conectó ni en el reintento — mando texto seguro', p.clave);
+        return { ...segundo, texto: TEXTO_SEGURO_MCP };
+      }
+      return evaluarAfirmacion(p, segundo);
+    }
+    return evaluarAfirmacion(p, primero);
+  }
+
+  /** Guarda contra afirmaciones sin tool (y contra nombrar una tool interna) una vez que el MCP conectó. */
+  async function evaluarAfirmacion(p, resultado) {
+    if (!afirmaSinRespaldo(resultado.texto, resultado.toolsUsadas)) return resultado;
 
     console.warn('[agente] %s: afirmó sin respaldo de tool — reintento con sesión nueva', p.clave);
-    const segundo = await unIntento(p, undefined);
-    if (!afirmaSinRespaldo(segundo.texto, segundo.toolsUsadas)) return segundo;
+    const reintento = await unIntento(p, undefined);
+    if (!afirmaSinRespaldo(reintento.texto, reintento.toolsUsadas)) return reintento;
 
     console.warn('[agente] %s: el reintento también afirmó sin respaldo — mando texto seguro', p.clave);
-    return { ...segundo, texto: TEXTO_SEGURO };
+    return { ...reintento, texto: TEXTO_SEGURO };
+  }
+
+  /**
+   * Estado del MCP `copiloto` según el `system`/`init` del stream. `true` si
+   * no vimos ningún `mcp_servers` (compatibilidad con streams de test que no
+   * lo setean) — en producción el SDK siempre lo manda, así que ahí un
+   * `mcp_servers` ausente no puede pasar.
+   */
+  function estadoCopiloto(msg, actual) {
+    if (msg?.type !== 'system' || msg.subtype !== 'init' || !Array.isArray(msg.mcp_servers)) return actual;
+    const copiloto = msg.mcp_servers.find((s) => s.name === 'copiloto');
+    return copiloto?.status === 'connected';
   }
 
   /** Una sola corrida del SDK — sin la guarda de arriba, que vive en `intentar`. */
@@ -208,6 +250,7 @@ export function crearAgente({
     let salida = '';
     let sesionId = null;
     const toolsUsadas = new Set();
+    let copilotoConectado = true;
     const t0 = Date.now();
 
     try {
@@ -219,6 +262,7 @@ export function crearAgente({
             if (bloque.type === 'tool_use' && bloque.name) toolsUsadas.add(bloque.name);
           }
         }
+        copilotoConectado = estadoCopiloto(msg, copilotoConectado);
         // El session_id llega tanto en el 'system' de arranque como en el
         // 'result'. Nos quedamos con el último que veamos.
         if (msg?.session_id) sesionId = msg.session_id;
@@ -238,7 +282,7 @@ export function crearAgente({
       clave, Date.now() - t0, resume ? 'resume' : 'nueva', salida.length,
     );
 
-    return { texto: salida.trim(), sesionId, reanudo: Boolean(resume), toolsUsadas };
+    return { texto: salida.trim(), sesionId, reanudo: Boolean(resume), toolsUsadas, copilotoConectado };
   }
 
   return { responder };

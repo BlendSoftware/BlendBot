@@ -334,3 +334,163 @@ describe('guarda: no mandar una confirmación o un precio sin la tool que los re
     expect(r.texto).toBe('Hola, ¿qué querés pedir?');
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Caso de producción del 15/10: al reiniciar el contenedor, el primer `uv run`
+// del MCP `copiloto` tardó demasiado en arrancar (compiló "3051 files" de
+// bytecode) y el modelo (gemini-2.5-flash-lite) respondió en inglés que no
+// podía usar `ver_catalogo` y pidió los precios al cliente. El SDK avisa el
+// estado de conexión del MCP en el mensaje `system`/`init` (`mcp_servers`).
+describe('guarda: no mandar lo que diga el modelo si el MCP copiloto no conectó', () => {
+  const TEXTO_SEGURO_MCP = 'Perdón, tuve un problema técnico y no pude leer la carta. ¿Me escribís de nuevo?';
+
+  function toolUse(nombre) {
+    return { type: 'assistant', message: { content: [{ type: 'tool_use', name: nombre }] } };
+  }
+
+  function initConMcp(status, sessionId = 'ses-nueva') {
+    return {
+      type: 'system',
+      subtype: 'init',
+      session_id: sessionId,
+      mcp_servers: [{ name: 'copiloto', status }],
+    };
+  }
+
+  it('no conecta en el primer intento pero sí en el reintento → usa la respuesta del reintento', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    let llamada = 0;
+    const queryFn = vi.fn(async () => {
+      llamada += 1;
+      if (llamada === 1) {
+        return streamDe([
+          initConMcp('failed'),
+          textoAsistente("I can't use the ver_catalogo tool as it seems to be unavailable, what are your prices?"),
+          { type: 'result', session_id: 'ses-1' },
+        ]);
+      }
+      return streamDe([
+        initConMcp('connected', 'ses-2'),
+        toolUse('mcp__copiloto__ver_catalogo'),
+        textoAsistente('Tenemos muzzarella y fugazzeta, ¿cuál querés?'),
+        { type: 'result', session_id: 'ses-2' },
+      ]);
+    });
+    const { agente } = armar({ queryFn });
+
+    const r = await agente.responder({ tenant: TENANT, telefono: CLIENTE, texto: 'hola', clave: CLAVE });
+
+    expect(llamada).toBe(2);
+    expect(r.texto).toBe('Tenemos muzzarella y fugazzeta, ¿cuál querés?');
+  });
+
+  it('no conecta ni en el reintento → texto seguro fijo, sin loguear lo que dijo el modelo', async () => {
+    const warnEspia = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const TEXTO_FILTRADO_DEL_MODELO = "I can't use the ver_catalogo tool, what are your prices?";
+    const queryFn = vi.fn(async () => streamDe([
+      initConMcp('failed'),
+      textoAsistente(TEXTO_FILTRADO_DEL_MODELO),
+      { type: 'result', session_id: 'ses-1' },
+    ]));
+    const { agente } = armar({ queryFn });
+
+    const r = await agente.responder({ tenant: TENANT, telefono: CLIENTE, texto: 'hola', clave: CLAVE });
+
+    expect(queryFn.mock.calls.length).toBe(2);
+    expect(r.texto).toBe(TEXTO_SEGURO_MCP);
+    const logueado = warnEspia.mock.calls.flat().join(' ');
+    expect(logueado).not.toContain(TEXTO_FILTRADO_DEL_MODELO);
+  });
+
+  it('copiloto en "pending" (no llegó a conectar) también se trata como no conectado', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const queryFn = vi.fn(async () => streamDe([
+      initConMcp('pending'),
+      textoAsistente('cualquier cosa'),
+      { type: 'result', session_id: 'ses-1' },
+    ]));
+    const { agente } = armar({ queryFn });
+
+    const r = await agente.responder({ tenant: TENANT, telefono: CLIENTE, texto: 'hola', clave: CLAVE });
+
+    expect(queryFn.mock.calls.length).toBe(2);
+    expect(r.texto).toBe(TEXTO_SEGURO_MCP);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Misma red del 15/10, por el otro lado: si el MCP conectó pero el texto final
+// de todas formas nombra una tool interna (lo que efectivamente contestó el
+// modelo en producción), se trata igual que una afirmación sin tool — mismo
+// mecanismo de `afirmaSinRespaldo`, sin duplicar nada.
+describe('red: el texto final no puede nombrar una tool interna', () => {
+  const TEXTO_SEGURO = 'Perdón, no pude registrar tu pedido todavía. ¿Me lo repetís así lo cargo?';
+
+  function toolUse(nombre) {
+    return { type: 'assistant', message: { content: [{ type: 'tool_use', name: nombre }] } };
+  }
+
+  it('menciona el nombre de una tool interna → reintenta con sesión nueva y usa la segunda si no la nombra', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    let llamada = 0;
+    const queryFn = vi.fn(async ({ options }) => {
+      llamada += 1;
+      if (llamada === 1) {
+        return streamDe([
+          textoAsistente('No puedo usar la tool ver_catalogo, ¿me pasás los precios?'),
+          { type: 'result', session_id: 'ses-1' },
+        ]);
+      }
+      expect(options.resume).toBeUndefined();
+      return streamDe([
+        toolUse('mcp__copiloto__ver_catalogo'),
+        textoAsistente('Tenemos muzzarella a $8500.'),
+        { type: 'result', session_id: 'ses-2' },
+      ]);
+    });
+    const { agente } = armar({ queryFn });
+
+    const r = await agente.responder({ tenant: TENANT, telefono: CLIENTE, texto: '¿qué tenés?', clave: CLAVE });
+
+    expect(llamada).toBe(2);
+    expect(r.texto).toBe('Tenemos muzzarella a $8500.');
+  });
+
+  it('las dos respuestas nombran una tool interna → el texto seguro YA EXISTENTE (no uno nuevo)', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const queryFn = vi.fn(async () => streamDe([
+      textoAsistente('mcp__copiloto__confirmar falló, lo intento de nuevo'),
+      { type: 'result', session_id: 'ses-1' },
+    ]));
+    const { agente } = armar({ queryFn });
+
+    const r = await agente.responder({ tenant: TENANT, telefono: CLIENTE, texto: 'confirmalo', clave: CLAVE });
+
+    expect(queryFn.mock.calls.length).toBe(2);
+    expect(r.texto).toBe(TEXTO_SEGURO);
+  });
+
+  it('menciona la palabra "tool" (en inglés) sin nombrar ninguna en particular → también activa la red', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const queryFn = vi.fn(async () => streamDe([
+      textoAsistente("I can't use that tool right now, what are your prices?"),
+      { type: 'result', session_id: 'ses-1' },
+    ]));
+    const { agente } = armar({ queryFn });
+
+    const r = await agente.responder({ tenant: TENANT, telefono: CLIENTE, texto: 'hola', clave: CLAVE });
+
+    expect(queryFn.mock.calls.length).toBe(2);
+    expect(r.texto).toBe(TEXTO_SEGURO);
+  });
+
+  it('respuesta normal, sin nombres de tools → pasa sin tocar', async () => {
+    const { agente } = armar({
+      mensajes: [textoAsistente('Tenemos muzzarella y fugazzeta.'), { type: 'result', session_id: 'ses-1' }],
+    });
+
+    const r = await agente.responder({ tenant: TENANT, telefono: CLIENTE, texto: '¿qué tenés?', clave: CLAVE });
+
+    expect(r.texto).toBe('Tenemos muzzarella y fugazzeta.');
+  });
+});
