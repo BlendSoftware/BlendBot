@@ -72,6 +72,17 @@ function parametros(variables) {
   }];
 }
 
+/**
+ * Alias de destino: sólo para la lista de números de prueba de Meta. WhatsApp
+ * identifica a un celular argentino como `549…`, pero la lista de prueba lo
+ * guarda con el 15 (`54 <área> 15 <número>`) y rechaza el envío al `549…`
+ * (#131030). Con un número productivo no hay lista y esto queda vacío.
+ */
+function destinoReal(mensaje, alias) {
+  const otro = alias && alias[mensaje.telefono];
+  return otro ? { ...mensaje, telefono: otro } : mensaje;
+}
+
 /** Envío real contra la Graph API. Es el default; en tests se inyecta otro. */
 export function enviarPorGraph(config, fetchFn = fetch) {
   return async function enviar(mensaje) {
@@ -82,7 +93,7 @@ export function enviarPorGraph(config, fetchFn = fetch) {
         Authorization: `Bearer ${config.metaGraphToken}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(cuerpoGraph(mensaje)),
+      body: JSON.stringify(cuerpoGraph(destinoReal(mensaje, config.waDestinoAlias))),
     });
     if (!res.ok) {
       const detalle = await res.text().catch(() => '');

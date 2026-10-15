@@ -125,6 +125,7 @@ services:
       META_APP_SECRET: ${META_APP_SECRET:-}
       META_VERIFY_TOKEN: ${META_VERIFY_TOKEN:-}
       META_GRAPH_TOKEN: ${META_GRAPH_TOKEN:-}
+      WA_DESTINO_ALIAS: ${WA_DESTINO_ALIAS:-}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       # Alternativa: un gateway compatible con la API de Anthropic (OpenRouter).
       # Con estas dos, ANTHROPIC_API_KEY va vacía.

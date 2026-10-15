@@ -20,6 +20,16 @@ export const RAIZ_GATEWAY = path.resolve(AQUI, '..');
 
 const MODELO_DEFAULT = 'claude-haiku-4-5-20251001';
 
+function leerAlias(texto) {
+  if (!texto) return {};
+  try {
+    const valor = JSON.parse(texto);
+    return valor && typeof valor === 'object' && !Array.isArray(valor) ? valor : {};
+  } catch {
+    return {};
+  }
+}
+
 export function cargarConfig(env = process.env) {
   const sesionesDir = path.resolve(env.SESIONES_DIR || path.join(RAIZ_GATEWAY, 'data', 'sesiones'));
 
@@ -37,6 +47,8 @@ export function cargarConfig(env = process.env) {
     metaVerifyToken: env.META_VERIFY_TOKEN || '',
     metaGraphToken: env.META_GRAPH_TOKEN || '',
     graphUrl: env.GRAPH_URL || 'https://graph.facebook.com/v21.0',
+    // JSON {"549…": "54…15…"}: sólo para la lista de prueba de Meta (ver outbox.js).
+    waDestinoAlias: leerAlias(env.WA_DESTINO_ALIAS),
 
     // Core y agente
     coreUrl: env.CORE_URL || 'http://localhost:8080',

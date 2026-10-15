@@ -343,4 +343,18 @@ describe('enviarPorGraph', () => {
     await expect(enviar({ phone_number_id: PHONE_ID, telefono: CLIENTE, tipo: 'texto', texto: 'x' }))
       .rejects.toThrow(/429/);
   });
+
+  it('con un alias de destino manda al número del alias (lista de prueba de Meta, Argentina con 15)', async () => {
+    const fetchFalso = vi.fn(async () => ({ ok: true, json: async () => ({}) }));
+    const enviar = enviarPorGraph({ ...config, waDestinoAlias: { '5492634550000': '54263154550000' } }, fetchFalso);
+    await enviar({ phone_number_id: PHONE_ID, telefono: '5492634550000', tipo: 'texto', texto: 'hola' });
+    expect(JSON.parse(fetchFalso.mock.calls[0][1].body).to).toBe('54263154550000');
+  });
+
+  it('sin alias para ese número, manda al número tal cual', async () => {
+    const fetchFalso = vi.fn(async () => ({ ok: true, json: async () => ({}) }));
+    const enviar = enviarPorGraph({ ...config, waDestinoAlias: { '5491100000000': 'x' } }, fetchFalso);
+    await enviar({ phone_number_id: PHONE_ID, telefono: CLIENTE, tipo: 'texto', texto: 'hola' });
+    expect(JSON.parse(fetchFalso.mock.calls[0][1].body).to).toBe(CLIENTE);
+  });
 });
