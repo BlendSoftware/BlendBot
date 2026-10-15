@@ -494,6 +494,29 @@ describe('red: el texto final no puede nombrar una tool interna', () => {
     expect(r.texto).toBe('Tenemos muzzarella y fugazzeta.');
   });
 
+  it('el razonamiento interno filtrado en inglés no sale (producción 15/10)', async () => {
+    const filtrado =
+      'The user wants 30 empanadas, which is considered a large quantity. According to the hard rules ' +
+      '(rule 9), I should offer to use `dejar_consulta`.\n\nResponse: "¡Uf, 30 empanadas es un montón!"';
+    const { agente } = armar({
+      mensajes: [textoAsistente(filtrado), { type: 'result', session_id: 'ses-1' }],
+    });
+
+    const r = await agente.responder({ tenant: TENANT, telefono: CLIENTE, texto: '30 empanadas', clave: CLAVE });
+
+    expect(r.texto).not.toMatch(/The user|Response:|dejar_consulta/);
+  });
+
+  it('un identificador con guion bajo (cualquier tool) cuenta como filtración', async () => {
+    const { agente } = armar({
+      mensajes: [textoAsistente('Te lo anoto con dejar_consulta.'), { type: 'result', session_id: 'ses-1' }],
+    });
+
+    const r = await agente.responder({ tenant: TENANT, telefono: CLIENTE, texto: 'hola', clave: CLAVE });
+
+    expect(r.texto).not.toMatch(/dejar_consulta/);
+  });
+
   it('"confirmar" en castellano común no cuenta como nombre de tool', async () => {
     const texto = '¿Querés confirmar el pedido así o le cambiamos algo?';
     const { agente } = armar({

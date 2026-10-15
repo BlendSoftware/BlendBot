@@ -47,6 +47,14 @@ const TEXTO_SEGURO = 'Perdón, no pude registrar tu pedido todavía. ¿Me lo rep
 // Sin "confirmar" a secas: en castellano es una palabra de todos los días
 // ("¿querés confirmar el pedido?") y dispararía reintentos con respuestas sanas.
 const NOMBRES_DE_TOOLS_INTERNAS = ['mcp__', 'ver_catalogo', 'armar_compromiso', 'tool'];
+// Cualquier nombre en snake_case (`dejar_consulta`, `ver_catalogo`…): un cliente
+// nunca escribe así, y la lista de arriba no puede adivinar las tools futuras.
+const REGEX_IDENTIFICADOR = /\b[a-z]+_[a-z_]+\b/;
+// 15/10: Gemini mandó su razonamiento entero ("The user wants 30 empanadas…
+// According to the hard rules… Response: …") y después la respuesta. Son
+// marcas de pensamiento en voz alta en inglés, que al cliente no le llega nunca.
+const REGEX_RAZONAMIENTO_EN_INGLES =
+  /\b(the user|i should|i need to|i will|according to|response:|the customer)\b/i;
 /** Texto fijo cuando el MCP `copiloto` no conectó ni en el reintento (ver `estadoCopiloto`). */
 const TEXTO_SEGURO_MCP = 'Perdón, tuve un problema técnico y no pude leer la carta. ¿Me escribís de nuevo?';
 
@@ -57,8 +65,11 @@ function afirmaSinRespaldo(texto, toolsUsadas) {
   const afirmaPrecio = REGEX_PRECIO.test(texto);
   const faltaConfirmar = afirmaConfirmacion && !toolsUsadas.has(TOOL_CONFIRMAR);
   const faltaToolDePrecio = afirmaPrecio && !TOOLS_DE_PRECIO.some((nombre) => toolsUsadas.has(nombre));
-  const nombraToolInterna = NOMBRES_DE_TOOLS_INTERNAS.some((nombre) => minusculas.includes(nombre));
-  return faltaConfirmar || faltaToolDePrecio || nombraToolInterna;
+  const nombraToolInterna =
+    NOMBRES_DE_TOOLS_INTERNAS.some((nombre) => minusculas.includes(nombre)) ||
+    REGEX_IDENTIFICADOR.test(texto);
+  const filtraRazonamiento = REGEX_RAZONAMIENTO_EN_INGLES.test(texto);
+  return faltaConfirmar || faltaToolDePrecio || nombraToolInterna || filtraRazonamiento;
 }
 
 /** Se tira cuando la query pasó el techo de tiempo. El caller se disculpa. */
