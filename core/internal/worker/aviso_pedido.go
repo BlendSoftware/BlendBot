@@ -29,7 +29,7 @@ func (a *avisadorPedido) PedidoConfirmado(ctx context.Context, av service.AvisoP
 		saludo = "¡Listo, " + av.ClienteNombre + "!"
 	}
 	texto := fmt.Sprintf(
-		"%s Confirmamos tu pedido 🍔 Sale en ~%d min. Total %s. Cualquier cosa te avisamos por acá.",
+		"%s Confirmamos tu pedido ✅ Sale en ~%d min. Total %s. Cualquier cosa te avisamos por acá.",
 		saludo, av.DemoraMin, plataAR(av.Total),
 	)
 	return a.pub.Publicar(ctx, MensajeSalida{
@@ -60,7 +60,7 @@ func (a *avisadorPedido) PedidoListo(ctx context.Context, av service.AvisoPedido
 	var texto string
 	switch av.Entrega {
 	case "retira":
-		texto = saludo + " 🍔 Ya podés pasar a buscarlo por el local."
+		texto = saludo + " 🙌 Ya podés pasar a buscarlo por el local."
 	case "delivery":
 		texto = saludo + " 🛵 Ya salió para tu dirección."
 	default:
@@ -68,6 +68,25 @@ func (a *avisadorPedido) PedidoListo(ctx context.Context, av service.AvisoPedido
 		return nil
 	}
 
+	return a.pub.Publicar(ctx, MensajeSalida{
+		NegocioID:    av.NegocioID,
+		WaPhoneID:    av.WaPhoneID,
+		Telefono:     av.ClienteTelefono,
+		Tipo:         "texto",
+		Texto:        texto,
+		CompromisoID: av.CompromisoID,
+	})
+}
+
+// PedidoRechazado avisa que el local no pudo tomar el pedido: lo rechazó, o lo
+// canceló después de confirmado. Un solo método para los dos casos (ver
+// service.AvisoPedidoRechazado) porque el texto que recibe el cliente es el
+// mismo — no hay nada que el cliente necesite distinguir entre ambos caminos.
+func (a *avisadorPedido) PedidoRechazado(ctx context.Context, av service.AvisoPedidoRechazado) error {
+	texto := "El local no pudo tomar tu pedido 😕 Si querés, escribinos y vemos otra opción."
+	if av.ClienteNombre != "" {
+		texto = av.ClienteNombre + ", el local no pudo tomar tu pedido 😕 Si querés, escribinos y vemos otra opción."
+	}
 	return a.pub.Publicar(ctx, MensajeSalida{
 		NegocioID:    av.NegocioID,
 		WaPhoneID:    av.WaPhoneID,

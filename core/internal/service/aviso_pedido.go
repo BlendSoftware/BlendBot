@@ -42,10 +42,36 @@ type AvisoPedidoListo struct {
 	Entrega         string // retira | delivery
 }
 
+// AvisoPedidoRechazado son los datos para avisarle al cliente que su pedido no
+// se va a cumplir: el local lo rechazó (sólo se llega desde PENDIENTE) o lo
+// canceló después de haberlo confirmado (desde PENDIENTE o CONFIRMADO, ver
+// model/estado.go). Un solo tipo para los dos casos porque el texto que recibe
+// el cliente es el mismo: lo que le importa es que no va a llegar, no la razón
+// de estado por la que no llega.
+//
+// LIMITACIÓN CONOCIDA (no resuelta acá, bug de producción del 15/10/2026): el
+// motor no distingue quién pidió la transición. `dto.TransicionarInput` y
+// `OpcionesTransicion` no traen un campo de origen, y la tool `cancelar` del
+// agente (agente/server.py) transiciona a `cancelado` llamando el mismo PATCH
+// /compromisos/:id/estado que usa el panel. Como consecuencia, si el PROPIO
+// CLIENTE cancela su pedido por WhatsApp, este aviso sale igual y dice "el
+// local no pudo tomar tu pedido", que es la frase equivocada para ese caso
+// puntual. Agregar un campo de origen de la transición resolvería esto, pero
+// es un cambio de API más grande que el de este fix — se deja documentado,
+// no se inventa acá.
+type AvisoPedidoRechazado struct {
+	NegocioID       string
+	CompromisoID    string
+	WaPhoneID       string
+	ClienteTelefono string
+	ClienteNombre   string
+}
+
 // AvisadorPedido publica el aviso al cliente. La implementación vive en el
 // paquete worker (habla con Redis); el service sólo conoce esta interfaz, así
 // no hay ciclo de imports y los tests pueden doblar el avisador.
 type AvisadorPedido interface {
 	PedidoConfirmado(ctx context.Context, a AvisoPedidoConfirmado) error
 	PedidoListo(ctx context.Context, a AvisoPedidoListo) error
+	PedidoRechazado(ctx context.Context, a AvisoPedidoRechazado) error
 }

@@ -153,7 +153,56 @@ func (m *motorGastro) Transicionar(ctx context.Context, negocioID, id string, nu
 	m.devolverStockSiSeCayo(ctx, negocioID, antes, nuevo)
 	m.avisarConfirmacion(ctx, negocioID, resp)
 	m.avisarListo(ctx, negocioID, resp)
+	m.avisarRechazoOCancelacion(ctx, negocioID, resp)
 	return resp, nil
+}
+
+// avisarRechazoOCancelacion le avisa al cliente que su pedido no se va a
+// cumplir: el local lo rechazó, o lo canceló después de confirmarlo (ver
+// AvisoPedidoRechazado para los dos caminos de estado). Sigue las MISMAS tres
+// reglas que avisarConfirmacion y avisarListo: sólo pedidos, sólo si entraron
+// por WhatsApp y hay teléfono, best-effort.
+//
+// LIMITACIÓN CONOCIDA (bug de producción del 15/10/2026, no resuelta acá): el
+// motor no distingue si la cancelación la pidió el panel o el propio cliente
+// por WhatsApp (ver el comentario en AvisoPedidoRechazado). Este aviso sale
+// igual en ambos casos.
+func (m *motorGastro) avisarRechazoOCancelacion(ctx context.Context, negocioID string, resp *dto.CompromisoResponse) {
+	if m.avisador == nil || resp == nil {
+		return
+	}
+	if resp.Tipo != model.CompromisoPedido {
+		return
+	}
+	if resp.Estado != model.EstadoRechazado && resp.Estado != model.EstadoCancelado {
+		return
+	}
+	if resp.Origen != model.OrigenWhatsApp || resp.ClienteTelefono == "" {
+		return
+	}
+
+	neg, err := m.negocios.Negocio(ctx, negocioID)
+	if err != nil {
+		return
+	}
+	waPhone := ""
+	if neg.WaPhoneID != nil {
+		waPhone = *neg.WaPhoneID
+	}
+	nombre := ""
+	if resp.ClienteNombre != nil {
+		nombre = *resp.ClienteNombre
+	}
+	aviso := AvisoPedidoRechazado{
+		NegocioID:       negocioID,
+		CompromisoID:    resp.ID,
+		WaPhoneID:       waPhone,
+		ClienteTelefono: resp.ClienteTelefono,
+		ClienteNombre:   nombre,
+	}
+	if err := m.avisador.PedidoRechazado(ctx, aviso); err != nil {
+		log.Warn().Err(err).Str("compromiso", resp.ID).Msg("no se pudo avisar el rechazo/cancelación del pedido")
+	}
 }
 
 // avisarListo le avisa al cliente que su pedido está pronto. Es el segundo de
@@ -331,4 +380,3 @@ func (m *motorGastro) avisarConfirmacion(ctx context.Context, negocioID string, 
 		log.Warn().Err(err).Str("compromiso", resp.ID).Msg("no se pudo avisar la confirmación del pedido")
 	}
 }
-

@@ -119,9 +119,10 @@ func TestMotorGastroLocalizaTimestampsALaTZDelNegocio(t *testing.T) {
 
 // avisadorFake captura el aviso en vez de publicarlo a Redis.
 type avisadorFake struct {
-	avisos []AvisoPedidoConfirmado
-	listos []AvisoPedidoListo
-	falla  error // para probar que un aviso roto no voltea la transición
+	avisos   []AvisoPedidoConfirmado
+	listos   []AvisoPedidoListo
+	rechazos []AvisoPedidoRechazado
+	falla    error // para probar que un aviso roto no voltea la transición
 }
 
 func (a *avisadorFake) PedidoConfirmado(_ context.Context, av AvisoPedidoConfirmado) error {
@@ -131,6 +132,11 @@ func (a *avisadorFake) PedidoConfirmado(_ context.Context, av AvisoPedidoConfirm
 
 func (a *avisadorFake) PedidoListo(_ context.Context, av AvisoPedidoListo) error {
 	a.listos = append(a.listos, av)
+	return a.falla
+}
+
+func (a *avisadorFake) PedidoRechazado(_ context.Context, av AvisoPedidoRechazado) error {
+	a.rechazos = append(a.rechazos, av)
 	return a.falla
 }
 
@@ -297,6 +303,72 @@ func TestUnAvisoRotoNoVolteaLaTransicion(t *testing.T) {
 		t.Fatalf("un aviso roto volteó la transición: %v", err)
 	}
 	if out == nil || out.Estado != model.EstadoListo {
+		t.Fatal("la transición tenía que quedar hecha igual")
+	}
+}
+
+// ── El aviso de "no pudimos tomar tu pedido" (rechazo o cancelación) ────────
+//
+// Bug de producción del 15/10/2026: el cliente no se enteraba si el local
+// rechazaba o cancelaba su pedido. Un solo tipo de aviso para los dos casos
+// porque el texto que recibe el cliente es el mismo.
+
+func pedidoRechazadoOCancelado(estado model.EstadoCompromiso, origen model.OrigenCompromiso, tel string) *dto.CompromisoResponse {
+	nombre := "Juani"
+	return &dto.CompromisoResponse{
+		ID: "comp-1", NegocioID: "neg-1",
+		Tipo: model.CompromisoPedido, Estado: estado,
+		Origen:        origen,
+		ClienteNombre: &nombre, ClienteTelefono: tel,
+	}
+}
+
+func TestAvisoAlRechazarOCancelarPedido(t *testing.T) {
+	casos := []struct {
+		nombre string
+		resp   *dto.CompromisoResponse
+		nuevo  model.EstadoCompromiso
+		avisa  bool
+	}{
+		{"rechazado por WhatsApp con teléfono → avisa",
+			pedidoRechazadoOCancelado(model.EstadoRechazado, model.OrigenWhatsApp, "549260111"), model.EstadoRechazado, true},
+		{"cancelado por WhatsApp con teléfono → avisa",
+			pedidoRechazadoOCancelado(model.EstadoCancelado, model.OrigenWhatsApp, "549260111"), model.EstadoCancelado, true},
+		{"origen panel → no avisa (no hay WhatsApp del otro lado)",
+			pedidoRechazadoOCancelado(model.EstadoCancelado, model.OrigenPanel, "549260111"), model.EstadoCancelado, false},
+		{"sin teléfono → no avisa",
+			pedidoRechazadoOCancelado(model.EstadoRechazado, model.OrigenWhatsApp, ""), model.EstadoRechazado, false},
+	}
+	for _, c := range casos {
+		t.Run(c.nombre, func(t *testing.T) {
+			av := &avisadorFake{}
+			motor := NewMotorGastro(innerTrans{resp: c.resp}, negocioFake{tz: "America/Argentina/Mendoza"}, ConAvisadorPedido(av))
+			if _, err := motor.Transicionar(context.Background(), "neg-1", "comp-1", c.nuevo, OpcionesTransicion{}); err != nil {
+				t.Fatalf("Transicionar: %v", err)
+			}
+			if c.avisa && len(av.rechazos) != 1 {
+				t.Fatalf("esperaba 1 aviso, hubo %d", len(av.rechazos))
+			}
+			if !c.avisa && len(av.rechazos) != 0 {
+				t.Fatalf("no debía avisar, hubo %d", len(av.rechazos))
+			}
+		})
+	}
+}
+
+// TestUnAvisoDeRechazoRotoNoVolteaLaTransicion: mismo contrato best-effort que
+// los otros dos avisos — un Redis caído no puede voltear una transición que ya
+// está persistida.
+func TestUnAvisoDeRechazoRotoNoVolteaLaTransicion(t *testing.T) {
+	resp := pedidoRechazadoOCancelado(model.EstadoRechazado, model.OrigenWhatsApp, "549260111")
+	av := &avisadorFake{falla: errors.New("redis caído")}
+	motor := NewMotorGastro(innerTrans{resp: resp}, negocioFake{tz: "America/Argentina/Mendoza"}, ConAvisadorPedido(av))
+
+	out, err := motor.Transicionar(context.Background(), "neg-1", "comp-1", model.EstadoRechazado, OpcionesTransicion{})
+	if err != nil {
+		t.Fatalf("un aviso roto volteó la transición: %v", err)
+	}
+	if out == nil || out.Estado != model.EstadoRechazado {
 		t.Fatal("la transición tenía que quedar hecha igual")
 	}
 }
