@@ -779,3 +779,16 @@ async def test_el_aviso_del_pedido_pendiente_no_le_dicta_una_promesa(respx_mock,
     for prohibida in ("en un minuto", "en un rato", "te aviso", "te confirmo"):
         assert prohibida not in aviso
     assert "apenas lo confirme" in aviso
+
+
+@respx.mock(base_url=BASE, assert_all_called=False)
+async def test_armar_el_pedido_avisa_que_el_nombre_ya_se_conoce(respx_mock, core):
+    # En producción (15/10, ya con el aviso en confirmar) el bot seguía
+    # preguntando "¿A nombre de quién?" justo después de armar el pedido: la
+    # pregunta sale ANTES de confirmar, así que el dato tiene que estar acá.
+    _base(respx_mock)
+    _con_escritura(respx_mock)
+    r = await server.armar_compromiso([LineaPedida(servicio="papas")], entrega="retira")
+
+    assert r["cliente_nombre"] == CLIENTE["nombre"]
+    assert "no le preguntes el nombre" in r["aviso"]

@@ -698,6 +698,16 @@ async def armar_compromiso(
             "Es delivery: pedile la dirección (calle y número) antes de confirmar y volvé "
             "a llamar a `armar_compromiso` con `direccion`. Mostrale igual el total ahora."
         )
+    # El "¿a nombre de quién?" sale justo después de esta tool, antes de `confirmar`:
+    # si el nombre ya está en la ficha, el aviso tiene que decirlo acá (H-15/10).
+    try:
+        nombre = ((await _cliente()) or {}).get("nombre")
+    except Exception:  # noqa: BLE001
+        # Sin ficha el pedido se arma igual: el nombre lo pide `confirmar`.
+        nombre = None
+    if nombre:
+        salida["cliente_nombre"] = nombre
+        salida["aviso"] += f" El cliente ya se llama {nombre}: no le preguntes el nombre."
     return salida
 
 
