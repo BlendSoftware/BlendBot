@@ -108,6 +108,25 @@ async def _categorias() -> dict[str, str]:
     return s.categorias
 
 
+def _rubro_conocido(categoria: str | None, categorias: dict[str, str]) -> str | None:
+    """El `categoria_id` que se le puede pasar al core, o `None` para la carta entera.
+
+    El core espera un UUID de rubro. El modelo a veces manda el nombre del rubro
+    («bebidas») y a veces directamente un plato («Napolitana grande», en producción
+    el 15/10): el core respondía 500 y el cliente se quedaba sin carta. El nombre se
+    traduce a su id; lo que no es un rubro conocido no viaja.
+    """
+    if not categoria:
+        return None
+    if categoria in categorias:
+        return categoria
+    buscado = categoria.strip().casefold()
+    for cid, nombre in categorias.items():
+        if nombre.casefold() == buscado:
+            return cid
+    return None
+
+
 def _agotado(servicio: dict[str, Any]) -> bool:
     """Si el plato lleva cuenta de porciones y hoy no queda ninguna.
 
@@ -482,8 +501,8 @@ async def ver_catalogo(categoria: str | None = None) -> dict[str, Any]:
     Si la conversación se estiró, volvé a llamarla antes de cerrar: el stock se mueve y
     esta tool consulta fresco cada vez.
     """
-    servicios, agotados = await _catalogo_partido(categoria)
     categorias = await _categorias()
+    servicios, agotados = await _catalogo_partido(_rubro_conocido(categoria, categorias))
     # Sólo el nombre: con precio, `agotados_hoy` parecería una carta paralela y sería
     # cuestión de tiempo que el modelo cotice de ahí.
     agotados_hoy = [str(s.get("nombre")) for s in agotados if s.get("nombre")]

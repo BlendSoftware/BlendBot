@@ -638,3 +638,34 @@ async def test_si_las_categorias_no_cargan_la_carta_sigue_saliendo(respx_mock, c
     assert r["ok"] is True
     assert [s["nombre"] for s in r["servicios"]] == ["Doble cheddar", "Papas", "Gaseosa 500ml"]
     assert all("categoria_nombre" not in s for s in r["servicios"])
+
+
+# ── `categoria` que no es un rubro de la carta ────────────────────────────────
+
+
+@respx.mock(base_url=BASE, assert_all_called=False)
+async def test_una_categoria_que_es_un_plato_no_rompe_la_carta(respx_mock, core):
+    # En producción (15/10) el modelo llamó ver_catalogo(categoria="Napolitana
+    # grande"): el core espera un UUID, respondió 500 y el cliente se quedó sin
+    # carta. Lo que no es un rubro conocido no viaja: se lee la carta entera.
+    ruta = _base(respx_mock)
+    r = await server.ver_catalogo(categoria="Napolitana grande")
+
+    assert r["ok"] and len(r["servicios"]) == 3
+    assert "categoria" not in ruta.calls.last.request.url.params
+
+
+@respx.mock(base_url=BASE, assert_all_called=False)
+async def test_la_categoria_por_nombre_se_traduce_a_su_id(respx_mock, core):
+    ruta = _base(respx_mock)
+    await server.ver_catalogo(categoria="bebidas")
+
+    assert ruta.calls.last.request.url.params["categoria"] == "cat-bebidas"
+
+
+@respx.mock(base_url=BASE, assert_all_called=False)
+async def test_la_categoria_por_id_viaja_tal_cual(respx_mock, core):
+    ruta = _base(respx_mock)
+    await server.ver_catalogo(categoria="cat-burgers")
+
+    assert ruta.calls.last.request.url.params["categoria"] == "cat-burgers"
