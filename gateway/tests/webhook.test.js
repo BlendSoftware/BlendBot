@@ -301,3 +301,12 @@ describe('router: procesarLote directo', () => {
     expect(segunda).toEqual([{ estado: 'duplicado', id: 'wamid.DIRECTO' }]);
   });
 });
+
+describe('textos fijos', () => {
+  it('la disculpa no promete una respuesta que nadie va a mandar', () => {
+    // 15/10: "Dame un minuto y te respondo" quedaba colgado: no hay nada que
+    // vuelva a escribirle solo al cliente después de un error.
+    expect(DISCULPA).not.toMatch(/minuto|te respondo|ya vuelvo/i);
+    expect(DISCULPA).toMatch(/de nuevo/i);
+  });
+});

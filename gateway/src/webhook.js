@@ -23,7 +23,7 @@ import { claveChat } from './sesiones.js';
 const TTL_IDEMPOTENCIA_S = 24 * 60 * 60;
 
 export const DISCULPA =
-  'Uy, se me trabó el sistema. Dame un minuto y te respondo.';
+  'Uy, se me trabó el sistema. ¿Me lo escribís de nuevo?';
 export const SOLO_TEXTO =
   'Por ahora solo puedo leer mensajes de texto. ¿Me lo escribís?';
 
