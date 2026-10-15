@@ -50,7 +50,10 @@ export function cuerpoGraph(mensaje) {
     };
   }
 
-  return { ...base, type: 'text', text: { preview_url: false, body: mensaje.texto } };
+  // El modelo a veces escribe el salto de línea escapado ("\\n" literal) y el
+  // cliente lo veía tal cual en el chat.
+  const body = String(mensaje.texto).replaceAll('\\n', '\n');
+  return { ...base, type: 'text', text: { preview_url: false, body } };
 }
 
 /**

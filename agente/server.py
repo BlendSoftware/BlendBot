@@ -946,13 +946,17 @@ async def confirmar(
         if estado == "confirmado":
             mensaje = (
                 "Pedido CONFIRMADO. Confirmale que ya está en cocina. Si el local cargó una "
-                "demora (`demora_min`), decísela; si no, avisale que en un ratito le llega."
+                "demora (`demora_min`), decísela; si no, que el local se la manda por acá "
+                "apenas lo confirme."
             )
         else:
+            # El aviso no nombra plazos: lo que dice acá el modelo lo repite casi
+            # textual, y "en un minuto" le ganaba a la regla 2 del SKILL.
             mensaje = (
                 "Pedido PENDIENTE: en gastronomía lo confirma el local, que además pone la "
-                "demora desde el panel. Decile que ya le pasaste el pedido y que en un minuto "
-                "le confirman la demora. NUNCA inventes vos la demora ni lo des por confirmado."
+                "demora desde el panel. Decile que ya le pasaste el pedido al local y que el "
+                "local le manda la demora por acá apenas lo confirme. Sin plazos tuyos: "
+                "NUNCA inventes vos la demora ni lo des por confirmado."
             )
     elif estado == "confirmado":
         mensaje = (

@@ -669,3 +669,18 @@ async def test_la_categoria_por_id_viaja_tal_cual(respx_mock, core):
     await server.ver_catalogo(categoria="cat-burgers")
 
     assert ruta.calls.last.request.url.params["categoria"] == "cat-burgers"
+
+
+@respx.mock(base_url=BASE, assert_all_called=False)
+async def test_el_aviso_del_pedido_pendiente_no_le_dicta_una_promesa(respx_mock, core):
+    # En producción (15/10) el bot respondía "En un minuto te confirmo la demora"
+    # aunque el SKILL lo prohíbe: se lo dictaba el aviso de esta misma tool.
+    _base(respx_mock)
+    _con_escritura(respx_mock)
+    await server.armar_compromiso([LineaPedida(servicio="papas")], entrega="retira")
+    r = await server.confirmar(nombre="Juani", confirmado=True)
+
+    aviso = r["aviso"].lower()
+    for prohibida in ("en un minuto", "en un rato", "te aviso", "te confirmo"):
+        assert prohibida not in aviso
+    assert "apenas lo confirme" in aviso

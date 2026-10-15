@@ -277,6 +277,18 @@ describe('cuerpo que se le manda a Graph', () => {
     });
   });
 
+  it('un "\\n" escrito literal por el modelo sale como salto de línea', () => {
+    // En producción (14/10) la carta llegó con "\n" a la vista del cliente.
+    const texto = 'Esta es la carta:\\n\\n- Muzzarella $12.500\\n- Fugazzeta $14.500';
+    expect(cuerpoGraph({ telefono: CLIENTE, tipo: 'texto', texto }).text.body).toBe(
+      'Esta es la carta:\n\n- Muzzarella $12.500\n- Fugazzeta $14.500'
+    );
+  });
+
+  it('los saltos de línea reales no se tocan', () => {
+    expect(cuerpoGraph({ telefono: CLIENTE, tipo: 'texto', texto: 'a\nb' }).text.body).toBe('a\nb');
+  });
+
   it('plantilla con variables en array posicional: el contrato E7 sale tal cual', () => {
     // recordatorio_turno: {{1}} nombre, {{2}} fecha_hora_local, {{3}} negocio.
     const cuerpo = cuerpoGraph({
