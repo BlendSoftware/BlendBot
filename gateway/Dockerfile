@@ -45,6 +45,18 @@ RUN echo '{}' > /app/tenants.json
 COPY agente /opt/copiloto/agente
 RUN uv sync --frozen --directory /opt/copiloto/agente
 
+# `uv sync` compila (UV_COMPILE_BYTECODE=1 arriba) el bytecode de las
+# DEPENDENCIAS instaladas, pero no el código propio del agente: Python recién
+# compila server.py y sus imports locales (core_client, resolucion, sesion,
+# settings) la primera vez que algo los importa. Caso real del 15/10: ese
+# "algo" fue el primer `uv run` en producción, después de reiniciar el
+# contenedor — "3051 files" de bytecode compilados mientras el modelo ya
+# esperaba la respuesta del MCP. `import server` dispara esa misma
+# compilación acá, en el build, sin arrancar el server (que sólo llama a
+# `mcp.run()` bajo `if __name__ == "__main__":`) ni necesitar AGENTE_TOKEN ni
+# CLIENTE_TELEFONO, que get_settings() recién pide en runtime.
+RUN uv run --no-sync --directory /opt/copiloto/agente python -c "import server"
+
 # El proceso escribe los resume-id de sesión a disco (si se pierden, cada
 # conversación en curso arranca de cero) y uv toca el venv al resolverlo.
 RUN mkdir -p /app/data/sesiones && \
