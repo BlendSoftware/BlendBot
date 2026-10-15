@@ -817,6 +817,20 @@ async def confirmar(
             "siguiente_paso": "confirmar(confirmado=true)",
         }
 
+    # 14/10: el cliente pidió, dijo "lo voy a retirar" y el bot confirmó sin
+    # volver a `armar_compromiso` con `entrega`. El pedido quedó en el core con
+    # `entrega` NULL y el aviso de "listo" (que depende de `entrega`, ver
+    # `core/internal/service/motor_gastro.go`) nunca salió. Un `pedido` sin
+    # `entrega` se rechaza ACÁ, antes de tocar el core.
+    if tipo == "pedido" and not borrador.entrega:
+        return {
+            "ok": False,
+            "codigo": "falta_entrega",
+            "error": "Falta saber si el pedido es para retirar, delivery o comer en el "
+            "local. Preguntáselo al cliente y volvé a llamar a armar_compromiso con "
+            "entrega.",
+        }
+
     if not resumen["cliente_nombre"]:
         return {
             "ok": False,

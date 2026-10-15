@@ -423,6 +423,39 @@ async def test_delivery_sin_direccion_no_confirma_y_la_pide(respx_mock, core):
 
 
 @respx.mock(base_url=BASE, assert_all_called=False)
+async def test_confirmar_sin_entrega_se_rechaza_y_no_escribe(respx_mock, core):
+    # 14/10: el cliente pidió empanadas sin que el bot supiera entrega, dijo
+    # "lo voy a retirar" y el bot confirmó sin volver a armar. El pedido quedó
+    # en el core con `entrega` NULL y el aviso de "listo" nunca salió. Sin
+    # `entrega`, `confirmar` tiene que rechazar ANTES de escribir nada.
+    _base(respx_mock)
+    creacion = _con_escritura(respx_mock)
+
+    await server.armar_compromiso([LineaPedida(servicio="doble cheddar")])
+    r = await server.confirmar(nombre="Juani", confirmado=True)
+
+    assert r["ok"] is False and r["codigo"] == "falta_entrega"
+    assert "entrega" in r["error"].lower()
+    assert not creacion.called
+
+
+@respx.mock(base_url=BASE, assert_all_called=False)
+async def test_confirmar_con_en_local_no_pide_entrega(respx_mock, core):
+    # Triangulación del caso anterior: "en_local" es una entrega válida
+    # (come en el salón, no ocupa agenda) y no tiene que caer en el mismo
+    # rechazo que una `entrega` ausente.
+    _base(respx_mock)
+    creacion = _con_escritura(respx_mock)
+
+    await server.armar_compromiso([LineaPedida(servicio="doble cheddar")], entrega="en_local")
+    r = await server.confirmar(nombre="Juani", confirmado=True)
+
+    assert r["ok"] and r["ejecutado"] and r["estado"] == "pendiente"
+    assert r["entrega"] == "en_local"
+    assert creacion.called
+
+
+@respx.mock(base_url=BASE, assert_all_called=False)
 async def test_delivery_con_direccion_confirma_y_la_manda_al_core(respx_mock, core):
     _base(respx_mock)
     creacion = _con_escritura(respx_mock)
