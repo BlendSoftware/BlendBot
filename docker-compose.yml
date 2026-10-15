@@ -123,6 +123,10 @@ services:
       META_VERIFY_TOKEN: ${META_VERIFY_TOKEN:-}
       META_GRAPH_TOKEN: ${META_GRAPH_TOKEN:-}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      # Alternativa: un gateway compatible con la API de Anthropic (OpenRouter).
+      # Con estas dos, ANTHROPIC_API_KEY va vacía.
+      ANTHROPIC_BASE_URL: ${ANTHROPIC_BASE_URL:-}
+      ANTHROPIC_AUTH_TOKEN: ${ANTHROPIC_AUTH_TOKEN:-}
       MODELO: ${MODELO:-claude-haiku-4-5-20251001}
     ports:
       - "${GATEWAY_PORT:-8090}:8090"

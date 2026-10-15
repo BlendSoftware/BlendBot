@@ -41,6 +41,11 @@ export function cargarConfig(env = process.env) {
     tenantsPath: path.resolve(env.TENANTS_PATH || path.join(RAIZ_GATEWAY, 'tenants.json')),
     sesionesDir: path.resolve(env.SESIONES_DIR || path.join(RAIZ_GATEWAY, 'data', 'sesiones')),
     anthropicApiKey: env.ANTHROPIC_API_KEY || '',
+    // Alternativa a la API key: un gateway compatible con la API de Anthropic
+    // (por ejemplo OpenRouter). El SDK del agente lee estas dos variables del
+    // entorno del proceso; acá sólo se validan.
+    anthropicBaseUrl: env.ANTHROPIC_BASE_URL || '',
+    anthropicAuthToken: env.ANTHROPIC_AUTH_TOKEN || '',
     modelo: env.MODELO || MODELO_DEFAULT,
 
     // Raíz del repo: de ahí sale `agente/` (server MCP y skills).
@@ -62,7 +67,10 @@ export function faltantesDeConfig(cfg) {
   if (!cfg.metaAppSecret) faltan.push('META_APP_SECRET');
   if (!cfg.metaVerifyToken) faltan.push('META_VERIFY_TOKEN');
   if (!cfg.metaGraphToken) faltan.push('META_GRAPH_TOKEN');
-  if (!cfg.anthropicApiKey) faltan.push('ANTHROPIC_API_KEY');
+  const viaGateway = Boolean(cfg.anthropicBaseUrl && cfg.anthropicAuthToken);
+  if (!cfg.anthropicApiKey && !viaGateway) {
+    faltan.push('ANTHROPIC_API_KEY o ANTHROPIC_BASE_URL + ANTHROPIC_AUTH_TOKEN');
+  }
   return faltan;
 }
 
