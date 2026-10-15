@@ -37,10 +37,12 @@ type motorService struct {
 	holds       repository.HoldRepository
 	notificador Notificador // opcional: nil = el motor no avisa nada
 
-	// jornadas es el control opcional de la alta de pedidos de WhatsApp (gate
-	// de jornada cerrada). nil = comportamiento de siempre, sin preguntar
-	// nada: ningún wiring que no lo cablee se rompe.
+	// jornadas y negocios son los dos controles opcionales de la alta de
+	// pedidos de WhatsApp (gate de jornada cerrada y tope de cantidad por
+	// línea). nil = comportamiento de siempre, sin preguntar nada: ningún
+	// wiring que no los cablee se rompe.
 	jornadas repository.JornadaRepository
+	negocios negocioConfigLeer
 }
 
 // OpcionMotor configura el motor sin tocarle la firma al constructor: los
@@ -60,6 +62,16 @@ func ConNotificador(n Notificador) OpcionMotor {
 // todavía no setea JornadaRepository sigue andando igual.
 func ConControlDeJornada(jornadas repository.JornadaRepository) OpcionMotor {
 	return func(s *motorService) { s.jornadas = jornadas }
+}
+
+// ConLimiteDeCantidadPorLinea engancha el tope de cantidad por línea de un
+// pedido de WhatsApp: lee config.cantidad_maxima_por_linea del negocio (o
+// model.CantidadMaximaPorLineaDefault si no está seteado) y rechaza la línea
+// que lo supere ANTES de crear el compromiso (ErrCantidadExcesivaPorLinea).
+// Sin esta opción no se consulta ningún negocio y el tope sigue siendo el
+// default fijo (ver verificarLimiteDeCantidad).
+func ConLimiteDeCantidadPorLinea(negocios negocioConfigLeer) OpcionMotor {
+	return func(s *motorService) { s.negocios = negocios }
 }
 
 func NewMotorService(repo repository.CompromisoRepository, holds repository.HoldRepository, opts ...OpcionMotor) MotorService {
@@ -90,12 +102,15 @@ func (s *motorService) Crear(ctx context.Context, negocioID string, in dto.Crear
 		return nil, fmt.Errorf("fin tiene que ser posterior a inicio")
 	}
 
-	// El control de abajo es ESPECÍFICO de pedidos que entran por WhatsApp:
-	// una reserva o un turno no lo necesitan (otro vertical, otra realidad), y
-	// un pedido cargado desde el panel tampoco (quien lo tipea ya está viendo
-	// lo que hace). Fuera de ese caso, cero cambios de comportamiento.
+	// Los dos controles de abajo son ESPECÍFICOS de pedidos que entran por
+	// WhatsApp: una reserva o un turno no los necesitan (otro vertical, otra
+	// realidad), y un pedido cargado desde el panel tampoco (quien lo tipea ya
+	// está viendo lo que hace). Fuera de ese caso, cero cambios de comportamiento.
 	if in.Tipo == model.CompromisoPedido && in.Origen == model.OrigenWhatsApp {
 		if err := s.verificarJornadaAbierta(ctx, negocioID); err != nil {
+			return nil, err
+		}
+		if err := s.verificarLimiteDeCantidad(ctx, negocioID, in.Lineas); err != nil {
 			return nil, err
 		}
 	}
@@ -213,6 +228,34 @@ func (s *motorService) verificarJornadaAbierta(ctx context.Context, negocioID st
 	}
 	if !j.Abierta() {
 		return ErrPedidoRequiereJornadaAbierta
+	}
+	return nil
+}
+
+// verificarLimiteDeCantidad rechaza cualquier línea que pida más unidades que
+// el tope del negocio (o el default, si no cargó uno propio). A diferencia del
+// gate de jornada, este control es una regla dura: corre siempre, aun sin
+// ConLimiteDeCantidadPorLinea cableado — lo único que esa opción agrega es la
+// posibilidad de leer un override por negocio.
+func (s *motorService) verificarLimiteDeCantidad(ctx context.Context, negocioID string, lineas []dto.LineaCompromisoInput) error {
+	limite := model.CantidadMaximaPorLineaDefault
+	if s.negocios != nil {
+		neg, err := s.negocios.Negocio(ctx, negocioID)
+		if err != nil {
+			return err
+		}
+		cfg, err := model.ParseConfigNegocio(neg.Config)
+		if err != nil {
+			return err
+		}
+		if cfg.CantidadMaximaPorLinea > 0 {
+			limite = cfg.CantidadMaximaPorLinea
+		}
+	}
+	for _, l := range lineas {
+		if l.Cantidad > limite {
+			return fmt.Errorf("%w: %d unidades pedidas, maximo %d", ErrCantidadExcesivaPorLinea, l.Cantidad, limite)
+		}
 	}
 	return nil
 }

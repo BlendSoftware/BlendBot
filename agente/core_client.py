@@ -13,16 +13,20 @@ from typing import Any
 import httpx
 
 
-# Mensaje compartido con server.py: el mismo texto sale tanto del chequeo
-# local de `armar_compromiso` (que lee `abierto_ahora` ANTES de tocar el
-# core) como de la traducción de abajo, para la carrera en que el core
-# rechaza algo que el chequeo local ya había dejado pasar (la caja se cerró
-# entre que se armó el pedido y se confirmó). Un solo texto evita que el
-# cliente lea dos frases distintas para el mismo motivo según en qué momento
-# lo frenaron.
+# Mensajes compartidos con server.py: el mismo texto sale tanto del chequeo
+# local de `armar_compromiso` (que lee `abierto_ahora` / la config ANTES de
+# tocar el core) como de la traducción de abajo, para la carrera en que el
+# core rechaza algo que el chequeo local ya había dejado pasar (la caja se
+# cerró, o el ítem se modificó, entre que se armó el pedido y se confirmó).
+# Un solo texto evita que el cliente lea dos frases distintas para el mismo
+# motivo según en qué momento lo frenaron.
 AVISO_LOCAL_CERRADO = (
     "El local está cerrado ahora: no tomes el pedido. Decile el horario "
     "(horarios) y que escriba cuando esté abierto. No lo anotes para después."
+)
+AVISO_CANTIDAD_GRANDE = (
+    "Es un pedido grande: no lo tomes vos. Ofrecele dejar la consulta al local "
+    "con `dejar_consulta` para que lo coordinen."
 )
 
 
@@ -139,6 +143,17 @@ def traducir(status: int, detalle: str, contexto: str) -> ErrorDelCore:
         )
 
     if status == 422:
+        if "maximo" in d and "permitido" in d:
+            # ErrCantidadExcesivaPorLinea (motor_errors.go), wrappeado con
+            # "%w: %d unidades pedidas, maximo %d". El chequeo local de
+            # `armar_compromiso` ya filtra esto antes de llegar acá; este
+            # branch cubre la carrera (una modificación posterior del ítem).
+            return ErrorDelCore(
+                AVISO_CANTIDAD_GRANDE,
+                codigo="cantidad_grande",
+                status=status,
+                detalle=detalle,
+            )
         if "duracion" in d or "duración" in d:
             return ErrorDelCore(
                 "Esa práctica no tiene la duración cargada en el sistema, así que no puedo "

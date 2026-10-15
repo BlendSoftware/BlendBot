@@ -16,6 +16,12 @@ const (
 	ConfirmacionAutomatica ConfirmacionPolitica = "automatica"
 )
 
+// CantidadMaximaPorLineaDefault es el tope de unidades por línea en un pedido
+// de WhatsApp cuando el negocio no cargó uno propio en su config. Nació de un
+// bug de producción (15/10/2026): un pedido de "100 napolitanas" entró sin
+// ninguna alerta porque no había ningún tope, ni en el agente ni en el core.
+const CantidadMaximaPorLineaDefault = 20
+
 // ConfigNegocio es la vista tipada de negocio.config (JSONB). El almacenamiento
 // sigue siendo libre; esto sólo entiende las claves que el core necesita mirar.
 // Lo que no venga cae a su cero, que es el default seguro: sin delivery, sin
@@ -30,6 +36,11 @@ type ConfigNegocio struct {
 	DemorasSugeridas []int   `json:"demoras_sugeridas"`
 	AceptaDelivery   bool    `json:"acepta_delivery"`
 	RadioDeliveryKm  float64 `json:"radio_delivery_km"`
+	// CantidadMaximaPorLinea topea cuánto se puede pedir de un mismo plato en
+	// una sola línea de un pedido de WhatsApp. 0 (no seteado) usa
+	// CantidadMaximaPorLineaDefault — no es un límite de cero unidades, es "no
+	// hay override".
+	CantidadMaximaPorLinea int `json:"cantidad_maxima_por_linea,omitempty"`
 	// Info es lo que el cliente pregunta y no está en la carta: dirección,
 	// horarios, teléfono, notas. Vive en config para no migrar columnas por cada
 	// dato nuevo del local; el agente la lee para responder sin inventar.

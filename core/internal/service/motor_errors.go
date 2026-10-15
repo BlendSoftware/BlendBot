@@ -9,6 +9,7 @@ import "errors"
 //	ErrSolapado                    → 409
 //	ErrNoEncontrado                → 404
 //	ErrPedidoRequiereJornadaAbierta → 409
+//	ErrCantidadExcesivaPorLinea     → 422
 var (
 	// ErrTransicionInvalida: el paso de estado no existe en la máquina, o la
 	// regla de negocio lo prohíbe (ausente fuera de un turno), o alguien ganó
@@ -45,6 +46,14 @@ var (
 	// lea el mensaje — el agente Python distingue el caso por el texto, no por
 	// un código estructurado (apierror.APIError sólo tiene Detail).
 	ErrPedidoRequiereJornadaAbierta = errors.New("no se puede crear un pedido de whatsapp con la jornada cerrada")
+
+	// ErrCantidadExcesivaPorLinea: una línea de un pedido de WhatsApp pidió más
+	// unidades de las que el negocio tiene cargadas como máximo razonable (o el
+	// default, si no cargó uno propio). No es un conflicto de estado como los
+	// 409 de arriba: es el INPUT el que viola una regla de negocio, por eso va
+	// a 422 — mismo criterio que ErrNoDisponible, ErrDeliveryNoAceptado y
+	// ErrCupoMenorAlConsumido.
+	ErrCantidadExcesivaPorLinea = errors.New("la cantidad pedida en una linea supera el maximo permitido")
 )
 
 // Errores del cobro y la facturación (E8). El mapeo a HTTP vive en

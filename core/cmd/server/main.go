@@ -203,11 +203,13 @@ func main() {
 		AuditSvc:   service.NewAuditService(auditRepo),
 		MotorSvc: service.NewMotorGastro(
 			service.NewMotorService(compromisoRepo, holdRepo, service.ConNotificador(huecoLiberado),
-				// Gate de jornada cerrada: nació de un bug de producción (pedido
-				// de WhatsApp sin caja abierta). Va en el motor base porque el
-				// alta es un único camino para pedido, reserva y turno, y la
-				// regla sólo aplica a pedido+whatsapp.
+				// Gate de jornada cerrada + tope de cantidad por línea: los dos
+				// nacieron del mismo bug de producción (pedido de WhatsApp sin
+				// caja abierta, "100 napolitanas" sin alerta). Van en el motor
+				// base porque el alta es un único camino para pedido, reserva y
+				// turno, y las dos reglas sólo aplican a pedido+whatsapp.
 				service.ConControlDeJornada(jornadaRepo),
+				service.ConLimiteDeCantidadPorLinea(negDatosRepo),
 			),
 			negDatosRepo,
 			service.ConAvisadorPedido(worker.NewAvisadorPedido(publicador)),

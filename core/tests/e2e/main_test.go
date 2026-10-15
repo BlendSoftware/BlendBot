@@ -181,10 +181,12 @@ func armarRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) *gin.Engine
 		AuditSvc:   service.NewAuditService(auditRepo),
 		MotorSvc: service.NewMotorGastro(
 			service.NewMotorService(compromisoRepo, holdRepo, service.ConNotificador(huecoLiberado),
-				// Igual que en main.go: el gate de jornada cerrada es parte del
-				// motor real, no un detalle de wiring de producción. Sin esto el
-				// e2e certificaría un motor que no es el que corre en producción.
+				// Igual que en main.go: el gate de jornada cerrada y el tope de
+				// cantidad por línea son parte del motor real, no un detalle de
+				// wiring de producción. Sin esto el e2e certificaría un motor que
+				// no es el que corre en producción.
 				service.ConControlDeJornada(jornadaRepo),
+				service.ConLimiteDeCantidadPorLinea(negDatosRepo),
 			),
 			negDatosRepo,
 			service.ConControlDeStock(

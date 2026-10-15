@@ -21,7 +21,7 @@ from zoneinfo import ZoneInfo
 from fastmcp import FastMCP
 from pydantic import BaseModel, Field
 
-from core_client import AVISO_LOCAL_CERRADO, CoreClient, ErrorDelCore
+from core_client import AVISO_CANTIDAD_GRANDE, AVISO_LOCAL_CERRADO, CoreClient, ErrorDelCore
 from resolucion import Resolucion, resolver
 from sesion import Bloqueo, Borrador, LineaBorrador, a_decimal, plata, sesion
 from settings import get_settings
@@ -35,6 +35,12 @@ DIAS = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "doming
 # le diga al cliente "quedan 47 bifes". Mismo criterio que `descripcion`: lo que no
 # aporta, no viaja. Se ajusta con el dueño en dogfooding.
 STOCK_ESCASO = 3
+
+# Tope de unidades por línea en un pedido de WhatsApp cuando el negocio no
+# cargó uno propio (config.cantidad_maxima_por_linea). Mismo default que el
+# core (model.CantidadMaximaPorLineaDefault, config_negocio.go): nació del
+# mismo bug de producción (15/10/2026), "100 napolitanas" sin ninguna alerta.
+CANTIDAD_MAXIMA_POR_LINEA_DEFAULT = 20
 
 _cliente_core: CoreClient | None = None
 
@@ -679,6 +685,22 @@ async def armar_compromiso(
             "error": AVISO_LOCAL_CERRADO,
         }
 
+    # Bug de producción (15/10/2026): "100 napolitanas" entraron sin ninguna
+    # alerta porque no había tope, ni en el agente ni en el core.
+    if gate_pedido:
+        config = negocio.get("config") if isinstance(negocio.get("config"), dict) else {}
+        limite = CANTIDAD_MAXIMA_POR_LINEA_DEFAULT
+        override = (config or {}).get("cantidad_maxima_por_linea")
+        if isinstance(override, int) and override > 0:
+            limite = override
+        for pedida in lineas:
+            if pedida.cantidad > limite:
+                return {
+                    "ok": False,
+                    "codigo": "cantidad_grande",
+                    "error": AVISO_CANTIDAD_GRANDE,
+                }
+
     servicios, agotados = await _catalogo_partido()
     if not servicios:
         return {
@@ -738,6 +760,16 @@ async def armar_compromiso(
     if nombre:
         salida["cliente_nombre"] = nombre
         salida["aviso"] += f" El cliente ya se llama {nombre}: no le preguntes el nombre."
+    # Esta tool no recibe fecha/hora: no hay nada que "rechazar" si el cliente
+    # pide para otro momento, queda como texto libre en `nota`. El recordatorio
+    # fijo es lo único que puede evitar que el modelo lo tome igual. Sólo para
+    # pedidos (gastronomía): una reserva de mesa SÍ es, por diseño, para otro
+    # momento (ver `consultar_disponibilidad`/`bloquear`).
+    if gate_pedido:
+        salida["aviso"] += (
+            " Los pedidos son para ahora; si el cliente lo quiere para otro día u "
+            "hora, decile que escriba en ese momento."
+        )
     return salida
 
 

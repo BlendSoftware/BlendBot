@@ -905,3 +905,78 @@ async def test_confirmar_traduce_409_de_jornada_cerrada(respx_mock, core):
 
     assert r["ok"] is False and r["codigo"] == "local_cerrado"
     assert "cerrado" in r["error"].lower()
+
+
+@respx.mock(base_url=BASE, assert_all_called=False)
+async def test_armar_compromiso_cantidad_excesiva_no_arma_nada(respx_mock, core):
+    _carta_con_negocio(respx_mock, _negocio_abierto())
+    escritura = _con_escritura(respx_mock)
+
+    r = await server.armar_compromiso([LineaPedida(servicio="papas", cantidad=21)])
+
+    assert r["ok"] is False and r["codigo"] == "cantidad_grande"
+    assert "dejar_consulta" in r["error"]
+    assert not escritura.called
+
+
+@respx.mock(base_url=BASE, assert_all_called=False)
+async def test_armar_compromiso_con_el_limite_exacto_si_arma(respx_mock, core):
+    # Triangulación: 20 es el default y entra; 21 (arriba) es el que rechaza.
+    _carta_con_negocio(respx_mock, _negocio_abierto())
+
+    r = await server.armar_compromiso([LineaPedida(servicio="papas", cantidad=20)])
+
+    assert r["ok"] is True
+
+
+@respx.mock(base_url=BASE, assert_all_called=False)
+async def test_armar_compromiso_usa_el_limite_propio_del_negocio(respx_mock, core):
+    # Segunda triangulación: el negocio cargó su propio tope (más chico que el
+    # default) y el agente lo tiene que respetar, no el 20 fijo.
+    negocio = _negocio_abierto()
+    negocio["config"]["cantidad_maxima_por_linea"] = 5
+    _carta_con_negocio(respx_mock, negocio)
+
+    bloqueado = await server.armar_compromiso([LineaPedida(servicio="papas", cantidad=6)])
+    assert bloqueado["ok"] is False and bloqueado["codigo"] == "cantidad_grande"
+
+    permitido = await server.armar_compromiso([LineaPedida(servicio="papas", cantidad=5)])
+    assert permitido["ok"] is True
+
+
+@respx.mock(base_url=BASE, assert_all_called=False)
+async def test_confirmar_traduce_422_de_cantidad_excesiva(respx_mock, core):
+    # Mismo criterio que el 409: el core puede rechazarlo aunque el chequeo
+    # local ya haya pasado (una modificación posterior del ítem, por ejemplo).
+    # Texto real wrappeado por el core: "%w: %d unidades pedidas, maximo %d".
+    _carta_con_negocio(respx_mock, _negocio_abierto())
+    respx_mock.get(f"/api/clientes/por-telefono/{TELEFONO}").mock(
+        return_value=httpx.Response(200, json=CLIENTE)
+    )
+    respx_mock.post("/api/compromisos").mock(
+        return_value=httpx.Response(
+            422,
+            json={
+                "detail": "la cantidad pedida en una linea supera el maximo permitido: "
+                "21 unidades pedidas, maximo 20"
+            },
+        )
+    )
+    await server.armar_compromiso(
+        [LineaPedida(servicio="papas", cantidad=20)], entrega="retira"
+    )
+
+    r = await server.confirmar(nombre="Juani", confirmado=True)
+
+    assert r["ok"] is False and r["codigo"] == "cantidad_grande"
+    assert "dejar_consulta" in r["error"]
+
+
+@respx.mock(base_url=BASE, assert_all_called=False)
+async def test_armar_compromiso_exitoso_avisa_que_es_solo_para_ahora(respx_mock, core):
+    _carta_con_negocio(respx_mock, _negocio_abierto())
+
+    r = await server.armar_compromiso([LineaPedida(servicio="papas")], entrega="retira")
+
+    assert r["ok"] is True
+    assert "para ahora" in r["aviso"].lower()

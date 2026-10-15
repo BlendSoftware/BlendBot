@@ -163,6 +163,10 @@ func responderErrorMotor(c *gin.Context, err error) {
 		c.JSON(http.StatusUnprocessableEntity, apierror.New(err.Error()))
 	case errors.Is(err, service.ErrDeliveryNoAceptado):
 		c.JSON(http.StatusUnprocessableEntity, apierror.New(err.Error()))
+	case errors.Is(err, service.ErrCantidadExcesivaPorLinea):
+		// 422, mismo criterio que ErrNoDisponible y ErrDeliveryNoAceptado: lo
+		// que está mal es el INPUT (pidió de más), no el estado del compromiso.
+		c.JSON(http.StatusUnprocessableEntity, apierror.New(err.Error()))
 	case errors.Is(err, service.ErrYaCobrado), errors.Is(err, service.ErrNoCobrable):
 		c.JSON(http.StatusConflict, apierror.New(err.Error()))
 	case errors.Is(err, service.ErrSinCupo):
