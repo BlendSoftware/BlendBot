@@ -165,6 +165,28 @@ describe('sesiones: resume', () => {
     await agente2.responder({ tenant: TENANT, telefono: CLIENTE, texto: '¿seguís ahí?', clave: CLAVE });
     expect(espia2.mock.calls[0][0].options.resume).toBe('ses-nueva');
   });
+
+  it('si la sesión guardada ya no existe en el motor, la olvida y arranca una nueva', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { agente, sesiones } = armar();
+    sesiones.guardar(CLAVE, 'ses-perdida');
+    let llamadas = 0;
+    const queryFn = vi.fn(async ({ options }) => {
+      llamadas += 1;
+      if (options.resume === 'ses-perdida') {
+        return (async function* () { throw new Error('Claude Code returned an error result: No conversation found with session ID: ses-perdida'); })();
+      }
+      return streamDe([textoAsistente('hola de nuevo'), { type: 'result', session_id: 'ses-otra' }]);
+    });
+    const agente2 = crearAgente({ config, sesiones, queryFn, leerSkill: () => '#' });
+
+    const r = await agente2.responder({ tenant: TENANT, telefono: CLIENTE, texto: 'hola', clave: CLAVE });
+    expect(r.texto).toBe('hola de nuevo');
+    expect(llamadas).toBe(2);
+    expect(queryFn.mock.calls[1][0].options.resume).toBeUndefined();
+    expect(sesiones.obtener(CLAVE)).toBe('ses-otra');
+    void agente;
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

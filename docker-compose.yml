@@ -142,6 +142,9 @@ services:
       # Los resume-id de sesión se persisten a disco: sin esto, un restart deja
       # a todas las conversaciones en curso arrancando de cero.
       - gwsesiones:/app/data/sesiones
+      # Las conversaciones del motor del agente (lo que `resume` retoma). Sin
+      # volumen se pierden en cada recreate y los resume-id quedan apuntando a nada.
+      - gwconversaciones:/home/node/.claude
     depends_on:
       redis:
         condition: service_healthy
@@ -170,6 +173,7 @@ volumes:
   pgdata:
   redisdata:
   gwsesiones:
+  gwconversaciones:
 
 networks:
   copiloto:

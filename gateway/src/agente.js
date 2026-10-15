@@ -113,8 +113,23 @@ export function crearAgente({
    * @param {string} p.clave  chatKey (phone_number_id:telefono)
    * @returns {Promise<{texto: string, sesionId: string|null, reanudo: boolean}>}
    */
-  async function responder({ tenant, telefono, texto, clave }) {
-    const resume = sesiones.obtener(clave) || undefined;
+  async function responder(p) {
+    const guardada = sesiones.obtener(p.clave) || undefined;
+    try {
+      return await intentar(p, guardada);
+    } catch (err) {
+      // El resume-id vive en el gateway, pero la conversación la guarda el motor
+      // del agente en su propio disco. Si ese disco se perdió (contenedor
+      // recreado sin volumen), el id apunta a nada y fallaría en cada mensaje:
+      // se olvida y se arranca una conversación nueva.
+      if (!guardada || !/No conversation found/i.test(err?.message || '')) throw err;
+      console.warn('[agente] %s: la sesión guardada ya no existe, arranco una nueva', p.clave);
+      sesiones.borrar(p.clave);
+      return intentar(p, undefined);
+    }
+  }
+
+  async function intentar({ tenant, telefono, texto, clave }, resume) {
 
     const opciones = {
       model: config.modelo,
