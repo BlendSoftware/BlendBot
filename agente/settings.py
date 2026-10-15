@@ -30,6 +30,14 @@ class Settings(BaseSettings):
     cliente_telefono: str = Field(description="Número de WhatsApp del cliente de esta sesión")
     timeout_s: float = Field(default=15.0, description="Techo de cada request al core")
     vertical: str = Field(default="gastronomia", description="Qué SKILL.md carga el gateway")
+    borradores_dir: str = Field(
+        default="",
+        description=(
+            "Directorio donde persistir el borrador y el hold entre procesos MCP "
+            "(uno por negocio+cliente, por archivo). Vacío = sólo en memoria, "
+            "como antes: lo setea el gateway, no hace falta en desarrollo."
+        ),
+    )
 
     @field_validator("core_url")
     @classmethod

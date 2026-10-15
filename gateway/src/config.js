@@ -21,6 +21,8 @@ export const RAIZ_GATEWAY = path.resolve(AQUI, '..');
 const MODELO_DEFAULT = 'claude-haiku-4-5-20251001';
 
 export function cargarConfig(env = process.env) {
+  const sesionesDir = path.resolve(env.SESIONES_DIR || path.join(RAIZ_GATEWAY, 'data', 'sesiones'));
+
   return {
     puerto: Number(env.PORT || 8090),
     redisUrl: env.REDIS_URL || 'redis://localhost:6379',
@@ -39,7 +41,12 @@ export function cargarConfig(env = process.env) {
     // Core y agente
     coreUrl: env.CORE_URL || 'http://localhost:8080',
     tenantsPath: path.resolve(env.TENANTS_PATH || path.join(RAIZ_GATEWAY, 'tenants.json')),
-    sesionesDir: path.resolve(env.SESIONES_DIR || path.join(RAIZ_GATEWAY, 'data', 'sesiones')),
+    sesionesDir,
+    // El borrador y el hold del agente, espejados entre procesos MCP (uno por
+    // mensaje). Por defecto, subdirectorio de `sesionesDir`: en Docker ESE es
+    // el volumen `gwsesiones`, así que sobrevive a un restart del contenedor
+    // sin pedir un volumen nuevo.
+    borradoresDir: path.resolve(env.BORRADORES_DIR || path.join(sesionesDir, 'borradores')),
     anthropicApiKey: env.ANTHROPIC_API_KEY || '',
     // Alternativa a la API key: un gateway compatible con la API de Anthropic
     // (por ejemplo OpenRouter). El SDK del agente lee estas dos variables del

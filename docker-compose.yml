@@ -119,6 +119,9 @@ services:
       CORE_URL: http://core:8080
       TENANTS_PATH: /app/tenants.json
       SESIONES_DIR: /app/data/sesiones
+      # Vacío = subdirectorio de SESIONES_DIR (gwsesiones), que ya sobrevive
+      # a un restart del contenedor. Sólo hace falta setearla para moverla.
+      BORRADORES_DIR: ${BORRADORES_DIR:-}
       META_APP_SECRET: ${META_APP_SECRET:-}
       META_VERIFY_TOKEN: ${META_VERIFY_TOKEN:-}
       META_GRAPH_TOKEN: ${META_GRAPH_TOKEN:-}

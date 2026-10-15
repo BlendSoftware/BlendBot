@@ -638,7 +638,7 @@ async def armar_compromiso(
             )
         )
 
-    sesion().borrador = borrador
+    sesion().fijar_borrador(borrador)
     falta_direccion = borrador.entrega == "delivery" and not borrador.direccion
     salida = {
         "ok": True,
@@ -692,13 +692,15 @@ async def bloquear(recurso: str, inicio: str, fin: str) -> dict[str, Any]:
         s.bloqueo = None
 
     hold = await core().crear_hold(str(elegido.get("id")), inicio, fin, _telefono())
-    s.bloqueo = Bloqueo(
-        hold_id=str(hold.get("id")),
-        recurso_id=str(hold.get("recurso_id") or elegido.get("id")),
-        recurso=str(elegido.get("nombre")),
-        inicio=str(hold.get("inicio") or inicio),
-        fin=str(hold.get("fin") or fin),
-        expira_en=hold.get("expira_en"),
+    s.fijar_bloqueo(
+        Bloqueo(
+            hold_id=str(hold.get("id")),
+            recurso_id=str(hold.get("recurso_id") or elegido.get("id")),
+            recurso=str(elegido.get("nombre")),
+            inicio=str(hold.get("inicio") or inicio),
+            fin=str(hold.get("fin") or fin),
+            expira_en=hold.get("expira_en"),
+        )
     )
     cuando = await _humanizar(s.bloqueo.inicio)
     return {

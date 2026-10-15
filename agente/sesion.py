@@ -1,19 +1,37 @@
-"""Estado de la conversación, en memoria del proceso.
+"""Estado de la conversación, persistido entre procesos MCP (por negocio+cliente).
 
-Una sesión MCP = una conversación de WhatsApp, así que un singleton de proceso
-alcanza y sobra: cuando la conversación termina, el proceso muere con ella.
+El gateway levanta un proceso MCP NUEVO por cada mensaje de WhatsApp
+(`mcpServers()` en `agente.js`): "una sesión MCP = una conversación" NO es
+cierto, y asumirlo era el bug — el cliente armaba el pedido en un mensaje y al
+confirmar en el siguiente, ese proceso ya había muerto y `confirmar` no
+encontraba nada.
 
-Acá viven el borrador del compromiso (que NO está persistido: existe sólo hasta
-que `confirmar` lo escribe en el core) y el hueco bloqueado por el hold.
+Acá viven el borrador del compromiso (que sigue sin estar escrito en el core:
+eso lo hace recién `confirmar`) y el hueco bloqueado por el hold. Mientras dura
+el proceso, el singleton de memoria alcanza; para que sobreviva AL proceso, se
+espeja a un archivo por (negocio, cliente) en `BORRADORES_DIR` — si el gateway
+no lo configuró, se sigue comportando exactamente como antes: sólo en memoria.
 """
 
 from __future__ import annotations
 
+import hashlib
+import json
+import os
+import tempfile
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
+from pathlib import Path
 from typing import Any
+
+from settings import get_settings
+
+# Pasados los 30 minutos, un borrador en disco se trata como si no existiera
+# (se ignora y se borra): mismo criterio que el hold del core, para que el
+# cliente nunca "retome" un pedido que ya se enfrió.
+VENCIMIENTO_SEG = 30 * 60
 
 
 def a_decimal(valor: Any) -> Decimal:
@@ -57,6 +75,28 @@ class LineaBorrador:
             "nota": self.nota,
         }
 
+    def a_persistir(self) -> dict[str, Any]:
+        """Para el archivo de sesión: plata como texto, nunca float."""
+        return {
+            "servicio_id": self.servicio_id,
+            "nombre": self.nombre,
+            "cantidad": self.cantidad,
+            "precio_unit": str(self.precio_unit),
+            "duracion_min": self.duracion_min,
+            "nota": self.nota,
+        }
+
+    @classmethod
+    def desde_persistido(cls, d: dict[str, Any]) -> "LineaBorrador":
+        return cls(
+            servicio_id=str(d["servicio_id"]),
+            nombre=str(d["nombre"]),
+            cantidad=int(d["cantidad"]),
+            precio_unit=a_decimal(d.get("precio_unit")),
+            duracion_min=d.get("duracion_min"),
+            nota=d.get("nota"),
+        )
+
 
 @dataclass
 class Borrador:
@@ -91,6 +131,23 @@ class Borrador:
             "nota": self.nota,
         }
 
+    def a_persistir(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "entrega": self.entrega,
+            "direccion": self.direccion,
+            "nota": self.nota,
+            "lineas": [l.a_persistir() for l in self.lineas],
+        }
+
+    @classmethod
+    def desde_persistido(cls, d: dict[str, Any]) -> "Borrador":
+        borrador = cls(
+            id=str(d["id"]), entrega=d.get("entrega"), direccion=d.get("direccion"), nota=d.get("nota")
+        )
+        borrador.lineas = [LineaBorrador.desde_persistido(li) for li in d.get("lineas", [])]
+        return borrador
+
 
 @dataclass
 class Bloqueo:
@@ -111,6 +168,100 @@ class Bloqueo:
             "fin": self.fin,
             "expira_en": self.expira_en,
         }
+
+    def a_persistir(self) -> dict[str, Any]:
+        return {
+            "hold_id": self.hold_id,
+            "recurso_id": self.recurso_id,
+            "recurso": self.recurso,
+            "inicio": self.inicio,
+            "fin": self.fin,
+            "expira_en": self.expira_en,
+        }
+
+    @classmethod
+    def desde_persistido(cls, d: dict[str, Any]) -> "Bloqueo":
+        return cls(
+            hold_id=str(d["hold_id"]),
+            recurso_id=str(d["recurso_id"]),
+            recurso=str(d["recurso"]),
+            inicio=str(d["inicio"]),
+            fin=str(d["fin"]),
+            expira_en=d.get("expira_en"),
+        )
+
+
+def _directorio_configurado() -> str | None:
+    """`BORRADORES_DIR`, o `None` si el gateway no lo seteó (modo legacy)."""
+    try:
+        valor = get_settings().borradores_dir
+    except Exception:  # noqa: BLE001 — sin settings válidos, no hay persistencia
+        return None
+    return valor or None
+
+
+def _clave_archivo(agente_token: str, telefono: str) -> str:
+    """SHA-256 de token+teléfono: identifica el archivo sin exponer el token
+    en el nombre (y el contenido tampoco lo guarda)."""
+    digesto = hashlib.sha256(f"{agente_token}:{telefono}".encode("utf-8")).hexdigest()
+    return f"{digesto}.json"
+
+
+def _ruta_archivo(directorio: str, agente_token: str, telefono: str) -> Path:
+    return Path(directorio) / _clave_archivo(agente_token, telefono)
+
+
+def _escribir_atomico(ruta: Path, datos: dict[str, Any]) -> None:
+    """Archivo temporal + rename: un corte a mitad no deja el archivo mocho.
+    Permisos 600: el borrador es del negocio y del cliente, de nadie más."""
+    ruta.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(dir=str(ruta.parent), prefix=".tmp-", suffix=".json")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(datos, f)
+        os.chmod(tmp, 0o600)
+        os.replace(tmp, ruta)
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
+
+
+def _cargar_desde_disco(
+    directorio: str, agente_token: str, telefono: str
+) -> tuple[Borrador | None, Bloqueo | None]:
+    """`(borrador, bloqueo)` vigentes, o `(None, None)` si no hay archivo o si
+    venció: pasados los 30 minutos se ignora Y se borra, no se arrastra."""
+    ruta = _ruta_archivo(directorio, agente_token, telefono)
+    try:
+        crudo = ruta.read_text(encoding="utf-8")
+    except OSError:
+        return None, None
+    try:
+        datos = json.loads(crudo)
+    except (ValueError, TypeError):
+        return None, None
+
+    guardado_en = datos.get("guardado_en")
+    momento = None
+    if guardado_en:
+        try:
+            momento = datetime.fromisoformat(guardado_en)
+        except ValueError:
+            momento = None
+    vencido = momento is None or (datetime.now(timezone.utc) - momento).total_seconds() > VENCIMIENTO_SEG
+    if vencido:
+        try:
+            ruta.unlink()
+        except OSError:
+            pass
+        return None, None
+
+    borrador = Borrador.desde_persistido(datos["borrador"]) if datos.get("borrador") else None
+    bloqueo = Bloqueo.desde_persistido(datos["bloqueo"]) if datos.get("bloqueo") else None
+    return borrador, bloqueo
 
 
 @dataclass
@@ -138,6 +289,47 @@ class Sesion:
         self.borrador = None
         self.bloqueo = None
         self.ultimos_huecos = []
+        self.borrar_persistido()
+
+    def _ruta_persistido(self, directorio: str) -> Path:
+        cfg = get_settings()
+        return _ruta_archivo(directorio, cfg.agente_token, self.telefono or cfg.cliente_telefono)
+
+    def persistir(self) -> None:
+        """Espeja borrador + hold a disco, si el gateway configuró el
+        directorio. Si falla el disco, seguimos en memoria: peor es tumbar la
+        conversación por un `IOError`."""
+        directorio = _directorio_configurado()
+        if not directorio:
+            return
+        datos = {
+            "guardado_en": datetime.now(timezone.utc).isoformat(),
+            "borrador": self.borrador.a_persistir() if self.borrador else None,
+            "bloqueo": self.bloqueo.a_persistir() if self.bloqueo else None,
+        }
+        try:
+            _escribir_atomico(self._ruta_persistido(directorio), datos)
+        except OSError:
+            pass
+
+    def borrar_persistido(self) -> None:
+        directorio = _directorio_configurado()
+        if not directorio:
+            return
+        try:
+            self._ruta_persistido(directorio).unlink()
+        except OSError:
+            pass
+
+    def fijar_borrador(self, borrador: Borrador | None) -> None:
+        """Reemplaza el borrador vigente y lo espeja a disco en el acto: el
+        próximo mensaje puede caer en OTRO proceso MCP."""
+        self.borrador = borrador
+        self.persistir()
+
+    def fijar_bloqueo(self, bloqueo: Bloqueo | None) -> None:
+        self.bloqueo = bloqueo
+        self.persistir()
 
 
 _sesion: Sesion | None = None
@@ -146,12 +338,27 @@ _sesion: Sesion | None = None
 def sesion() -> Sesion:
     global _sesion
     if _sesion is None:
-        _sesion = Sesion()
+        _sesion = _sesion_al_arrancar()
     return _sesion
 
 
+def _sesion_al_arrancar() -> Sesion:
+    """Arranque real de un proceso MCP: si hay un borrador vigente de este
+    negocio+cliente en `BORRADORES_DIR`, lo recupera — es la continuación de
+    la MISMA conversación, sólo que en un proceso nuevo."""
+    try:
+        cfg = get_settings()
+    except Exception:  # noqa: BLE001 — sin settings (tests viejos), blanco y en memoria
+        return Sesion()
+    s = Sesion(telefono=cfg.cliente_telefono)
+    directorio = cfg.borradores_dir or None
+    if directorio:
+        s.borrador, s.bloqueo = _cargar_desde_disco(directorio, cfg.agente_token, cfg.cliente_telefono)
+    return s
+
+
 def reiniciar_sesion(telefono: str = "") -> Sesion:
-    """Sólo para tests y para el arranque del proceso."""
+    """Sólo para tests: una sesión en blanco, sin tocar lo que haya en disco."""
     global _sesion
     _sesion = Sesion(telefono=telefono)
     return _sesion

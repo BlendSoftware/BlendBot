@@ -83,7 +83,7 @@ export function crearAgente({
         command: 'uv',
         args: ['--directory', dirAgente, 'run', 'python', 'server.py'],
         // Entorno MÍNIMO: sólo lo que el MCP necesita para arrancar (PATH para
-        // encontrar uv/python) más los cuatro datos de la sesión. NO se spreadea
+        // encontrar uv/python) más los cinco datos de la sesión. NO se spreadea
         // process.env: ahí viven ANTHROPIC_API_KEY, META_GRAPH_TOKEN y
         // META_APP_SECRET, y un prompt injection que logre correr algo dentro
         // del MCP no tiene por qué poder leerlos.
@@ -94,6 +94,10 @@ export function crearAgente({
           AGENTE_TOKEN: tenant.agente_token,
           CLIENTE_TELEFONO: telefono,
           VERTICAL: tenant.vertical,
+          // Dónde espejar el borrador y el hold entre procesos MCP (uno nuevo
+          // por mensaje): sin esto, confirmar en el mensaje siguiente no
+          // encuentra lo que armó el mensaje anterior.
+          BORRADORES_DIR: config.borradoresDir,
         },
       },
     };

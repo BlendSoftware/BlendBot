@@ -18,6 +18,7 @@ beforeEach(() => {
     raizRepo: '/repo',
     coreUrl: 'http://core.test',
     modelo: 'claude-haiku-4-5-20251001',
+    borradoresDir: path.join(dir, 'borradores'),
   };
 });
 afterEach(() => {
@@ -86,6 +87,18 @@ describe('la query que se arma', () => {
       AGENTE_TOKEN: 'cop_token_de_prueba',
       CLIENTE_TELEFONO: CLIENTE,
     });
+  });
+
+  it('el entorno del MCP incluye BORRADORES_DIR y sigue sin ANTHROPIC_* ni META_*', async () => {
+    const { agente, espia } = armar();
+    await agente.responder({ tenant: TENANT, telefono: CLIENTE, texto: 'hola', clave: CLAVE });
+
+    const { env } = espia.mock.calls[0][0].options.mcpServers.copiloto;
+    expect(env.BORRADORES_DIR).toBe(config.borradoresDir);
+    for (const clave of Object.keys(env)) {
+      expect(clave.startsWith('ANTHROPIC_')).toBe(false);
+      expect(clave.startsWith('META_')).toBe(false);
+    }
   });
 
   it('dos tenants distintos nunca comparten token en la misma corrida', async () => {
