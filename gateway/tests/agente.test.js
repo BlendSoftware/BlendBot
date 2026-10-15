@@ -229,3 +229,108 @@ describe('timeout y errores', () => {
     expect(r.texto).toBe('');
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Caso de producción del 15/10: en una conversación reanudada de ~40 turnos,
+// gemini-2.5-flash-lite afirmó "Ya está en el local" sin haber llamado
+// `confirmar`. El cliente creyó que pidió y el local nunca se enteró.
+describe('guarda: no mandar una confirmación o un precio sin la tool que los respalda', () => {
+  const TEXTO_SEGURO = 'Perdón, no pude registrar tu pedido todavía. ¿Me lo repetís así lo cargo?';
+
+  function toolUse(nombre) {
+    return { type: 'assistant', message: { content: [{ type: 'tool_use', name: nombre }] } };
+  }
+
+  it('afirma confirmación sin tool → reintenta con sesión nueva; si el reintento usa confirmar, se manda esa', async () => {
+    let llamada = 0;
+    const queryFn = vi.fn(async ({ options }) => {
+      llamada += 1;
+      if (llamada === 1) {
+        return streamDe([
+          textoAsistente('Listo, tu pedido ya está en el local.'),
+          { type: 'result', session_id: 'ses-1' },
+        ]);
+      }
+      return streamDe([
+        toolUse('mcp__copiloto__confirmar'),
+        textoAsistente('Confirmado, tu pedido ya está en el local.'),
+        { type: 'result', session_id: 'ses-2' },
+      ]);
+    });
+    const { agente } = armar({ queryFn });
+
+    const r = await agente.responder({ tenant: TENANT, telefono: CLIENTE, texto: 'dale, confirmalo', clave: CLAVE });
+
+    expect(llamada).toBe(2);
+    expect(queryFn.mock.calls[1][0].options.resume).toBeUndefined();
+    expect(r.texto).toBe('Confirmado, tu pedido ya está en el local.');
+  });
+
+  it('las dos respuestas afirman sin tool → texto seguro', async () => {
+    const queryFn = vi.fn(async () => streamDe([
+      textoAsistente('Ya está en el local, lo estamos preparando.'),
+      { type: 'result', session_id: 'ses-1' },
+    ]));
+    const { agente } = armar({ queryFn });
+
+    const r = await agente.responder({ tenant: TENANT, telefono: CLIENTE, texto: 'confirmalo', clave: CLAVE });
+
+    expect(queryFn.mock.calls.length).toBe(2);
+    expect(r.texto).toBe(TEXTO_SEGURO);
+  });
+
+  it('respuesta con tool confirmar → pasa sin tocar', async () => {
+    const queryFn = vi.fn(async () => streamDe([
+      toolUse('mcp__copiloto__confirmar'),
+      textoAsistente('Confirmado, ya está en el local.'),
+      { type: 'result', session_id: 'ses-1' },
+    ]));
+    const { agente } = armar({ queryFn });
+
+    const r = await agente.responder({ tenant: TENANT, telefono: CLIENTE, texto: 'confirmalo', clave: CLAVE });
+
+    expect(queryFn.mock.calls.length).toBe(1);
+    expect(r.texto).toBe('Confirmado, ya está en el local.');
+  });
+
+  it('precio sin tool de catálogo → reintenta', async () => {
+    let llamada = 0;
+    const queryFn = vi.fn(async () => {
+      llamada += 1;
+      return streamDe([
+        textoAsistente('La pizza sale $8500.'),
+        { type: 'result', session_id: `ses-${llamada}` },
+      ]);
+    });
+    const { agente } = armar({ queryFn });
+
+    const r = await agente.responder({ tenant: TENANT, telefono: CLIENTE, texto: '¿cuánto sale?', clave: CLAVE });
+
+    expect(llamada).toBe(2);
+    expect(r.texto).toBe(TEXTO_SEGURO);
+  });
+
+  it('precio con ver_catalogo de por medio → pasa sin tocar', async () => {
+    const queryFn = vi.fn(async () => streamDe([
+      toolUse('mcp__copiloto__ver_catalogo'),
+      textoAsistente('La pizza sale $8500.'),
+      { type: 'result', session_id: 'ses-1' },
+    ]));
+    const { agente } = armar({ queryFn });
+
+    const r = await agente.responder({ tenant: TENANT, telefono: CLIENTE, texto: '¿cuánto sale?', clave: CLAVE });
+
+    expect(queryFn.mock.calls.length).toBe(1);
+    expect(r.texto).toBe('La pizza sale $8500.');
+  });
+
+  it('respuesta normal, sin afirmaciones ni precios → pasa sin tocar', async () => {
+    const { agente } = armar({
+      mensajes: [textoAsistente('Hola, ¿qué querés pedir?'), { type: 'result', session_id: 'ses-1' }],
+    });
+
+    const r = await agente.responder({ tenant: TENANT, telefono: CLIENTE, texto: 'hola', clave: CLAVE });
+
+    expect(r.texto).toBe('Hola, ¿qué querés pedir?');
+  });
+});

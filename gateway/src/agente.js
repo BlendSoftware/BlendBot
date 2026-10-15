@@ -20,6 +20,33 @@ import path from 'node:path';
 
 export const TIMEOUT_MS = 90_000;
 
+/**
+ * Guarda contra afirmaciones sin tool: caso de producción del 15/10. En una
+ * conversación reanudada de ~40 turnos, gemini-2.5-flash-lite afirmó "Ya
+ * está en el local" (y un precio de 3 pizzas) sin haber llamado `confirmar`
+ * ni ninguna tool de catálogo. El cliente creyó que pidió; el local nunca se
+ * enteró. Si el texto final afirma una de estas cosas y el turno no llamó a
+ * la tool que la respalda, no se manda: se reintenta una vez con sesión
+ * nueva y, si tampoco alcanza, se manda el texto seguro.
+ */
+const TOOL_CONFIRMAR = 'mcp__copiloto__confirmar';
+/** Tools que devuelven un precio real (ver `agente/server.py`). */
+const TOOLS_DE_PRECIO = ['mcp__copiloto__ver_catalogo', 'mcp__copiloto__armar_compromiso', TOOL_CONFIRMAR];
+/** Frases (en minúscula) que afirman que el pedido quedó confirmado/enviado. */
+const FRASES_DE_CONFIRMACION = ['confirmad', 'ya está en el local', 'le pasé', 'se envió al local', 'ya lo pasé'];
+const REGEX_PRECIO = /\$\s?\d/;
+const TEXTO_SEGURO = 'Perdón, no pude registrar tu pedido todavía. ¿Me lo repetís así lo cargo?';
+
+/** @returns {boolean} si el texto afirma algo que el set de tools usadas no respalda. */
+function afirmaSinRespaldo(texto, toolsUsadas) {
+  const minusculas = texto.toLowerCase();
+  const afirmaConfirmacion = FRASES_DE_CONFIRMACION.some((frase) => minusculas.includes(frase));
+  const afirmaPrecio = REGEX_PRECIO.test(texto);
+  const faltaConfirmar = afirmaConfirmacion && !toolsUsadas.has(TOOL_CONFIRMAR);
+  const faltaToolDePrecio = afirmaPrecio && !TOOLS_DE_PRECIO.some((nombre) => toolsUsadas.has(nombre));
+  return faltaConfirmar || faltaToolDePrecio;
+}
+
 /** Se tira cuando la query pasó el techo de tiempo. El caller se disculpa. */
 export class AgenteTimeout extends Error {
   constructor(ms) {
@@ -115,8 +142,9 @@ export function crearAgente({
    */
   async function responder(p) {
     const guardada = sesiones.obtener(p.clave) || undefined;
+    let r;
     try {
-      return await intentar(p, guardada);
+      r = await intentar(p, guardada);
     } catch (err) {
       // El resume-id vive en el gateway, pero la conversación la guarda el motor
       // del agente en su propio disco. Si ese disco se perdió (contenedor
@@ -125,12 +153,25 @@ export function crearAgente({
       if (!guardada || !/No conversation found/i.test(err?.message || '')) throw err;
       console.warn('[agente] %s: la sesión guardada ya no existe, arranco una nueva', p.clave);
       sesiones.borrar(p.clave);
-      return intentar(p, undefined);
+      r = await intentar(p, undefined);
     }
+    return { texto: r.texto, sesionId: r.sesionId, reanudo: r.reanudo };
   }
 
-  async function intentar({ tenant, telefono, texto, clave }, resume) {
+  async function intentar(p, resume) {
+    const primero = await unIntento(p, resume);
+    if (!afirmaSinRespaldo(primero.texto, primero.toolsUsadas)) return primero;
 
+    console.warn('[agente] %s: afirmó sin respaldo de tool — reintento con sesión nueva', p.clave);
+    const segundo = await unIntento(p, undefined);
+    if (!afirmaSinRespaldo(segundo.texto, segundo.toolsUsadas)) return segundo;
+
+    console.warn('[agente] %s: el reintento también afirmó sin respaldo — mando texto seguro', p.clave);
+    return { ...segundo, texto: TEXTO_SEGURO };
+  }
+
+  /** Una sola corrida del SDK — sin la guarda de arriba, que vive en `intentar`. */
+  async function unIntento({ tenant, telefono, texto, clave }, resume) {
     const opciones = {
       model: config.modelo,
       systemPrompt: systemPrompt(tenant.vertical),
@@ -166,6 +207,7 @@ export function crearAgente({
 
     let salida = '';
     let sesionId = null;
+    const toolsUsadas = new Set();
     const t0 = Date.now();
 
     try {
@@ -174,6 +216,7 @@ export function crearAgente({
         if (msg?.type === 'assistant' && Array.isArray(msg.message?.content)) {
           for (const bloque of msg.message.content) {
             if (bloque.type === 'text' && bloque.text) salida += bloque.text;
+            if (bloque.type === 'tool_use' && bloque.name) toolsUsadas.add(bloque.name);
           }
         }
         // El session_id llega tanto en el 'system' de arranque como en el
@@ -195,7 +238,7 @@ export function crearAgente({
       clave, Date.now() - t0, resume ? 'resume' : 'nueva', salida.length,
     );
 
-    return { texto: salida.trim(), sesionId, reanudo: Boolean(resume) };
+    return { texto: salida.trim(), sesionId, reanudo: Boolean(resume), toolsUsadas };
   }
 
   return { responder };

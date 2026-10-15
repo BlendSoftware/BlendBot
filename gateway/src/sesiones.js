@@ -11,14 +11,22 @@
  * persona puede ser clienta de dos comercios nuestros y esas dos
  * conversaciones no pueden compartir contexto (ni historial, ni token).
  *
- * Expiración: 24hs sin actividad. Coincide a propósito con la ventana de
- * servicio de WhatsApp — si pasaron 24hs, la conversación anterior ya terminó.
+ * Expiración: 2hs sin actividad. Antes eran 24hs (la ventana de servicio de
+ * WhatsApp), pero el 15/10 en producción eso dejó reanudar una conversación
+ * de 40 turnos arrastrada del día anterior y el modelo (gemini-2.5-flash-lite)
+ * terminó inventando un pedido entero sin llamar a ninguna tool. 2hs es un
+ * contexto que el modelo todavía puede sostener sin desvariar.
+ *
+ * Tope de turnos: además del tiempo, una sesión muy larga (aunque esté
+ * dentro de las 2hs) tiene el mismo riesgo de que el modelo pierda el hilo y
+ * alucine. Por eso también se corta a los MAX_TURNOS intercambios.
  */
 
 import fs from 'node:fs';
 import path from 'node:path';
 
-export const TTL_MS = 24 * 60 * 60 * 1000;
+export const TTL_MS = 2 * 60 * 60 * 1000;
+export const MAX_TURNOS = 20;
 const ARCHIVO = 'sesiones.json';
 
 export function claveChat(phoneNumberId, telefono) {
@@ -29,11 +37,12 @@ export function claveChat(phoneNumberId, telefono) {
  * @param {object} opts
  * @param {string} opts.dir  SESIONES_DIR
  * @param {number} [opts.ttlMs]
+ * @param {number} [opts.maxTurnos]
  * @param {() => number} [opts.ahora]  reloj inyectable (tests de expiración)
  */
-export function crearSesiones({ dir, ttlMs = TTL_MS, ahora = Date.now } = {}) {
+export function crearSesiones({ dir, ttlMs = TTL_MS, maxTurnos = MAX_TURNOS, ahora = Date.now } = {}) {
   const ruta = path.join(dir, ARCHIVO);
-  /** @type {Map<string, {resumeId: string, ultimoUso: number}>} */
+  /** @type {Map<string, {resumeId: string, ultimoUso: number, turnos: number}>} */
   const mapa = new Map();
 
   cargar();
@@ -43,7 +52,14 @@ export function crearSesiones({ dir, ttlMs = TTL_MS, ahora = Date.now } = {}) {
       const crudo = JSON.parse(fs.readFileSync(ruta, 'utf8'));
       for (const [clave, v] of Object.entries(crudo || {})) {
         if (v && typeof v.resumeId === 'string') {
-          mapa.set(clave, { resumeId: v.resumeId, ultimoUso: Number(v.ultimoUso) || 0 });
+          // Un registro viejo no tiene `turnos`: se grabó antes de que
+          // existiera el contador. Se asume 1 (ya tuvo al menos un turno)
+          // para no resetear de golpe un tope que todavía no se cumplió.
+          mapa.set(clave, {
+            resumeId: v.resumeId,
+            ultimoUso: Number(v.ultimoUso) || 0,
+            turnos: Number(v.turnos) || 1,
+          });
         }
       }
     } catch (err) {
@@ -86,11 +102,15 @@ export function crearSesiones({ dir, ttlMs = TTL_MS, ahora = Date.now } = {}) {
   return {
     ruta,
 
-    /** @returns {string|null} resumeId vigente, o null si no hay o venció. */
+    /**
+     * @returns {string|null} resumeId vigente, o null si no hay, venció por
+     * tiempo o ya pasó el tope de turnos — en ambos casos se borra, porque
+     * para el caller "venció" y "no reanuda" es la misma cosa.
+     */
     obtener(clave) {
       const v = mapa.get(clave);
       if (!v) return null;
-      if (v.ultimoUso < ahora() - ttlMs) {
+      if (v.ultimoUso < ahora() - ttlMs || v.turnos >= maxTurnos) {
         mapa.delete(clave);
         volcar();
         return null;
@@ -101,15 +121,21 @@ export function crearSesiones({ dir, ttlMs = TTL_MS, ahora = Date.now } = {}) {
     /** Write-through: vuelve a disco en el acto. */
     guardar(clave, resumeId) {
       if (!resumeId) return;
-      mapa.set(clave, { resumeId, ultimoUso: ahora() });
+      const anterior = mapa.get(clave);
+      // Mismo resumeId que ya teníamos → un turno más de la misma
+      // conversación. Un resumeId distinto (o no había nada) → conversación
+      // nueva, el contador arranca de 1.
+      const turnos = anterior && anterior.resumeId === resumeId ? anterior.turnos + 1 : 1;
+      mapa.set(clave, { resumeId, ultimoUso: ahora(), turnos });
       volcar();
     },
 
-    /** Marca actividad sin cambiar el resumeId (renueva las 24hs). */
+    /** Marca actividad sin cambiar el resumeId (renueva la ventana y cuenta el turno). */
     tocar(clave) {
       const v = mapa.get(clave);
       if (!v) return;
       v.ultimoUso = ahora();
+      v.turnos += 1;
       volcar();
     },
 

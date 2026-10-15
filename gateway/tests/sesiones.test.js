@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-import { crearSesiones, claveChat, TTL_MS } from '../src/sesiones.js';
+import { crearSesiones, claveChat, TTL_MS, MAX_TURNOS } from '../src/sesiones.js';
 
 let dir;
 beforeEach(() => {
@@ -75,9 +75,9 @@ describe('persistencia', () => {
   });
 });
 
-describe('expiración a las 24hs', () => {
-  it('el TTL por defecto son 24hs', () => {
-    expect(TTL_MS).toBe(24 * 60 * 60 * 1000);
+describe('expiración a las 2hs', () => {
+  it('el TTL por defecto son 2hs', () => {
+    expect(TTL_MS).toBe(2 * 60 * 60 * 1000);
   });
 
   it('vence sola después del TTL de inactividad', () => {
@@ -124,5 +124,46 @@ describe('expiración a las 24hs', () => {
     t += TTL_MS + 1;
     s.obtener('111:549261');
     expect(JSON.parse(fs.readFileSync(s.ruta, 'utf8'))).toEqual({});
+  });
+});
+
+describe('tope de turnos por sesión', () => {
+  it('el tope por defecto es 20', () => {
+    expect(MAX_TURNOS).toBe(20);
+  });
+
+  it('al llegar al tope, no reanuda aunque esté dentro del TTL', () => {
+    const s = crearSesiones({ dir, maxTurnos: 3 });
+    s.guardar('111:549261', 'ses-abc'); // turno 1
+    s.guardar('111:549261', 'ses-abc'); // turno 2
+    s.guardar('111:549261', 'ses-abc'); // turno 3 — llegó al tope
+    expect(s.obtener('111:549261')).toBeNull();
+  });
+
+  it('por debajo del tope sigue reanudando', () => {
+    const s = crearSesiones({ dir, maxTurnos: 3 });
+    s.guardar('111:549261', 'ses-abc'); // turno 1
+    s.guardar('111:549261', 'ses-abc'); // turno 2
+    expect(s.obtener('111:549261')).toBe('ses-abc');
+  });
+
+  it('una sesión nueva (resumeId distinto) resetea el contador de turnos', () => {
+    const s = crearSesiones({ dir, maxTurnos: 2 });
+    s.guardar('111:549261', 'ses-vieja'); // turno 1
+    s.guardar('111:549261', 'ses-vieja'); // turno 2 — llegó al tope
+    expect(s.obtener('111:549261')).toBeNull();
+
+    s.guardar('111:549261', 'ses-nueva'); // conversación nueva, turno 1 de nuevo
+    expect(s.obtener('111:549261')).toBe('ses-nueva');
+  });
+
+  it('un registro viejo sin contador se sigue leyendo bien', () => {
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(
+      path.join(dir, 'sesiones.json'),
+      JSON.stringify({ '111:549261': { resumeId: 'ses-vieja', ultimoUso: Date.now() } }),
+    );
+    const s = crearSesiones({ dir });
+    expect(s.obtener('111:549261')).toBe('ses-vieja');
   });
 });
