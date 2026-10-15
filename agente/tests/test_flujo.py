@@ -11,6 +11,7 @@ from conftest import BASE, CATALOGO, HUECOS, NEGOCIO, TELEFONO
 
 import server
 from server import LineaPedida
+from sesion import sesion
 
 HUECO = HUECOS["huecos"][0]
 
@@ -256,6 +257,45 @@ async def test_cancelar_en_dos_pasos(respx_mock, core):
     hecho = await server.cancelar("com-1", "no puedo ir", confirmado=True)
     assert hecho["ejecutado"] and hecho["estado"] == "cancelado"
     assert patch.called
+
+
+# Bug de producción (15/10): el cliente pidió cancelar algo que todavía era
+# borrador (nunca pasó por `confirmar`, nunca se escribió en el core). El
+# `compromiso_id` que el modelo tenía a mano era el `borrador_id`
+# (`bor_xxxxxxxx`), el core devolvía 404 y el cliente se llevaba un error
+# genérico en vez de un "quedó cancelado" simple.
+@respx.mock(base_url=BASE, assert_all_called=False)
+async def test_cancelar_un_borrador_sin_confirmar_lo_descarta_sin_error(respx_mock, core):
+    _base(respx_mock)
+    await server.armar_compromiso([LineaPedida(servicio="coloracion")])
+    borrador_id = sesion().borrador.id
+    assert borrador_id.startswith("bor_")
+
+    # El core nunca oyó hablar de este id: nunca se escribió nada ahí.
+    respx_mock.get(f"/api/compromisos/{borrador_id}").mock(
+        return_value=httpx.Response(404, json={"detail": "no encontrado"})
+    )
+
+    r = await server.cancelar(borrador_id, "no quiero más")
+
+    assert r["ok"] is True
+    assert "borrador" in r["aviso"].lower()
+    assert sesion().borrador is None
+
+
+@respx.mock(base_url=BASE, assert_all_called=False)
+async def test_cancelar_404_sin_borrador_activo_sigue_siendo_error(respx_mock, core):
+    # Regresión: SIN borrador activo, un 404 del core tiene que seguir
+    # comportándose exactamente como hoy — no hay nada que descartar.
+    _base(respx_mock)
+    respx_mock.get("/api/compromisos/com-inexistente").mock(
+        return_value=httpx.Response(404, json={"detail": "no encontrado"})
+    )
+
+    r = await server.cancelar("com-inexistente", "no quiero más")
+
+    assert r["ok"] is False
+    assert r["codigo"] == "no_encontrado"
 
 
 @respx.mock(base_url=BASE, assert_all_called=False)

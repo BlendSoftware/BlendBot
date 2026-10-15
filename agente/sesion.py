@@ -119,6 +119,27 @@ class Borrador:
         duraciones = [l.duracion_min * l.cantidad for l in self.lineas if l.duracion_min]
         return sum(duraciones) if duraciones else None
 
+    @property
+    def entrega_texto(self) -> str | None:
+        """`entrega` + `direccion` ya combinados en una frase lista para leerle al
+        cliente, con el mismo formato que `SKILL.md` le muestra al modelo
+        («Delivery a Av Demo 250»).
+
+        15/10: `como_dict()` exponía `entrega` y `direccion` sueltos y el modelo,
+        al releerlos para redactar la respuesta, dedujo mal y dijo "sigue siendo
+        para retirar" en un pedido delivery. Resolver la combinación ACÁ, una
+        sola vez, le saca al modelo la inferencia que venía fallando.
+        """
+        if self.entrega is None:
+            return None  # todavía no se decidió: no hay nada que decir
+        if self.entrega == "retira":
+            return "Retira por el local"
+        if self.entrega == "delivery":
+            return f"Delivery a {self.direccion}" if self.direccion else "Delivery (falta la dirección)"
+        if self.entrega == "en_local":
+            return "Come en el local"
+        return None
+
     def como_dict(self) -> dict[str, Any]:
         return {
             "borrador_id": self.id,
@@ -128,6 +149,7 @@ class Borrador:
             "duracion_min": self.duracion_min,
             "entrega": self.entrega,
             "direccion": self.direccion,
+            "entrega_texto": self.entrega_texto,
             "nota": self.nota,
         }
 

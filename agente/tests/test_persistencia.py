@@ -321,3 +321,38 @@ def test_sin_directorio_configurado_sigue_siendo_solo_en_memoria():
     s = sesion()
     s.fijar_borrador(Borrador(entrega="retira"))  # no debe explotar ni escribir nada
     assert s.borrador is not None
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# `entrega_texto`: Bug de producción (15/10). `como_dict()` exponía `entrega` y
+# `direccion` crudos y separados, y al releerlos para redactar la respuesta el
+# modelo dedujo mal y dijo "sigue siendo para retirar" en un pedido delivery.
+# El texto resuelto evita que el modelo tenga que inferir la combinación.
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def test_entrega_texto_delivery_con_direccion():
+    borrador = Borrador(entrega="delivery", direccion="Av Demo 250")
+    assert borrador.como_dict()["entrega_texto"] == "Delivery a Av Demo 250"
+
+
+def test_entrega_texto_retira():
+    # Triangulación: otra entrega, sin dirección.
+    borrador = Borrador(entrega="retira")
+    assert borrador.como_dict()["entrega_texto"] == "Retira por el local"
+
+
+def test_entrega_texto_sin_decidir_todavia_es_none():
+    # Todavía no se decidió: no hay nada que decir, no se inventa un default.
+    borrador = Borrador()
+    assert borrador.como_dict()["entrega_texto"] is None
+
+
+def test_entrega_texto_delivery_sin_direccion_avisa_que_falta():
+    borrador = Borrador(entrega="delivery")
+    assert borrador.como_dict()["entrega_texto"] == "Delivery (falta la dirección)"
+
+
+def test_entrega_texto_en_local():
+    borrador = Borrador(entrega="en_local")
+    assert borrador.como_dict()["entrega_texto"] == "Come en el local"

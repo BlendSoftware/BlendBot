@@ -366,11 +366,23 @@ def _servicio_visible(s: dict[str, Any], categorias: dict[str, str] | None = Non
         if nombre_cat:
             visible["categoria_nombre"] = nombre_cat
     # La descripción es lo que lleva el plato ("doble medallón, cheddar, panceta"):
-    # sirve para responder "¿qué tiene la Doble bacon?" sin inventar. Sólo va si el
-    # local la cargó; si no, ni aparece (no se rellena con nada).
+    # sirve para responder "¿qué tiene la Doble bacon?" sin inventar.
+    #
+    # 15/10: acá se omitía el campo entero si no había descripción cargada, igual
+    # que `categoria_nombre` o `restante`. Pero esos campos son accesorios —si
+    # faltan, el modelo simplemente no agrupa o no avisa stock— y éste no: un
+    # campo ausente es indistinguible de "no se me ocurrió preguntar por él", así
+    # que el modelo terminó inventando ingredientes por el nombre del plato
+    # ("napolitana" → "jamón cocido, mozzarella y tomate"). Por eso SIEMPRE va
+    # explícito, con `descripcion_cargada` para que quede clarísimo si el dato
+    # existe o no, en vez de confiar en que `None` se lea como "no lo sé".
     descripcion = s.get("descripcion")
     if descripcion:
         visible["descripcion"] = str(descripcion).strip()
+        visible["descripcion_cargada"] = True
+    else:
+        visible["descripcion"] = None
+        visible["descripcion_cargada"] = False
     # Cuántas porciones quedan, SÓLO cuando quedan pocas: ahí sirve para avisar
     # "quedan 2" antes de que el cliente se ilusione con cuatro. Un plato ilimitado
     # (`restante: null`) o con stock de sobra no trae el campo, igual que la
@@ -416,9 +428,17 @@ async def datos_del_negocio() -> dict[str, Any]:
     `dejar_consulta` para que el local responda.
 
     No trae horarios de atención por recurso: eso sale de `consultar_disponibilidad`.
+
+    Si `cliente_nombre_conocido` viene con algo, ESE cliente ya tiene nombre en el
+    sistema: no se lo vuelvas a preguntar, usalo directo al llamar a `confirmar`.
     """
     negocio = await _negocio()
-    await _cliente()
+    # 15/10: acá se llamaba a `_cliente()` y se descartaba el resultado — la ficha
+    # quedaba creada en el core, pero el modelo nunca se enteraba de que ya tenía
+    # nombre cargado, así que lo volvía a preguntar aunque ya lo supiera (o aunque
+    # el cliente lo hubiera dicho en un mensaje anterior de la MISMA charla, antes
+    # de que el proceso MCP de ese mensaje muriera). Ahora se expone.
+    cliente = await _cliente()
     coberturas = await _coberturas()
     config = negocio.get("config") if isinstance(negocio.get("config"), dict) else {}
     config = config or {}
@@ -442,6 +462,9 @@ async def datos_del_negocio() -> dict[str, Any]:
         "radio_delivery_km": config.get("radio_delivery_km"),
         "hold_minutos": config.get("hold_minutos", 10),
         "coberturas": [c.get("nombre") for c in coberturas if c.get("nombre")],
+        # Null si no hay ficha de cliente todavía, o si la tiene pero sin nombre
+        # cargado: en los dos casos no hay nada que el modelo pueda usar.
+        "cliente_nombre_conocido": cliente.get("nombre") if cliente else None,
         # Dirección / horarios / teléfono / notas del local, para responder esas
         # preguntas cuando están cargadas. Vacío = no cargado, no inventar.
         "info": {
@@ -494,9 +517,11 @@ async def ver_catalogo(categoria: str | None = None) -> dict[str, Any]:
     «Bebidas»). Agrupá por ESE nombre cuando le leas la carta al cliente. Si un ítem no
     lo trae, va suelto: no le inventes un rubro ni lo metas en otro por parecido.
 
-    Cada ítem puede traer `descripcion` (lo que lleva el plato). Si el cliente pregunta
-    "¿qué tiene la Doble bacon?", respondé con ESA descripción textual. Si un ítem no la
-    trae, no la sabés: no la inventes — usá `dejar_consulta` para que el local responda.
+    Cada ítem trae `descripcion` (lo que lleva el plato). Si el cliente pregunta
+    "¿qué tiene la Doble bacon?", respondé con ESA descripción textual. Si
+    `descripcion_cargada` es `false`, NO la tiene cargada el local: decile al cliente
+    que no la tenés cargada y usá `dejar_consulta`. Nunca la deduzcas por el nombre
+    del plato.
 
     Si la conversación se estiró, volvé a llamarla antes de cerrar: el stock se mueve y
     esta tool consulta fresco cada vez.
@@ -810,6 +835,11 @@ async def confirmar(
             cobertura_id = str((rc.item or {}).get("id"))
             cobertura_nombre = (rc.item or {}).get("nombre")
 
+    # Si el nombre no vino por parámetro, sale de la ficha ya cargada
+    # (`s.cliente`, que `datos_del_negocio` resuelve al arrancar la charla).
+    # Guardamos de dónde salió para poder avisarlo en el preview: si no, el
+    # modelo lee el resumen, ve un nombre ahí y lo vuelve a preguntar igual (H-15/10).
+    nombre_de_la_ficha = bool((s.cliente or {}).get("nombre")) if not nombre else False
     resumen = {
         "borrador_id": borrador.id,
         "tipo": tipo,
@@ -824,15 +854,18 @@ async def confirmar(
         resumen["cuando"] = await _humanizar(s.bloqueo.inicio)
 
     if not confirmado:
+        aviso = (
+            "NO se agendó nada todavía. Leele este resumen al cliente con día, hora, "
+            "recurso y total, y pedile que confirme. Con su sí, repetí esta tool "
+            "con confirmado=true."
+        )
+        if nombre_de_la_ficha:
+            aviso += " (nombre ya conocido, no se lo vuelvas a preguntar)"
         return {
             "ok": True,
             "ejecutado": False,
             "resumen": resumen,
-            "aviso": (
-                "NO se agendó nada todavía. Leele este resumen al cliente con día, hora, "
-                "recurso y total, y pedile que confirme. Con su sí, repetí esta tool "
-                "con confirmado=true."
-            ),
+            "aviso": aviso,
             "siguiente_paso": "confirmar(confirmado=true)",
         }
 
@@ -1004,7 +1037,32 @@ async def cancelar(compromiso_id: str, motivo: str, confirmado: bool = False) ->
     insistas, decile que se comunique con el negocio. Después de cancelar, ofrecele
     buscar otro turno.
     """
-    datos = await core().compromiso(compromiso_id)
+    try:
+        datos = await core().compromiso(compromiso_id)
+    except ErrorDelCore as e:
+        # 15/10: "cancelalo" sobre un pedido que todavía era BORRADOR (nunca
+        # pasó por `confirmar`, nunca se escribió nada en el core). El
+        # `compromiso_id` que el modelo tiene a mano en ese caso es el
+        # `borrador_id` (`bor_xxxxxxxx`, lo arma `armar_compromiso`), que el
+        # core no conoce: devuelve 404 y el cliente se llevaba un error
+        # genérico en vez de un simple "quedó cancelado".
+        #
+        # Como nada se escribió todavía, no hay nada real que perder: se
+        # resuelve en la misma llamada, sin pedir una segunda confirmación
+        # (a diferencia de cancelar un turno real, que sí la pide). Si no hay
+        # borrador activo, o el error es otro, el comportamiento de siempre:
+        # se repropaga y `traduce_errores` lo convierte en el dict de error.
+        if e.codigo == "no_encontrado" and sesion().borrador is not None:
+            sesion().limpiar_compromiso()
+            return {
+                "ok": True,
+                "ejecutado": True,
+                "compromiso_id": compromiso_id,
+                "motivo": motivo,
+                "aviso": "Era un borrador, no había llegado al local: decile que quedó "
+                "cancelado, sin mencionar ningún número de pedido.",
+            }
+        raise
 
     # Dueño del compromiso: sólo el cliente que lo pidió puede cancelarlo. Sin
     # esto, un cliente con un UUID ajeno cancela el turno de otro del mismo

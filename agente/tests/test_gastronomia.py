@@ -170,6 +170,35 @@ async def test_datos_del_negocio_expone_politica_de_pedido_y_delivery(respx_mock
     assert r["acepta_delivery"] is True
 
 
+# Bug de producción (15/10): el bot le volvía a pedir el nombre a un cliente que
+# ya lo tenía cargado en su ficha (o que lo había dicho recién en la charla),
+# porque `datos_del_negocio` llamaba a `_cliente()` y DESCARTABA el resultado:
+# el modelo nunca se enteraba de que el nombre ya se sabía.
+@respx.mock(base_url=BASE, assert_all_called=False)
+async def test_datos_del_negocio_expone_el_nombre_ya_conocido_del_cliente(respx_mock, core):
+    _base(respx_mock)
+    respx_mock.get(f"/api/clientes/por-telefono/{TELEFONO}").mock(
+        return_value=httpx.Response(200, json=CLIENTE)  # CLIENTE["nombre"] == "Juani"
+    )
+    r = await server.datos_del_negocio()
+
+    assert r["ok"] and r["cliente_nombre_conocido"] == "Juani"
+
+
+@respx.mock(base_url=BASE, assert_all_called=False)
+async def test_datos_del_negocio_nombre_conocido_es_none_sin_ficha_de_cliente(respx_mock, core):
+    # Triangulación: cliente nuevo, el core nunca lo vio (ni ficha previa ni
+    # alta posible) → no hay nombre que conocer.
+    _base(respx_mock)
+    respx_mock.get(f"/api/clientes/por-telefono/{TELEFONO}").mock(
+        return_value=httpx.Response(404, json={"detail": "sin ficha"})
+    )
+    respx_mock.post("/api/clientes").mock(return_value=httpx.Response(500, json={"detail": "caido"}))
+    r = await server.datos_del_negocio()
+
+    assert r["ok"] and r["cliente_nombre_conocido"] is None
+
+
 @respx.mock(base_url=BASE, assert_all_called=False)
 async def test_la_carta_no_ofrece_lo_que_apagaron_en_el_panel(respx_mock, core):
     _base(respx_mock)
@@ -475,7 +504,70 @@ async def test_delivery_con_direccion_confirma_y_la_manda_al_core(respx_mock, co
     assert cuerpo["direccion"] == "San Martín 1234"
 
 
+# Bug de producción (15/10): el preview de `confirmar` ya usaba el nombre de la
+# ficha cuando no venía por parámetro (línea 816), pero el aviso no lo decía:
+# el modelo leía el resumen, veía un nombre y lo volvía a preguntar igual.
+@respx.mock(base_url=BASE, assert_all_called=False)
+async def test_confirmar_preview_avisa_que_el_nombre_ya_se_conoce(respx_mock, core):
+    _base(respx_mock)
+    respx_mock.get(f"/api/clientes/por-telefono/{TELEFONO}").mock(
+        return_value=httpx.Response(200, json=CLIENTE)  # CLIENTE["nombre"] == "Juani"
+    )
+    await server.datos_del_negocio()  # así se entera el agente de verdad, vía `_cliente()`
+    await server.armar_compromiso([LineaPedida(servicio="papas")], entrega="retira")
+
+    previo = await server.confirmar()  # sin `nombre`: tiene que salir de la ficha
+
+    assert previo["ok"] and previo["resumen"]["cliente_nombre"] == "Juani"
+    assert "nombre ya conocido" in previo["aviso"].lower()
+
+
+@respx.mock(base_url=BASE, assert_all_called=False)
+async def test_confirmar_preview_no_avisa_nombre_conocido_si_lo_dio_el_parametro(respx_mock, core):
+    # Triangulación/regresión: si el nombre vino POR PARÁMETRO (el cliente lo
+    # dijo recién en la charla), no hay ficha previa que mencionar — no hay que
+    # agregar un aviso que no corresponde.
+    _base(respx_mock)
+    respx_mock.get(f"/api/clientes/por-telefono/{TELEFONO}").mock(
+        return_value=httpx.Response(200, json=CLIENTE)
+    )
+    await server.datos_del_negocio()
+    await server.armar_compromiso([LineaPedida(servicio="papas")], entrega="retira")
+
+    previo = await server.confirmar(nombre="Otra persona")
+
+    assert previo["ok"] and previo["resumen"]["cliente_nombre"] == "Otra persona"
+    assert "nombre ya conocido" not in previo["aviso"].lower()
+
+
 # ── E12: descripción de plato, info del local y consultas ─────────────────────
+
+
+# Bug de producción (15/10): sin `descripcion` cargada, el campo NI APARECÍA en
+# la respuesta — y el modelo, al no verlo, inventó ingredientes por el nombre
+# del plato ("napolitana" → "jamón cocido, mozzarella y tomate"). El fix: nunca
+# omitir el campo. Si no hay dato, va explícito en `None` con
+# `descripcion_cargada=False`, para que el modelo tenga algo que mirar antes de
+# inventar, no un agujero que rellena solo.
+def test_servicio_sin_descripcion_no_la_inventa_viene_explicito_en_none():
+    visible = server._servicio_visible({"nombre": "Napolitana", "precio_base": "9000.00"})
+
+    assert visible["descripcion"] is None
+    assert visible["descripcion_cargada"] is False
+
+
+def test_servicio_con_descripcion_marca_cargada(core):
+    # Triangulación: mismo helper, el caso CON el dato cargado.
+    visible = server._servicio_visible(
+        {
+            "nombre": "Doble bacon",
+            "precio_base": "9500.00",
+            "descripcion": "Doble medallón, cheddar, panceta y salsa de la casa",
+        }
+    )
+
+    assert visible["descripcion"] == "Doble medallón, cheddar, panceta y salsa de la casa"
+    assert visible["descripcion_cargada"] is True
 
 
 @respx.mock(base_url=BASE, assert_all_called=False)
@@ -491,9 +583,12 @@ async def test_la_carta_trae_la_descripcion_para_responder_que_lleva(respx_mock,
 
     doble = next(s for s in r["servicios"] if s["nombre"] == "Doble bacon")
     assert doble["descripcion"] == "Doble medallón, cheddar, panceta y salsa de la casa"
-    # el ítem sin descripción cargada NO la trae (no se inventa)
+    assert doble["descripcion_cargada"] is True
+    # el ítem sin descripción cargada NO se omite: va explícito en None, para
+    # que el modelo no la rellene inventando por el nombre del plato.
     papas = next(s for s in r["servicios"] if s["nombre"] == "Papas")
-    assert "descripcion" not in papas
+    assert papas["descripcion"] is None
+    assert papas["descripcion_cargada"] is False
 
 
 @respx.mock(base_url=BASE, assert_all_called=False)
