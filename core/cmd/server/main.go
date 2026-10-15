@@ -202,7 +202,13 @@ func main() {
 		ClienteSvc: service.NewClienteService(clienteRepo, coberturaRepo),
 		AuditSvc:   service.NewAuditService(auditRepo),
 		MotorSvc: service.NewMotorGastro(
-			service.NewMotorService(compromisoRepo, holdRepo, service.ConNotificador(huecoLiberado)),
+			service.NewMotorService(compromisoRepo, holdRepo, service.ConNotificador(huecoLiberado),
+				// Gate de jornada cerrada: nació de un bug de producción (pedido
+				// de WhatsApp sin caja abierta). Va en el motor base porque el
+				// alta es un único camino para pedido, reserva y turno, y la
+				// regla sólo aplica a pedido+whatsapp.
+				service.ConControlDeJornada(jornadaRepo),
+			),
 			negDatosRepo,
 			service.ConAvisadorPedido(worker.NewAvisadorPedido(publicador)),
 			// Las dos capas del stock en una sola opción: el descontador mira
@@ -235,7 +241,11 @@ func main() {
 		),
 		ReporteSvc:   service.NewReporteService(reporteRepo, negDatosRepo),
 		NegDatosRepo: negDatosRepo,
-		HorarioH:     handler.NewHorariosHandler(horarioRepo),
+		// JornadaRepo se lo pasa al router para que GET /api/negocio pueda
+		// resolver abierto_ahora (el agente no puede pegarle directo a
+		// /api/jornada/actual: ese endpoint es sólo de dueño/admin).
+		JornadaRepo: jornadaRepo,
+		HorarioH:    handler.NewHorariosHandler(horarioRepo),
 	})
 
 	srv := &http.Server{

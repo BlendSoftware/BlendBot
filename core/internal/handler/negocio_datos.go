@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -21,11 +22,24 @@ import (
 // Va directo al repositorio, como HorariosHandler: no hay regla de negocio que
 // mediar, es un SELECT del propio tenant.
 type NegocioDatosHandler struct {
-	repo repository.NegocioDatosRepository
+	repo     repository.NegocioDatosRepository
+	jornadas repository.JornadaRepository
 }
 
-func NewNegocioDatosHandler(repo repository.NegocioDatosRepository) *NegocioDatosHandler {
-	return &NegocioDatosHandler{repo: repo}
+func NewNegocioDatosHandler(repo repository.NegocioDatosRepository, jornadas repository.JornadaRepository) *NegocioDatosHandler {
+	return &NegocioDatosHandler{repo: repo, jornadas: jornadas}
+}
+
+// abiertoAhora resuelve si la caja del día está abierta para este tenant. El
+// agente la necesita para saber si avisarle al cliente que su pedido va a
+// entrar, y no puede pedirla directo: GET /api/jornada/actual es sólo de
+// dueño/admin (middleware.RequireRole), así que viaja acá adentro.
+func (h *NegocioDatosHandler) abiertoAhora(ctx context.Context, negocioID string) (bool, error) {
+	j, err := h.jornadas.Actual(ctx, negocioID)
+	if err != nil {
+		return false, err
+	}
+	return j.Abierta(), nil
 }
 
 // Register cuelga las rutas del grupo /api ya autenticado y con tenant. El GET
@@ -56,7 +70,13 @@ func (h *NegocioDatosHandler) Obtener(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, dto.NegocioDatosDesdeModel(n, coberturas))
+	abierta, err := h.abiertoAhora(ctx, negocioID)
+	if err != nil {
+		errorDeServicio(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.NegocioDatosDesdeModel(n, coberturas, abierta))
 }
 
 // Actualizar mergea la info del local (dirección, horarios, teléfono, notas) en
@@ -98,5 +118,10 @@ func (h *NegocioDatosHandler) Actualizar(c *gin.Context) {
 		errorDeServicio(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, dto.NegocioDatosDesdeModel(n, coberturas))
+	abierta, err := h.abiertoAhora(ctx, negocioID)
+	if err != nil {
+		errorDeServicio(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, dto.NegocioDatosDesdeModel(n, coberturas, abierta))
 }

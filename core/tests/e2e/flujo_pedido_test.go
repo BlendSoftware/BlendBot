@@ -55,6 +55,11 @@ func TestFlujoPedidoGastronomia(t *testing.T) {
 		"nombre":   "Juani",
 	}, token).exigir(http.StatusCreated).en(&cliente)
 
+	// Sin esto, el pedido para retirar de más abajo choca con el gate de
+	// jornada cerrada (capability nueva: un pedido de WhatsApp no entra sin la
+	// caja del día abierta).
+	hacer(t, http.MethodPost, "/api/jornada/abrir", nil, token).exigir(http.StatusCreated)
+
 	// Delivery a un negocio que no lo acepta → 422.
 	hacer(t, http.MethodPost, "/api/compromisos", map[string]any{
 		"cliente_id": cliente.ID,

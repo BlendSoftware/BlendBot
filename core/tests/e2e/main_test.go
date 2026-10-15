@@ -180,7 +180,12 @@ func armarRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) *gin.Engine
 		ClienteSvc: service.NewClienteService(clienteRepo, coberturaRepo),
 		AuditSvc:   service.NewAuditService(auditRepo),
 		MotorSvc: service.NewMotorGastro(
-			service.NewMotorService(compromisoRepo, holdRepo, service.ConNotificador(huecoLiberado)),
+			service.NewMotorService(compromisoRepo, holdRepo, service.ConNotificador(huecoLiberado),
+				// Igual que en main.go: el gate de jornada cerrada es parte del
+				// motor real, no un detalle de wiring de producción. Sin esto el
+				// e2e certificaría un motor que no es el que corre en producción.
+				service.ConControlDeJornada(jornadaRepo),
+			),
 			negDatosRepo,
 			service.ConControlDeStock(
 				service.NewDescontadorStock(recetaRepo, insumoRepo, cupoRepo),
@@ -206,7 +211,10 @@ func armarRouter(db *gorm.DB, rdb *redis.Client, cfg *config.Config) *gin.Engine
 		),
 		ReporteSvc:   service.NewReporteService(reporteRepo, negDatosRepo),
 		NegDatosRepo: negDatosRepo,
-		HorarioH:     handler.NewHorariosHandler(horarioRepo),
+		// Igual que en main.go: GET /api/negocio necesita JornadaRepository para
+		// resolver abierto_ahora.
+		JornadaRepo: jornadaRepo,
+		HorarioH:    handler.NewHorariosHandler(horarioRepo),
 	})
 }
 

@@ -13,6 +13,19 @@ from typing import Any
 import httpx
 
 
+# Mensaje compartido con server.py: el mismo texto sale tanto del chequeo
+# local de `armar_compromiso` (que lee `abierto_ahora` ANTES de tocar el
+# core) como de la traducción de abajo, para la carrera en que el core
+# rechaza algo que el chequeo local ya había dejado pasar (la caja se cerró
+# entre que se armó el pedido y se confirmó). Un solo texto evita que el
+# cliente lea dos frases distintas para el mismo motivo según en qué momento
+# lo frenaron.
+AVISO_LOCAL_CERRADO = (
+    "El local está cerrado ahora: no tomes el pedido. Decile el horario "
+    "(horarios) y que escriba cuando esté abierto. No lo anotes para después."
+)
+
+
 class ErrorDelCore(Exception):
     """Falla ya traducida a algo que el modelo puede decirle al cliente.
 
@@ -96,6 +109,18 @@ def traducir(status: int, detalle: str, contexto: str) -> ErrorDelCore:
         )
 
     if status == 409:
+        if "jornada" in d and "cerrad" in d:
+            # ErrPedidoRequiereJornadaAbierta (motor_errors.go): un pedido de
+            # WhatsApp con la caja del día cerrada. Chequeo por texto, igual
+            # que el de "duracion" en el 422 de abajo: apierror.APIError sólo
+            # tiene `Detail`, no hay código estructurado que distinguirlo del
+            # resto de los 409 de "estado incompatible".
+            return ErrorDelCore(
+                AVISO_LOCAL_CERRADO,
+                codigo="local_cerrado",
+                status=status,
+                detalle=detalle,
+            )
         if contexto == "estado":
             return ErrorDelCore(
                 "El core rechazó ese cambio de estado porque no es una transición válida "

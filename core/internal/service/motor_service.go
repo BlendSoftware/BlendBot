@@ -36,6 +36,11 @@ type motorService struct {
 	repo        repository.CompromisoRepository
 	holds       repository.HoldRepository
 	notificador Notificador // opcional: nil = el motor no avisa nada
+
+	// jornadas es el control opcional de la alta de pedidos de WhatsApp (gate
+	// de jornada cerrada). nil = comportamiento de siempre, sin preguntar
+	// nada: ningún wiring que no lo cablee se rompe.
+	jornadas repository.JornadaRepository
 }
 
 // OpcionMotor configura el motor sin tocarle la firma al constructor: los
@@ -46,6 +51,15 @@ type OpcionMotor func(*motorService)
 // futuro, alguien se entera y le ofrece el hueco a la lista de espera.
 func ConNotificador(n Notificador) OpcionMotor {
 	return func(s *motorService) { s.notificador = n }
+}
+
+// ConControlDeJornada engancha el gate de "no hay jornada abierta": un pedido
+// que entra por WhatsApp sin la caja del día abierta se rechaza ANTES de
+// crearse (ErrPedidoRequiereJornadaAbierta). Sin esta opción el motor no
+// pregunta nada, que es el comportamiento de hoy — así un wiring de test que
+// todavía no setea JornadaRepository sigue andando igual.
+func ConControlDeJornada(jornadas repository.JornadaRepository) OpcionMotor {
+	return func(s *motorService) { s.jornadas = jornadas }
 }
 
 func NewMotorService(repo repository.CompromisoRepository, holds repository.HoldRepository, opts ...OpcionMotor) MotorService {
@@ -74,6 +88,16 @@ func (s *motorService) Crear(ctx context.Context, negocioID string, in dto.Crear
 	}
 	if in.Inicio != nil && !in.Fin.After(*in.Inicio) {
 		return nil, fmt.Errorf("fin tiene que ser posterior a inicio")
+	}
+
+	// El control de abajo es ESPECÍFICO de pedidos que entran por WhatsApp:
+	// una reserva o un turno no lo necesitan (otro vertical, otra realidad), y
+	// un pedido cargado desde el panel tampoco (quien lo tipea ya está viendo
+	// lo que hace). Fuera de ese caso, cero cambios de comportamiento.
+	if in.Tipo == model.CompromisoPedido && in.Origen == model.OrigenWhatsApp {
+		if err := s.verificarJornadaAbierta(ctx, negocioID); err != nil {
+			return nil, err
+		}
 	}
 
 	coberturaID, ok, err := s.repo.CoberturaDeCliente(ctx, negocioID, in.ClienteID)
@@ -173,6 +197,24 @@ func (s *motorService) Crear(ctx context.Context, negocioID string, in dto.Crear
 		return nil, err
 	}
 	return dto.CompromisoDesdeModel(ctx, c), nil
+}
+
+// verificarJornadaAbierta corta el alta de un pedido de WhatsApp si la caja
+// del día no está abierta. j.Abierta() tolera j == nil (el método del modelo
+// ya lo contempla), así que "sin jornada" y "jornada cerrada" caen en el
+// mismo rechazo sin un chequeo extra acá.
+func (s *motorService) verificarJornadaAbierta(ctx context.Context, negocioID string) error {
+	if s.jornadas == nil {
+		return nil // nadie cableó el control: comportamiento de siempre.
+	}
+	j, err := s.jornadas.Actual(ctx, negocioID)
+	if err != nil {
+		return err
+	}
+	if !j.Abierta() {
+		return ErrPedidoRequiereJornadaAbierta
+	}
+	return nil
 }
 
 func (s *motorService) Obtener(ctx context.Context, negocioID, id string) (*dto.CompromisoResponse, error) {

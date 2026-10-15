@@ -22,6 +22,11 @@ type NegocioDatosResponse struct {
 	Timezone   string           `json:"timezone"`
 	Config     json.RawMessage  `json:"config"`
 	Coberturas []CoberturaBreve `json:"coberturas"`
+	// AbiertoAhora es si la jornada (la caja del día) está abierta en este
+	// momento. El agente no puede pegarle a GET /api/jornada/actual (ese
+	// endpoint es sólo de dueño/admin), así que este booleano es su única
+	// forma de saber si puede avisarle al cliente que el pedido va a entrar.
+	AbiertoAhora bool `json:"abierto_ahora"`
 }
 
 // ActualizarNegocioInput es el PATCH /api/negocio del dueño: por ahora sólo la
@@ -49,7 +54,9 @@ type TokenAgenteResponse struct {
 }
 
 // NegocioDatosDesdeModel arma la ficha a partir del tenant y sus coberturas.
-func NegocioDatosDesdeModel(n *model.Negocio, cs []model.Cobertura) *NegocioDatosResponse {
+// abiertoAhora viaja aparte porque no es un dato del negocio: es el estado de
+// la jornada en el momento del request, y el handler ya lo resolvió.
+func NegocioDatosDesdeModel(n *model.Negocio, cs []model.Cobertura, abiertoAhora bool) *NegocioDatosResponse {
 	if n == nil {
 		return nil
 	}
@@ -62,11 +69,12 @@ func NegocioDatosDesdeModel(n *model.Negocio, cs []model.Cobertura) *NegocioDato
 		config = json.RawMessage(`{}`)
 	}
 	return &NegocioDatosResponse{
-		ID:         n.ID,
-		Nombre:     n.Nombre,
-		Vertical:   n.Vertical,
-		Timezone:   n.Timezone,
-		Config:     config,
-		Coberturas: coberturas,
+		ID:           n.ID,
+		Nombre:       n.Nombre,
+		Vertical:     n.Vertical,
+		Timezone:     n.Timezone,
+		Config:       config,
+		Coberturas:   coberturas,
+		AbiertoAhora: abiertoAhora,
 	}
 }

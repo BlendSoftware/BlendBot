@@ -792,3 +792,116 @@ async def test_armar_el_pedido_avisa_que_el_nombre_ya_se_conoce(respx_mock, core
 
     assert r["cliente_nombre"] == CLIENTE["nombre"]
     assert "no le preguntes el nombre" in r["aviso"]
+
+
+# ── E15: local cerrado (jornada/caja) y tope de cantidad por línea ───────────
+#
+# Bug de producción (15/10/2026): un pedido de "100 napolitanas" coló sin que
+# nadie lo viera porque no había jornada abierta ni nadie mirando el panel. El
+# core ahora rechaza ambos casos (core/internal/service/motor_service.go) para
+# tipo=pedido + origen=whatsapp. Estos tests cubren el espejo del lado del
+# agente: el gate local en `armar_compromiso` (best-effort, lee lo que trajo
+# `_negocio()`) y la traducción de los 409/422 que el core puede devolver
+# igual en `confirmar` por una carrera (la caja se cerró, o el límite se cruzó,
+# entre que se armó el pedido y se confirmó).
+
+
+def _negocio_cerrado(**over):
+    neg = copy.deepcopy(GASTRO_NEGOCIO)
+    neg["abierto_ahora"] = False
+    neg.update(over)
+    return neg
+
+
+def _negocio_abierto(**over):
+    neg = copy.deepcopy(GASTRO_NEGOCIO)
+    neg["abierto_ahora"] = True
+    neg.update(over)
+    return neg
+
+
+def _carta_con_negocio(respx_mock, negocio, menu=MENU):
+    """Como `_carta`, pero con el negocio que pida el test (para abierto_ahora
+    y overrides de config, como `cantidad_maxima_por_linea`)."""
+    respx_mock.get("/api/negocio").mock(return_value=httpx.Response(200, json=negocio))
+    respx_mock.get("/api/coberturas").mock(return_value=httpx.Response(200, json=[]))
+    respx_mock.get("/api/categorias").mock(
+        return_value=httpx.Response(200, json=copy.deepcopy(CATEGORIAS))
+    )
+    return respx_mock.get("/api/servicios").mock(
+        return_value=httpx.Response(200, json=copy.deepcopy(menu))
+    )
+
+
+@respx.mock(base_url=BASE, assert_all_called=False)
+async def test_datos_del_negocio_expone_abierto_ahora_true(respx_mock, core):
+    _carta_con_negocio(respx_mock, _negocio_abierto())
+    respx_mock.get(f"/api/clientes/por-telefono/{TELEFONO}").mock(
+        return_value=httpx.Response(200, json=CLIENTE)
+    )
+    r = await server.datos_del_negocio()
+
+    assert r["ok"] and r["abierto_ahora"] is True
+
+
+@respx.mock(base_url=BASE, assert_all_called=False)
+async def test_datos_del_negocio_expone_abierto_ahora_false(respx_mock, core):
+    # Triangulación del anterior: el campo viaja tal cual lo manda el core.
+    _carta_con_negocio(respx_mock, _negocio_cerrado())
+    respx_mock.get(f"/api/clientes/por-telefono/{TELEFONO}").mock(
+        return_value=httpx.Response(200, json=CLIENTE)
+    )
+    r = await server.datos_del_negocio()
+
+    assert r["ok"] and r["abierto_ahora"] is False
+
+
+@respx.mock(base_url=BASE, assert_all_called=False)
+async def test_armar_compromiso_con_local_cerrado_no_arma_nada(respx_mock, core):
+    _carta_con_negocio(respx_mock, _negocio_cerrado())
+    escritura = _con_escritura(respx_mock)
+
+    r = await server.armar_compromiso([LineaPedida(servicio="papas")], entrega="retira")
+
+    assert r["ok"] is False and r["codigo"] == "local_cerrado"
+    assert "cerrado" in r["error"].lower()
+    assert not escritura.called
+
+    # y no quedó borrador: `confirmar` no encuentra nada armado
+    siguiente = await server.confirmar(nombre="Juani", confirmado=True)
+    assert siguiente["codigo"] == "sin_borrador"
+
+
+@respx.mock(base_url=BASE, assert_all_called=False)
+async def test_armar_compromiso_con_local_abierto_si_arma(respx_mock, core):
+    # Triangulación: mismo pedido, local abierto, sí arma y deja borrador.
+    _carta_con_negocio(respx_mock, _negocio_abierto())
+
+    r = await server.armar_compromiso([LineaPedida(servicio="papas")], entrega="retira")
+
+    assert r["ok"] is True
+    previo = await server.confirmar(nombre="Juani")
+    assert previo["ok"] is True and previo["ejecutado"] is False
+
+
+@respx.mock(base_url=BASE, assert_all_called=False)
+async def test_confirmar_traduce_409_de_jornada_cerrada(respx_mock, core):
+    # La carrera: `armar_compromiso` vio la caja abierta, pero el local la
+    # cerró antes de que el cliente dijera que sí. Texto real del core (ver
+    # core/internal/service/motor_errors.go, ErrPedidoRequiereJornadaAbierta).
+    _carta_con_negocio(respx_mock, _negocio_abierto())
+    respx_mock.get(f"/api/clientes/por-telefono/{TELEFONO}").mock(
+        return_value=httpx.Response(200, json=CLIENTE)
+    )
+    respx_mock.post("/api/compromisos").mock(
+        return_value=httpx.Response(
+            409,
+            json={"detail": "no se puede crear un pedido de whatsapp con la jornada cerrada"},
+        )
+    )
+    await server.armar_compromiso([LineaPedida(servicio="papas")], entrega="retira")
+
+    r = await server.confirmar(nombre="Juani", confirmado=True)
+
+    assert r["ok"] is False and r["codigo"] == "local_cerrado"
+    assert "cerrado" in r["error"].lower()

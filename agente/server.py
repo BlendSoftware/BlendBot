@@ -21,7 +21,7 @@ from zoneinfo import ZoneInfo
 from fastmcp import FastMCP
 from pydantic import BaseModel, Field
 
-from core_client import CoreClient, ErrorDelCore
+from core_client import AVISO_LOCAL_CERRADO, CoreClient, ErrorDelCore
 from resolucion import Resolucion, resolver
 from sesion import Bloqueo, Borrador, LineaBorrador, a_decimal, plata, sesion
 from settings import get_settings
@@ -458,6 +458,10 @@ async def datos_del_negocio() -> dict[str, Any]:
         # además pone la demora desde el panel. El agente NUNCA inventa esa demora.
         "confirmacion_pedido": _politica(negocio, "pedido"),
         "confirmacion_reserva": _politica(negocio, "reserva"),
+        # Si la caja del día está abierta. El agente no puede pegarle a
+        # GET /api/jornada/actual (sólo dueño/admin): este booleano, que ya
+        # viene resuelto en /api/negocio, es la única forma de saberlo.
+        "abierto_ahora": bool(negocio.get("abierto_ahora", True)),
         "acepta_delivery": bool(config.get("acepta_delivery", False)),
         "radio_delivery_km": config.get("radio_delivery_km"),
         "hold_minutos": config.get("hold_minutos", 10),
@@ -475,6 +479,17 @@ async def datos_del_negocio() -> dict[str, Any]:
         },
         "config": config,
     }
+
+
+def _es_pedido_gastronomico(negocio: dict[str, Any]) -> bool:
+    """El gate de "local cerrado" y el tope de "cantidad_grande" espejan, del
+    lado del agente, el control que el core aplica SOLO a tipo=pedido +
+    origen=whatsapp (`core/internal/service/motor_service.go`). Ese tipo
+    únicamente existe en gastronomía (`_tipo_compromiso` de acá arriba):
+    turnos y reservas no lo pisan, y tampoco tienen "jornada" (caja) ni este
+    límite. Alcanza con mirar el vertical.
+    """
+    return str(negocio.get("vertical") or "").lower() == "gastronomia"
 
 
 class LineaPedida(BaseModel):
@@ -649,6 +664,21 @@ async def armar_compromiso(
     entra al panel apenas hay ítems, así la cocina lo ve venir. Si después agrega o cambia
     algo, volvé a llamarla: reemplaza el borrador anterior.
     """
+    negocio = await _negocio()
+    gate_pedido = _es_pedido_gastronomico(negocio)
+
+    # Bug de producción (15/10/2026): un pedido de WhatsApp entró con la caja
+    # del día cerrada y nadie lo vio hasta que ya era tarde. Este chequeo es
+    # best-effort (local, con lo que trajo `_negocio()`): la autoridad es el
+    # 409 del core en `confirmar`, que cubre la carrera de que la caja se
+    # cierre DESPUÉS de este chequeo.
+    if gate_pedido and not bool(negocio.get("abierto_ahora", True)):
+        return {
+            "ok": False,
+            "codigo": "local_cerrado",
+            "error": AVISO_LOCAL_CERRADO,
+        }
+
     servicios, agotados = await _catalogo_partido()
     if not servicios:
         return {

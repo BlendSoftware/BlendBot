@@ -187,7 +187,11 @@ func responderErrorMotor(c *gin.Context, err error) {
 		c.JSON(http.StatusConflict, apierror.New(err.Error()))
 	case errors.Is(err, service.ErrUnidadInvalida):
 		c.JSON(http.StatusUnprocessableEntity, apierror.New(err.Error()))
-	case errors.Is(err, service.ErrJornadaYaAbierta), errors.Is(err, service.ErrSinJornadaAbierta):
+	case errors.Is(err, service.ErrJornadaYaAbierta), errors.Is(err, service.ErrSinJornadaAbierta),
+		errors.Is(err, service.ErrPedidoRequiereJornadaAbierta):
+		// Los tres son 409: el estado de la jornada no es compatible con lo que
+		// se pidió. ErrPedidoRequiereJornadaAbierta es el único de alta de
+		// pedido, por eso tiene su propio texto (ver el comentario del sentinel).
 		c.JSON(http.StatusConflict, apierror.New(err.Error()))
 	case errors.Is(err, service.ErrMedioPagoInvalido),
 		errors.Is(err, service.ErrCUITInvalido),
