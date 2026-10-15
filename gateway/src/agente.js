@@ -44,7 +44,9 @@ const TEXTO_SEGURO = 'Perdón, no pude registrar tu pedido todavía. ¿Me lo rep
  * se trata igual que una afirmación sin respaldo (mismo reintento, mismo
  * `TEXTO_SEGURO` de arriba — no es un mecanismo nuevo).
  */
-const NOMBRES_DE_TOOLS_INTERNAS = ['mcp__', 'ver_catalogo', 'armar_compromiso', 'confirmar', 'tool'];
+// Sin "confirmar" a secas: en castellano es una palabra de todos los días
+// ("¿querés confirmar el pedido?") y dispararía reintentos con respuestas sanas.
+const NOMBRES_DE_TOOLS_INTERNAS = ['mcp__', 'ver_catalogo', 'armar_compromiso', 'tool'];
 /** Texto fijo cuando el MCP `copiloto` no conectó ni en el reintento (ver `estadoCopiloto`). */
 const TEXTO_SEGURO_MCP = 'Perdón, tuve un problema técnico y no pude leer la carta. ¿Me escribís de nuevo?';
 

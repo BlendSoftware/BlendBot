@@ -493,4 +493,15 @@ describe('red: el texto final no puede nombrar una tool interna', () => {
 
     expect(r.texto).toBe('Tenemos muzzarella y fugazzeta.');
   });
+
+  it('"confirmar" en castellano común no cuenta como nombre de tool', async () => {
+    const texto = '¿Querés confirmar el pedido así o le cambiamos algo?';
+    const { agente } = armar({
+      mensajes: [textoAsistente(texto), { type: 'result', session_id: 'ses-1' }],
+    });
+
+    const r = await agente.responder({ tenant: TENANT, telefono: CLIENTE, texto: 'dale', clave: CLAVE });
+
+    expect(r.texto).toBe(texto);
+  });
 });
