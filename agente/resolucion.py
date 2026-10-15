@@ -30,6 +30,20 @@ def _singular(palabra: str) -> str:
     return palabra[:-1] if len(palabra) > 3 and palabra.endswith("s") else palabra
 
 
+def _palabras_comunes(nombres: list[str]) -> set[str]:
+    """Palabras (en singular) que aparecen en más de un nombre del catálogo."""
+    vistas: dict[str, int] = {}
+    for valor in nombres:
+        for p in {_singular(t) for t in valor.split()}:
+            vistas[p] = vistas.get(p, 0) + 1
+    return {p for p, veces in vistas.items() if veces > 1}
+
+
+def _sin_comunes(valor: str, comunes: set[str]) -> str:
+    propias = [t for t in valor.split() if _singular(t) not in comunes]
+    return " ".join(propias) or valor
+
+
 @dataclass(frozen=True)
 class Resolucion:
     """`item` resuelto, o candidatos para repreguntar. Nunca las dos cosas."""
@@ -88,7 +102,13 @@ def resolver(
     # del plural) tiene que ser el comienzo de una palabra del plato. Con difflib a
     # secas, "muzza grande" empataba con "Fugazzeta grande" porque "grande" pesaba
     # más que "muzza" (producción, 15/10).
-    palabras = [_singular(p) for p in consulta.split()]
+    # Las palabras que comparten varios platos ("grande", "empanada", "de") no
+    # distinguen nada: con ellas "coca grande" resolvía a "Napolitana grande"
+    # (producción, 15/10). Se compara con las que quedan; si el cliente sólo dijo
+    # palabras comunes ("empanada"), se usan todas y sale ambiguo.
+    comunes = _palabras_comunes(nombres)
+    todas = [_singular(p) for p in consulta.split()]
+    palabras = [p for p in todas if p not in comunes] or todas
     por_palabras = [
         items[n]
         for n, valor in enumerate(nombres)
@@ -99,9 +119,10 @@ def resolver(
     if len(por_palabras) > 1:
         return Resolucion(candidatos=por_palabras, ambiguo=True)
 
+    distintiva = " ".join(palabras)
     puntajes = sorted(
         (
-            (difflib.SequenceMatcher(None, consulta, valor).ratio(), n)
+            (difflib.SequenceMatcher(None, distintiva, _sin_comunes(valor, comunes)).ratio(), n)
             for n, valor in enumerate(nombres)
             if valor
         ),

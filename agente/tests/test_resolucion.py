@@ -76,3 +76,27 @@ def test_cada_palabra_tiene_que_arrancar_una_palabra_del_plato():
 def test_el_tamano_solo_sigue_siendo_ambiguo():
     r = resolver("grande", PIZZAS)
     assert r.ambiguo and {c["id"] for c in r.candidatos} >= {"muz", "fug", "nap"}
+
+
+CARTA_REAL = [
+    {"id": "ec", "nombre": "Empanada de carne"},
+    {"id": "ejq", "nombre": "Empanada de jamón y queso"},
+    {"id": "fug", "nombre": "Fugazzeta grande"},
+    {"id": "gas", "nombre": "Gaseosa 1,5 L"},
+    {"id": "muz", "nombre": "Muzzarella grande"},
+    {"id": "nap", "nombre": "Napolitana grande"},
+]
+
+
+def test_lo_que_no_esta_en_la_carta_no_se_resuelve_a_otro_plato_por_el_tamano():
+    # Producción, 15/10: "coca grande" resolvía a "Napolitana grande" y
+    # "gaseosa grande" a "Fugazzeta grande": la palabra que comparten media
+    # carta ganaba la similitud. Elegir mal es peor que repreguntar.
+    assert resolver("coca grande", CARTA_REAL).item is None
+    assert resolver("gaseosa grande", CARTA_REAL).item["id"] == "gas"
+
+
+def test_las_palabras_comunes_no_alcanzan_para_resolver():
+    assert resolver("empanadas de carne", CARTA_REAL).item["id"] == "ec"
+    r = resolver("empanada", CARTA_REAL)
+    assert r.item is None and r.ambiguo
