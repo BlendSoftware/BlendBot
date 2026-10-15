@@ -980,3 +980,31 @@ async def test_armar_compromiso_exitoso_avisa_que_es_solo_para_ahora(respx_mock,
 
     assert r["ok"] is True
     assert "para ahora" in r["aviso"].lower()
+
+
+@respx.mock(base_url=BASE, assert_all_called=False)
+async def test_el_nombre_que_da_el_cliente_le_gana_al_de_la_ficha(respx_mock, core):
+    # Producción, 15/10: escribió "Soy Marta" desde un teléfono cuya ficha decía
+    # "Juani". El bot le dijo "Dale, Marta", pero el pedido y los avisos salieron
+    # a nombre de Juani: la ficha sólo se completaba si estaba vacía.
+    _base(respx_mock)
+    _con_escritura(respx_mock)
+    patch = respx_mock.patch(f"/api/clientes/{CLIENTE['id']}").mock(
+        return_value=httpx.Response(200, json={**CLIENTE, "nombre": "Marta"})
+    )
+    await server.armar_compromiso([LineaPedida(servicio="papas")], entrega="retira")
+    r = await server.confirmar(nombre="Marta", confirmado=True)
+
+    assert r["ok"] and patch.called
+    assert json.loads(patch.calls[0].request.read())["nombre"] == "Marta"
+
+
+@respx.mock(base_url=BASE, assert_all_called=False)
+async def test_sin_nombre_nuevo_la_ficha_no_se_toca(respx_mock, core):
+    _base(respx_mock)
+    _con_escritura(respx_mock)
+    patch = respx_mock.patch(f"/api/clientes/{CLIENTE['id']}")
+    await server.armar_compromiso([LineaPedida(servicio="papas")], entrega="retira")
+    r = await server.confirmar(nombre="juani", confirmado=True)
+
+    assert r["ok"] and not patch.called

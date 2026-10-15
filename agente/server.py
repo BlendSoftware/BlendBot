@@ -22,7 +22,7 @@ from fastmcp import FastMCP
 from pydantic import BaseModel, Field
 
 from core_client import AVISO_CANTIDAD_GRANDE, AVISO_LOCAL_CERRADO, CoreClient, ErrorDelCore
-from resolucion import Resolucion, resolver
+from resolucion import Resolucion, normalizar, resolver
 from sesion import Bloqueo, Borrador, LineaBorrador, a_decimal, plata, sesion
 from settings import get_settings
 
@@ -759,7 +759,10 @@ async def armar_compromiso(
         nombre = None
     if nombre:
         salida["cliente_nombre"] = nombre
-        salida["aviso"] += f" El cliente ya se llama {nombre}: no le preguntes el nombre."
+        salida["aviso"] += (
+            f" La ficha dice {nombre}: no le preguntes el nombre. Si en esta charla se"
+            " presentó con otro, pasá ESE en `nombre` al confirmar."
+        )
     # Esta tool no recibe fecha/hora: no hay nada que "rechazar" si el cliente
     # pide para otro momento, queda como texto libre en `nota`. El recordatorio
     # fijo es lo único que puede evitar que el modelo lo tome igual. Sólo para
@@ -982,7 +985,14 @@ async def confirmar(
         )
     else:
         cambios: dict[str, Any] = {}
-        if not cliente.get("nombre") and resumen["cliente_nombre"]:
+        # El nombre que el cliente dijo en ESTA charla le gana al de la ficha: es a
+        # nombre de quién se prepara y a quién le llegan los avisos. Antes sólo se
+        # completaba si estaba vacía, y "Soy Marta" salía en el panel como "Juani"
+        # (producción, 15/10). Sin nombre nuevo (o el mismo), la ficha no se toca.
+        if resumen["cliente_nombre"] and (
+            not cliente.get("nombre")
+            or (nombre and normalizar(nombre) != normalizar(str(cliente.get("nombre"))))
+        ):
             cambios["nombre"] = str(resumen["cliente_nombre"])
         if cobertura_id and cliente.get("cobertura_id") != cobertura_id:
             cambios["cobertura_id"] = cobertura_id
