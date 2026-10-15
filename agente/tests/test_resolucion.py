@@ -51,3 +51,28 @@ def test_empate_real_devuelve_candidatos_para_preguntar():
 
 def test_catalogo_vacio_no_resuelve_nada():
     assert not resolver("corte", []).ok
+
+
+PIZZAS = [
+    {"id": "muz", "nombre": "Muzzarella grande"},
+    {"id": "fug", "nombre": "Fugazzeta grande"},
+    {"id": "nap", "nombre": "Napolitana grande"},
+    {"id": "emp", "nombre": "Empanada de carne"},
+]
+
+
+def test_el_apodo_con_el_tamano_no_empata_con_otra_del_mismo_tamano():
+    # Producción, 15/10: "3 muzzas grandes" salía ambiguo entre Muzzarella y
+    # Fugazzeta porque "grande" pesaba más que "muzza" en la similitud.
+    assert resolver("muzza grande", PIZZAS).item["id"] == "muz"
+    assert resolver("muzzas grandes", PIZZAS).item["id"] == "muz"
+
+
+def test_cada_palabra_tiene_que_arrancar_una_palabra_del_plato():
+    assert resolver("empanadas de carne", PIZZAS).item["id"] == "emp"
+    assert resolver("napo grande", PIZZAS).item["id"] == "nap"
+
+
+def test_el_tamano_solo_sigue_siendo_ambiguo():
+    r = resolver("grande", PIZZAS)
+    assert r.ambiguo and {c["id"] for c in r.candidatos} >= {"muz", "fug", "nap"}

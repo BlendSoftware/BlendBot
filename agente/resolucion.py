@@ -24,6 +24,12 @@ def normalizar(texto: str) -> str:
     return " ".join(plano.split())
 
 
+def _singular(palabra: str) -> str:
+    """"muzzas" → "muzza", "grandes" → "grande". Sólo la "s" final: alcanza para
+    comparar comienzos de palabra y no inventa raíces."""
+    return palabra[:-1] if len(palabra) > 3 and palabra.endswith("s") else palabra
+
+
 @dataclass(frozen=True)
 class Resolucion:
     """`item` resuelto, o candidatos para repreguntar. Nunca las dos cosas."""
@@ -77,6 +83,21 @@ def resolver(
         if len(arrancan) == 1:
             return Resolucion(item=arrancan[0])
         return Resolucion(candidatos=contiene, ambiguo=True)
+
+    # Por palabras, antes que la similitud: cada palabra del cliente (sin la "s"
+    # del plural) tiene que ser el comienzo de una palabra del plato. Con difflib a
+    # secas, "muzza grande" empataba con "Fugazzeta grande" porque "grande" pesaba
+    # más que "muzza" (producción, 15/10).
+    palabras = [_singular(p) for p in consulta.split()]
+    por_palabras = [
+        items[n]
+        for n, valor in enumerate(nombres)
+        if valor and all(any(t.startswith(p) for t in valor.split()) for p in palabras)
+    ]
+    if len(por_palabras) == 1:
+        return Resolucion(item=por_palabras[0])
+    if len(por_palabras) > 1:
+        return Resolucion(candidatos=por_palabras, ambiguo=True)
 
     puntajes = sorted(
         (
