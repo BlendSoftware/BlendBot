@@ -41,8 +41,21 @@ COPY gateway/tenants.example.json ./tenants.example.json
 # montó el archivo real. Con esto arranca sin tenants y lo dice en el log.
 RUN echo '{}' > /app/tenants.json
 
+# El proceso escribe los resume-id de sesión a disco (si se pierden, cada
+# conversación en curso arranca de cero) y uv toca el venv al resolverlo.
+#
+# Todo lo que `node` tiene que escribir nace suyo: el agente entra con
+# --chown y uv corre como `node`, así el Python, el venv y el cache quedan
+# en su HOME sin un `chown -R` posterior. Ese chown recorría miles de
+# archivos y, en overlayfs, copiaba cada uno a una capa nueva: el 15/10
+# dejó el build del gateway colgado más de 25 minutos en ese único paso.
+RUN mkdir -p /app/data/sesiones /opt/copiloto && \
+    chown node:node /app/data /app/data/sesiones /opt/copiloto
+
+USER node
+
 # ── Agente MCP (Python) ──────────────────────────────────────────────────────
-COPY agente /opt/copiloto/agente
+COPY --chown=node:node agente /opt/copiloto/agente
 RUN uv sync --frozen --directory /opt/copiloto/agente
 
 # `uv sync` compila (UV_COMPILE_BYTECODE=1 arriba) el bytecode de las
@@ -57,18 +70,11 @@ RUN uv sync --frozen --directory /opt/copiloto/agente
 # CLIENTE_TELEFONO, que get_settings() recién pide en runtime.
 RUN uv run --no-sync --directory /opt/copiloto/agente python -c "import server"
 
-# El proceso escribe los resume-id de sesión a disco (si se pierden, cada
-# conversación en curso arranca de cero) y uv toca el venv al resolverlo.
-RUN mkdir -p /app/data/sesiones && \
-    chown -R node:node /app /opt/copiloto /home/node
-
 ENV PORT=8090 \
     TENANTS_PATH=/app/tenants.json \
     SESIONES_DIR=/app/data/sesiones \
     RAIZ_REPO=/opt/copiloto \
     NODE_ENV=production
-
-USER node
 
 EXPOSE 8090
 
