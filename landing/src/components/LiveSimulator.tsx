@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { SIMULATION_SCENARIOS, SimulationScenario } from '../data/simulationData';
 import { MessageSquare, Tablet, Receipt, Sparkles, ShieldCheck, RefreshCw, Power } from 'lucide-react';
-import { sounds } from '../utils/audio';
 import confetti from 'canvas-confetti';
 
 export const LiveSimulator: React.FC = () => {
@@ -14,7 +13,6 @@ export const LiveSimulator: React.FC = () => {
 
   // Load scenario
   const selectScenario = (index: number) => {
-    sounds.playClick();
     setActiveScenarioIndex(index);
     setChatStep('idle');
     setTabletStatus('pendiente');
@@ -23,13 +21,11 @@ export const LiveSimulator: React.FC = () => {
 
   // Run scenario simulation
   const handleTriggerMessage = () => {
-    sounds.playClick();
     setChatStep('typing');
     setTabletStatus('pendiente');
 
     setTimeout(() => {
       setChatStep('replied');
-      sounds.playKitchenBell();
       setTabletStatus('en-marcha');
     }, 1200);
   };
@@ -37,13 +33,10 @@ export const LiveSimulator: React.FC = () => {
   // Kitchen tablet advance status
   const handleAdvanceTabletStatus = () => {
     if (tabletStatus === 'pendiente') {
-      sounds.playClick();
       setTabletStatus('en-marcha');
     } else if (tabletStatus === 'en-marcha') {
-      sounds.playClick();
       setTabletStatus('listo');
     } else if (tabletStatus === 'listo') {
-      sounds.playTicketPrint();
       setTabletStatus('cobrado');
       try {
         confetti({
@@ -61,7 +54,6 @@ export const LiveSimulator: React.FC = () => {
   // Toggle "Se Acabó" in simulator
   const handleToggleStock = () => {
     const next = !stockSwitchState;
-    sounds.playSwitch(next);
     setStockSwitchState(next);
   };
 
@@ -119,7 +111,7 @@ export const LiveSimulator: React.FC = () => {
           {/* =========================================================================
               COLUMN 1: EL CLIENTE EN WHATSAPP (4 cols)
              ========================================================================= */}
-          <div className="lg:col-span-4 bg-[#0C1317] rounded-lg border border-stone-800 p-4 sm:p-5 shadow-2xl flex flex-col justify-between h-full min-h-[520px]">
+          <div className="lg:col-span-4 bg-[#0C1317] rounded-lg border border-stone-800 p-4 sm:p-5 shadow-sm flex flex-col justify-between h-full min-h-[520px]">
             <div>
               
               {/* WhatsApp Header */}
@@ -195,7 +187,7 @@ export const LiveSimulator: React.FC = () => {
           {/* =========================================================================
               COLUMN 2: LA TABLET EN LA COCINA (4 cols)
              ========================================================================= */}
-          <div className="lg:col-span-4 bg-carbon-surface rounded-lg border border-carbon-border p-4 sm:p-5 shadow-2xl flex flex-col justify-between h-full min-h-[520px]">
+          <div className="lg:col-span-4 bg-carbon-surface rounded-lg border border-carbon-border p-4 sm:p-5 shadow-sm flex flex-col justify-between h-full min-h-[520px]">
             <div>
               
               {/* Tablet Header */}
@@ -304,7 +296,7 @@ export const LiveSimulator: React.FC = () => {
           {/* =========================================================================
               COLUMN 3: LA FACTURA FISCAL ARCA (4 cols)
              ========================================================================= */}
-          <div className="lg:col-span-4 bg-ticket-paper text-ticket-ink rounded-lg border border-stone-300 p-4 sm:p-5 shadow-2xl flex flex-col justify-between h-full min-h-[520px] font-mono relative overflow-hidden">
+          <div className="lg:col-span-4 bg-ticket-paper text-ticket-ink rounded-lg border border-stone-300 p-4 sm:p-5 shadow-sm flex flex-col justify-between h-full min-h-[520px] font-mono relative overflow-hidden">
             
             {/* Top Bar */}
             <div>

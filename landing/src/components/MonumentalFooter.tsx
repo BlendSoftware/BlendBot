@@ -1,6 +1,5 @@
 import React from 'react';
 import { ArrowUpRight } from 'lucide-react';
-import { sounds } from '../utils/audio';
 
 interface MonumentalFooterProps {
   onOpenDemo: () => void;
@@ -8,7 +7,6 @@ interface MonumentalFooterProps {
 
 export const MonumentalFooter: React.FC<MonumentalFooterProps> = ({ onOpenDemo }) => {
   const scrollToTop = () => {
-    sounds.playClick();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -22,10 +20,10 @@ export const MonumentalFooter: React.FC<MonumentalFooterProps> = ({ onOpenDemo }
             <span className="font-mono text-[9px] sm:text-[10px] text-terracota uppercase tracking-widest-editorial block mb-1.5 sm:mb-2 font-bold">
               GASTRONOMÍA & BODEGAS // MENDOZA
             </span>
-            <h2 className="font-serif italic font-normal text-paper-pure text-2xl xs:text-3xl sm:text-5xl font-bold tracking-tight">
+            <h2 className="font-serif font-semibold text-tinta text-2xl xs:text-3xl sm:text-5xl font-bold tracking-tight">
               ¿Listo para equipar tu restaurante?
             </h2>
-            <p className="mt-2 sm:mt-3 text-bone-muted font-sans text-xs sm:text-base font-light">
+            <p className="mt-2 sm:mt-3 text-bone-muted font-sans text-xs sm:text-base font-normal">
               Sumate a los locales de Mendoza que operan con reservas automáticas, comandera en cocina y facturación en regla.
             </p>
           </div>
@@ -33,10 +31,9 @@ export const MonumentalFooter: React.FC<MonumentalFooterProps> = ({ onOpenDemo }
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 font-mono text-xs">
             <button
               onClick={() => {
-                sounds.playKitchenBell();
                 onOpenDemo();
               }}
-              className="w-full sm:w-auto px-6 sm:px-8 py-4 bg-terracota hover:bg-terracota-light text-white font-bold uppercase tracking-wider transition-all duration-200 active:scale-95 shadow-xl flex items-center justify-center gap-2 rounded-sm min-h-[48px]"
+              className="w-full sm:w-auto px-6 sm:px-8 py-4 bg-terracota hover:bg-terracota-light text-white font-bold uppercase tracking-wider transition-all duration-200 active:scale-95 shadow-sm flex items-center justify-center gap-2 rounded-sm min-h-[48px]"
             >
               <span>Equipar mi Local en Mendoza</span>
               <ArrowUpRight className="w-4 h-4" />
@@ -44,7 +41,7 @@ export const MonumentalFooter: React.FC<MonumentalFooterProps> = ({ onOpenDemo }
 
             <button
               onClick={scrollToTop}
-              className="w-full sm:w-auto px-5 py-3.5 sm:py-4 border border-dark-border hover:border-terracota text-paper-pure hover:text-terracota uppercase tracking-wider transition-colors text-center rounded-sm bg-dark/50 min-h-[44px]"
+              className="w-full sm:w-auto px-5 py-3.5 sm:py-4 border border-dark-border hover:border-terracota text-tinta hover:text-terracota uppercase tracking-wider transition-colors text-center rounded-sm bg-dark/50 min-h-[44px]"
             >
               Volver Arriba ↑
             </button>
@@ -54,7 +51,7 @@ export const MonumentalFooter: React.FC<MonumentalFooterProps> = ({ onOpenDemo }
         {/* Colophon & Credits Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 font-mono text-xs text-bone-muted border-b border-dark-border pb-10 sm:pb-12 mb-8 sm:mb-12">
           <div>
-            <span className="text-paper-pure font-bold uppercase tracking-wider block mb-2 text-[11px] sm:text-xs">
+            <span className="text-tinta font-bold uppercase tracking-wider block mb-2 text-[11px] sm:text-xs">
               SISTEMA INTEGRAL
             </span>
             <ul className="space-y-1 text-bone-muted text-[10px] sm:text-xs">
@@ -66,7 +63,7 @@ export const MonumentalFooter: React.FC<MonumentalFooterProps> = ({ onOpenDemo }
           </div>
 
           <div>
-            <span className="text-paper-pure font-bold uppercase tracking-wider block mb-2 text-[11px] sm:text-xs">
+            <span className="text-tinta font-bold uppercase tracking-wider block mb-2 text-[11px] sm:text-xs">
               VERTICALES MENDOZA
             </span>
             <ul className="space-y-1 text-bone-muted text-[10px] sm:text-xs">
@@ -78,7 +75,7 @@ export const MonumentalFooter: React.FC<MonumentalFooterProps> = ({ onOpenDemo }
           </div>
 
           <div>
-            <span className="text-paper-pure font-bold uppercase tracking-wider block mb-2 text-[11px] sm:text-xs">
+            <span className="text-tinta font-bold uppercase tracking-wider block mb-2 text-[11px] sm:text-xs">
               INFRAESTRUCTURA
             </span>
             <ul className="space-y-1 text-bone-muted text-[10px] sm:text-xs">
@@ -90,7 +87,7 @@ export const MonumentalFooter: React.FC<MonumentalFooterProps> = ({ onOpenDemo }
           </div>
 
           <div>
-            <span className="text-paper-pure font-bold uppercase tracking-wider block mb-2 text-[11px] sm:text-xs">
+            <span className="text-tinta font-bold uppercase tracking-wider block mb-2 text-[11px] sm:text-xs">
               CONTACTO & SEDE
             </span>
             <div className="space-y-1 text-bone-muted text-[10px] sm:text-xs">

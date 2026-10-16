@@ -15,7 +15,7 @@ export const TheMoatComparison: React.FC = () => {
           </div>
           <h2 className="font-display text-3xl sm:text-5xl font-extrabold uppercase text-bone tracking-tightest leading-tight">
             Contestar mensajes lo hace cualquiera. <br />
-            <span className="text-ember font-serif italic font-normal">Cerrar el circuito fiscal y de cocina, no.</span>
+            <span className="text-ember font-serif font-normal">Cerrar el circuito fiscal y de cocina, no.</span>
           </h2>
           <p className="mt-4 text-base text-bone-muted font-sans">
             Las apps de delivery te cobran comisiones confiscatorias y se quedan con tus clientes. 
@@ -24,7 +24,7 @@ export const TheMoatComparison: React.FC = () => {
         </div>
 
         {/* Comparison Table */}
-        <div className="overflow-x-auto border border-carbon-border bg-carbon-surface rounded-sm shadow-2xl">
+        <div className="overflow-x-auto border border-carbon-border bg-carbon-surface rounded-sm shadow-sm">
           <table className="w-full text-left border-collapse font-sans text-xs sm:text-sm">
             
             {/* Table Head */}

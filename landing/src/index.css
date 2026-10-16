@@ -4,17 +4,17 @@
 
 @layer base {
   :root {
-    --bg-dark: #0D0D0F;
-    --text-bone: #F5F2EB;
-    --accent-terracota: #C85A32;
+    --bg-dark: #FFFFFF;
+    --text-bone: #3B4649;
+    --accent-terracota: #1C5A61;
     --paper-pure: #FFFFFF;
-    --paper-warm: #FAF7F2;
+    --paper-warm: #FAF7E6;
   }
 
   html, body {
-    background-color: #0D0D0F;
-    color: #F5F2EB;
-    font-family: 'Space Grotesk', sans-serif;
+    background-color: #FFFFFF;
+    color: #3B4649;
+    font-family: 'Onest', system-ui, sans-serif;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -29,24 +29,39 @@
   }
   @media (min-width: 640px) {
     input, select, textarea {
-      font-size: 0.75rem !important; /* 12px on desktop */
+      font-size: 0.875rem !important; /* 14px on desktop */
     }
   }
 
-  /* Custom subtle dark scrollbar */
+  /* Custom subtle light scrollbar */
   ::-webkit-scrollbar {
     width: 5px;
     height: 5px;
   }
   ::-webkit-scrollbar-track {
-    background: #0D0D0F;
+    background: #F4F4F0;
   }
   ::-webkit-scrollbar-thumb {
-    background: #2A2930;
+    background: #B9BCB3;
     border-radius: 2px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #C85A32;
+    background: #73ABB5;
+  }
+}
+
+/* Nada en 400 en mono ni en los títulos: las etiquetas mono van chicas
+   y con peso normal se ven finitas. Las utilidades
+   de peso (font-bold, etc.) siguen ganando porque van después. */
+@layer components {
+  .font-mono {
+    font-weight: 500;
+  }
+  .font-serif {
+    font-weight: 500;
+  }
+  .font-display {
+    font-stretch: 112%;
   }
 }
 

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { PILLARS_DATA } from '../data/comparisonData';
 import { Check, Sparkles, Tablet, Receipt, Power, Volume2, ShieldCheck, ArrowRight } from 'lucide-react';
-import { sounds } from '../utils/audio';
 
 interface SystemPillarsProps {
   onOpenSimulator: () => void;
@@ -15,11 +14,9 @@ export const SystemPillars: React.FC<SystemPillarsProps> = ({ onOpenSimulator })
   const toggleStock = (item: 'burger' | 'rib') => {
     if (item === 'burger') {
       const next = !burgerStock;
-      sounds.playSwitch(next);
       setBurgerStock(next);
     } else {
       const next = !ribStock;
-      sounds.playSwitch(next);
       setRibStock(next);
     }
   };
@@ -81,9 +78,9 @@ export const SystemPillars: React.FC<SystemPillarsProps> = ({ onOpenSimulator })
               </div>
 
               {/* Quote box */}
-              <div className="p-4 bg-carbon-surface border-l-2 border-ember font-serif italic text-sm text-bone-muted mt-6">
+              <div className="p-4 bg-carbon-surface border-l-2 border-ember font-serif text-sm text-bone-muted mt-6">
                 "{PILLARS_DATA[0].quote}"
-                <span className="block font-sans not-italic font-mono text-[10px] text-ember uppercase mt-1 tracking-wider">
+                <span className="block font-sans font-mono text-[10px] text-ember uppercase mt-1 tracking-wider">
                   — {PILLARS_DATA[0].quoteAuthor}
                 </span>
               </div>
@@ -91,7 +88,7 @@ export const SystemPillars: React.FC<SystemPillarsProps> = ({ onOpenSimulator })
 
             {/* Visual Column: Realistic Interactive WhatsApp Mockup (6 cols) */}
             <div className="lg:col-span-6 relative">
-              <div className="bg-[#0B141A] rounded-xl border border-stone-800 shadow-2xl p-4 sm:p-6 text-stone-100 font-sans max-w-lg mx-auto relative overflow-hidden">
+              <div className="bg-[#0B141A] rounded-xl border border-stone-800 shadow-sm p-4 sm:p-6 text-stone-100 font-sans max-w-lg mx-auto relative overflow-hidden">
                 
                 {/* Chat Top Bar */}
                 <div className="flex items-center justify-between pb-3 border-b border-stone-800 mb-4 font-mono text-xs">
@@ -181,7 +178,7 @@ export const SystemPillars: React.FC<SystemPillarsProps> = ({ onOpenSimulator })
             
             {/* Visual Column */}
             <div className="lg:col-span-6 order-2 lg:order-1 relative">
-              <div className="bg-carbon-surface rounded-xl border border-carbon-border p-4 sm:p-6 shadow-2xl">
+              <div className="bg-carbon-surface rounded-xl border border-carbon-border p-4 sm:p-6 shadow-sm">
                 
                 {/* Tablet Top Bar */}
                 <div className="flex items-center justify-between pb-4 border-b border-carbon-border mb-4 font-mono">
@@ -300,9 +297,9 @@ export const SystemPillars: React.FC<SystemPillarsProps> = ({ onOpenSimulator })
               </div>
 
               {/* Quote box */}
-              <div className="p-4 bg-carbon-surface border-l-2 border-ember font-serif italic text-sm text-bone-muted mt-6">
+              <div className="p-4 bg-carbon-surface border-l-2 border-ember font-serif text-sm text-bone-muted mt-6">
                 "{PILLARS_DATA[1].quote}"
-                <span className="block font-sans not-italic font-mono text-[10px] text-ember uppercase mt-1 tracking-wider">
+                <span className="block font-sans font-mono text-[10px] text-ember uppercase mt-1 tracking-wider">
                   — {PILLARS_DATA[1].quoteAuthor}
                 </span>
               </div>
@@ -350,7 +347,6 @@ export const SystemPillars: React.FC<SystemPillarsProps> = ({ onOpenSimulator })
               <div className="pt-4">
                 <button
                   onClick={() => {
-                    sounds.playTicketPrint();
                     onOpenSimulator();
                   }}
                   className="inline-flex items-center gap-2 px-4 py-2.5 bg-carbon-surface hover:bg-carbon-hover border border-ember/40 text-ember font-mono text-xs uppercase tracking-wider transition-colors"
@@ -364,7 +360,7 @@ export const SystemPillars: React.FC<SystemPillarsProps> = ({ onOpenSimulator })
 
             {/* Visual Column: Authentic Thermal Ticket with ARCA CAE (6 cols) */}
             <div className="lg:col-span-6 relative">
-              <div className="max-w-md mx-auto bg-ticket-paper text-ticket-ink font-mono p-6 sm:p-8 rounded-sm shadow-2xl relative">
+              <div className="max-w-md mx-auto bg-ticket-paper text-ticket-ink font-mono p-6 sm:p-8 rounded-sm shadow-sm relative">
                 
                 {/* Serrated edge styling */}
                 <div className="text-center border-b-2 border-dashed border-ticket-ink/30 pb-4 mb-4">

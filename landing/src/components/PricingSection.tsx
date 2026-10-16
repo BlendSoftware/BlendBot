@@ -1,6 +1,5 @@
 import React from 'react';
 import { Check, Sparkles, Shield, ArrowUpRight } from 'lucide-react';
-import { sounds } from '../utils/audio';
 
 interface PricingSectionProps {
   onOpenDemo: () => void;
@@ -23,7 +22,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenDemo }) =>
           </div>
           <h2 className="font-display text-3xl sm:text-5xl font-extrabold uppercase text-bone tracking-tightest leading-tight">
             Un solo plan en pesos. <br />
-            <span className="text-ember font-serif italic font-normal">Cero comisiones sobre tus platos.</span>
+            <span className="text-ember font-serif font-normal">Cero comisiones sobre tus platos.</span>
           </h2>
           <p className="mt-4 text-base text-bone-muted font-sans">
             La plata de tu cocina es tuya. No te cobramos el 25% ni te obligamos a pagar por cada comanda.
@@ -31,7 +30,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenDemo }) =>
         </div>
 
         {/* Pricing Card (Editorial Monumental Poster) */}
-        <div className="max-w-3xl mx-auto bg-carbon-surface border-2 border-ember/60 rounded-sm p-8 sm:p-12 shadow-2xl relative">
+        <div className="max-w-3xl mx-auto bg-carbon-surface border-2 border-ember/60 rounded-sm p-8 sm:p-12 shadow-sm relative">
           
           {/* Top Stamp */}
           <div className="absolute -top-4 right-8 bg-ember text-white px-4 py-1 font-mono text-xs font-bold uppercase tracking-wider shadow-lg">
@@ -117,10 +116,9 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenDemo }) =>
           <div className="space-y-3">
             <button
               onClick={() => {
-                sounds.playKitchenBell();
                 onOpenDemo();
               }}
-              className="w-full py-4 bg-ember hover:bg-ember-glow text-white font-mono text-xs sm:text-sm uppercase font-bold tracking-wider flex items-center justify-center gap-2 transition-all active:scale-98 shadow-xl shadow-ember/25"
+              className="w-full py-4 bg-ember hover:bg-ember-glow text-white font-mono text-xs sm:text-sm uppercase font-bold tracking-wider flex items-center justify-center gap-2 transition-all active:scale-98 shadow-sm shadow-ember/25"
             >
               <span>Solicitar Prueba Piloto Sin Cargo (2 Meses)</span>
               <ArrowUpRight className="w-4 h-4" />
