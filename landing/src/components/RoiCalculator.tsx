@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Calculator, ArrowUpRight } from 'lucide-react';
-import { sounds } from '../utils/audio';
 
 interface RoiCalculatorProps {
   onOpenDemo: () => void;
@@ -16,7 +15,6 @@ export const RoiCalculator: React.FC<RoiCalculatorProps> = ({ onOpenDemo }) => {
   const deliveryCommissionSaved = Math.round(recoveredSalesMonthly * 0.28);
 
   const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>, setter: (val: number) => void) => {
-    sounds.playClick();
     setter(Number(e.target.value));
   };
 
@@ -39,7 +37,7 @@ export const RoiCalculator: React.FC<RoiCalculatorProps> = ({ onOpenDemo }) => {
         </div>
 
         {/* Calculator Main Box */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 bg-carbon-surface border border-carbon-border rounded-sm p-6 sm:p-10 shadow-2xl items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 bg-carbon-surface border border-carbon-border rounded-sm p-6 sm:p-10 shadow-sm items-center">
           
           {/* Left: Interactive Controls (7 cols) */}
           <div className="lg:col-span-7 space-y-8">
@@ -103,7 +101,7 @@ export const RoiCalculator: React.FC<RoiCalculatorProps> = ({ onOpenDemo }) => {
           </div>
 
           {/* Right: Revenue Output Poster (5 cols) */}
-          <div className="lg:col-span-5 bg-gradient-to-br from-ember/20 via-carbon to-carbon border-2 border-ember/50 p-6 sm:p-8 rounded shadow-2xl relative flex flex-col justify-between">
+          <div className="lg:col-span-5 bg-gradient-to-br from-ember/20 via-carbon to-carbon border-2 border-ember/50 p-6 sm:p-8 rounded shadow-sm relative flex flex-col justify-between">
             
             <div>
               <div className="flex items-center justify-between border-b border-carbon-border pb-3 mb-4 font-mono text-xs text-bone-muted">
@@ -134,7 +132,6 @@ export const RoiCalculator: React.FC<RoiCalculatorProps> = ({ onOpenDemo }) => {
             <div className="mt-8 pt-4 border-t border-carbon-border">
               <button
                 onClick={() => {
-                  sounds.playKitchenBell();
                   onOpenDemo();
                 }}
                 className="w-full py-3.5 bg-ember hover:bg-ember-glow text-white font-mono text-xs uppercase font-bold tracking-wider flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg shadow-ember/30"

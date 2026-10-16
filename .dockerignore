@@ -6,6 +6,10 @@
 **/__pycache__
 **/.venv
 **/.pytest_cache
+# Los bundles los arma cada Dockerfile adentro (`vite build`). El dist local
+# sobra, y si se está regenerando (o OneDrive lo está sincronizando) mientras
+# se manda el contexto, el build falla con "invalid file request".
+**/dist
 
 # Secretos: JAMÁS dentro de una imagen.
 .env

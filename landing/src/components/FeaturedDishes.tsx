@@ -55,7 +55,7 @@ export const FeaturedDishes: React.FC = () => {
             <div className="font-mono text-[10px] sm:text-xs text-terracota uppercase tracking-widest-editorial mb-3 font-bold">
               [ 03 // LA COLECCIÓN DE AUTOR ]
             </div>
-            <h2 className="font-serif italic font-normal text-paper-pure text-3xl sm:text-5xl font-bold tracking-tight">
+            <h2 className="font-serif font-normal text-tinta text-3xl sm:text-5xl font-bold tracking-tight">
               Platos que no admiten prisa.
             </h2>
           </div>
@@ -78,7 +78,7 @@ export const FeaturedDishes: React.FC = () => {
                 
                 {/* Photo Column (6 cols) */}
                 <div className={`lg:col-span-6 relative ${isEven ? '' : 'lg:order-2'}`}>
-                  <div className="overflow-hidden bg-dark-card border border-dark-border shadow-2xl rounded-sm group">
+                  <div className="overflow-hidden bg-dark-card border border-dark-border shadow-sm rounded-sm group">
                     <img 
                       src={dish.image} 
                       alt={dish.imageAlt}
@@ -97,10 +97,10 @@ export const FeaturedDishes: React.FC = () => {
                   <div className="flex items-center gap-3 font-mono text-xs text-bone-muted">
                     <span className="text-terracota font-bold">{dish.number}</span>
                     <span>/</span>
-                    <span className="uppercase tracking-wider text-paper-pure font-semibold">CARTA NOCTURNA</span>
+                    <span className="uppercase tracking-wider text-tinta font-semibold">CARTA NOCTURNA</span>
                   </div>
 
-                  <h3 className="font-serif italic font-bold text-2xl sm:text-4xl text-paper-pure leading-tight">
+                  <h3 className="font-serif font-bold text-2xl sm:text-4xl text-tinta leading-tight">
                     {dish.name}
                   </h3>
 
@@ -108,7 +108,7 @@ export const FeaturedDishes: React.FC = () => {
                     {dish.subtitle}
                   </p>
 
-                  <p className="font-serif italic text-xs sm:text-sm text-paper-pure/80 border-l-2 border-terracota pl-4">
+                  <p className="font-serif text-xs sm:text-sm text-tinta/80 border-l-2 border-terracota pl-4">
                     "{dish.notes}"
                   </p>
 
@@ -116,7 +116,7 @@ export const FeaturedDishes: React.FC = () => {
                     <span className="font-mono text-[10px] uppercase tracking-wider text-bone-muted block mb-2 font-semibold">
                       Materia Prima & Origen:
                     </span>
-                    <div className="flex flex-wrap gap-2 font-mono text-[11px] text-paper-pure">
+                    <div className="flex flex-wrap gap-2 font-mono text-[11px] text-tinta">
                       {dish.ingredients.map((ing, i) => (
                         <span key={i} className="px-2.5 py-1 bg-dark-card border border-dark-border rounded-sm">
                           {ing}

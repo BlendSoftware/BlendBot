@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { MessageSquare, Tablet, Receipt, BarChart3, Wrench, ShieldCheck, Power, ArrowUpRight, Check } from 'lucide-react';
-import { sounds } from '../utils/audio';
 
 interface FullSystemEquipProps {
   onOpenDemo: () => void;
@@ -11,7 +10,6 @@ export const FullSystemEquip: React.FC<FullSystemEquipProps> = ({ onOpenDemo }) 
 
   const toggleKitchenStock = () => {
     const next = !kitchenStock;
-    sounds.playSwitch(next);
     setKitchenStock(next);
   };
 
@@ -25,13 +23,13 @@ export const FullSystemEquip: React.FC<FullSystemEquipProps> = ({ onOpenDemo }) 
             <span className="w-1.5 h-1.5 rounded-full bg-terracota" />
             <span>[ 03 // EL EQUIPAMIENTO COMPLETO ]</span>
           </div>
-          <h2 className="font-serif italic font-normal text-paper-pure text-2xl xs:text-3xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-tight">
+          <h2 className="font-serif font-semibold text-tinta text-2xl xs:text-3xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-tight">
             Cinco estaciones conectadas. <br />
-            <span className="font-display font-bold not-italic uppercase tracking-tightest">
+            <span className="font-display font-bold uppercase tracking-tightest">
               Un solo cerebro operativo.
             </span>
           </h2>
-          <p className="mt-3 sm:mt-4 text-sm sm:text-lg text-bone-muted font-sans font-light leading-relaxed">
+          <p className="mt-3 sm:mt-4 text-sm sm:text-lg text-bone-muted font-sans font-normal leading-relaxed">
             Eliminamos los sistemas desconectados: tu WhatsApp, tu cocina, tu salón y tu facturación fiscal funcionan como un único engranaje en Mendoza.
           </p>
         </div>
@@ -42,7 +40,7 @@ export const FullSystemEquip: React.FC<FullSystemEquipProps> = ({ onOpenDemo }) 
           {/* =========================================================================
               ROW 1: ESTACIÓN 01 (HERO CARD) -> WHATSAPP & SALÓN
              ========================================================================= */}
-          <div className="bg-paper-pure text-tinta border border-paper-border p-5 sm:p-8 lg:p-12 rounded-sm shadow-2xl relative overflow-hidden">
+          <div className="bg-paper-pure text-tinta border border-paper-border p-5 sm:p-8 lg:p-12 rounded-sm shadow-sm relative overflow-hidden">
             
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 lg:gap-12 items-center">
               
@@ -57,7 +55,7 @@ export const FullSystemEquip: React.FC<FullSystemEquipProps> = ({ onOpenDemo }) 
                     <span className="font-mono text-[9px] sm:text-[10px] uppercase tracking-widest text-terracota font-bold block">
                       ESTACIÓN 01 // FRONT-OF-HOUSE
                     </span>
-                    <h3 className="font-serif italic font-bold text-xl sm:text-3xl text-tinta leading-snug">
+                    <h3 className="font-serif font-bold text-xl sm:text-3xl text-tinta leading-snug">
                       Recepción, Reservas & Delivery por WhatsApp
                     </h3>
                   </div>
@@ -99,7 +97,7 @@ export const FullSystemEquip: React.FC<FullSystemEquipProps> = ({ onOpenDemo }) 
                 <div className="space-y-2.5 sm:space-y-3">
                   <div className="pl-3 border-l-2 border-paper-border text-tinta-muted">
                     <span className="font-mono text-[8px] sm:text-[9px] uppercase block text-tinta-muted/80">Comensal · 20:45 hs</span>
-                    <p className="font-serif italic text-tinta text-xs">
+                    <p className="font-serif text-tinta text-xs">
                       «Hola! Tienen lugar para 6 personas hoy tipo 21:30? Quisiéramos hacer la degustación de pasos.»
                     </p>
                   </div>
@@ -133,7 +131,7 @@ export const FullSystemEquip: React.FC<FullSystemEquipProps> = ({ onOpenDemo }) 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
             
             {/* Card 2: Cocina Táctil & Switch SE ACABÓ */}
-            <div className="bg-dark-card border border-dark-border p-5 sm:p-8 rounded-sm shadow-xl flex flex-col justify-between space-y-4 sm:space-y-6">
+            <div className="bg-dark-card border border-dark-border p-5 sm:p-8 rounded-sm shadow-sm flex flex-col justify-between space-y-4 sm:space-y-6">
               
               <div className="space-y-3 sm:space-y-4">
                 <div className="flex items-center justify-between border-b border-dark-border pb-3 sm:pb-4">
@@ -145,7 +143,7 @@ export const FullSystemEquip: React.FC<FullSystemEquipProps> = ({ onOpenDemo }) 
                       <span className="font-mono text-[8px] sm:text-[9px] uppercase tracking-widest text-terracota font-bold block">
                         ESTACIÓN 02 // COCINA & BARRA
                       </span>
-                      <h4 className="font-serif italic font-bold text-lg sm:text-xl text-paper-pure">
+                      <h4 className="font-serif font-bold text-lg sm:text-xl text-tinta">
                         Comandera Táctil & Switch de Stock
                       </h4>
                     </div>
@@ -153,7 +151,7 @@ export const FullSystemEquip: React.FC<FullSystemEquipProps> = ({ onOpenDemo }) 
                   <span className="font-mono text-xs font-bold text-bone-muted">02</span>
                 </div>
 
-                <p className="text-xs sm:text-sm text-bone-muted font-sans font-light leading-relaxed">
+                <p className="text-xs sm:text-sm text-bone-muted font-sans font-normal leading-relaxed">
                   Pantalla táctil de alto contraste para cocineros. Si se termina el último corte, un toque en <strong>"SE ACABÓ"</strong> pausa el ítem en WhatsApp al instante para no vender de más.
                 </p>
 
@@ -165,14 +163,14 @@ export const FullSystemEquip: React.FC<FullSystemEquipProps> = ({ onOpenDemo }) 
                       {kitchenStock ? '● ACTIVO EN CARTA' : '● PAUSADO EN WHATSAPP'}
                     </span>
                   </div>
-                  <div className="font-serif italic font-bold text-sm sm:text-base text-paper-pure">
+                  <div className="font-serif font-bold text-sm sm:text-base text-tinta">
                     Ojo de Bife a la Brasa (600g)
                   </div>
                   <button
                     onClick={toggleKitchenStock}
                     className={`w-full py-2.5 sm:py-3 font-mono text-xs uppercase font-bold tracking-wider transition-all duration-200 active:scale-95 flex items-center justify-center gap-2 rounded-sm min-h-[44px] ${
                       kitchenStock 
-                        ? 'border border-dark-border text-paper-pure hover:border-terracota hover:text-terracota bg-dark' 
+                        ? 'border border-dark-border text-tinta hover:border-terracota hover:text-terracota bg-dark' 
                         : 'bg-terracota text-white shadow-lg'
                     }`}
                   >
@@ -190,7 +188,7 @@ export const FullSystemEquip: React.FC<FullSystemEquipProps> = ({ onOpenDemo }) 
             </div>
 
             {/* Card 3: Facturación Fiscal ARCA */}
-            <div className="bg-dark-card border border-dark-border p-5 sm:p-8 rounded-sm shadow-xl flex flex-col justify-between space-y-4 sm:space-y-6">
+            <div className="bg-dark-card border border-dark-border p-5 sm:p-8 rounded-sm shadow-sm flex flex-col justify-between space-y-4 sm:space-y-6">
               
               <div className="space-y-3 sm:space-y-4">
                 <div className="flex items-center justify-between border-b border-dark-border pb-3 sm:pb-4">
@@ -202,7 +200,7 @@ export const FullSystemEquip: React.FC<FullSystemEquipProps> = ({ onOpenDemo }) 
                       <span className="font-mono text-[8px] sm:text-[9px] uppercase tracking-widest text-terracota font-bold block">
                         ESTACIÓN 03 // FACTURACIÓN FISCAL
                       </span>
-                      <h4 className="font-serif italic font-bold text-lg sm:text-xl text-paper-pure">
+                      <h4 className="font-serif font-bold text-lg sm:text-xl text-tinta">
                         Emisión Automática ARCA (AFIP)
                       </h4>
                     </div>
@@ -210,7 +208,7 @@ export const FullSystemEquip: React.FC<FullSystemEquipProps> = ({ onOpenDemo }) 
                   <span className="font-mono text-xs font-bold text-bone-muted">03</span>
                 </div>
 
-                <p className="text-xs sm:text-sm text-bone-muted font-sans font-light leading-relaxed">
+                <p className="text-xs sm:text-sm text-bone-muted font-sans font-normal leading-relaxed">
                   Conectado al web service oficial de ARCA. Al cobrar la cuenta, se emite la Factura A, B o C con CAE homologado y código QR en menos de 1 segundo sin tocar la web de AFIP.
                 </p>
 
@@ -247,7 +245,7 @@ export const FullSystemEquip: React.FC<FullSystemEquipProps> = ({ onOpenDemo }) 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
             
             {/* Card 4: Cierre de Caja & Demanda Insatisfecha */}
-            <div className="bg-dark-card border border-dark-border p-5 sm:p-8 rounded-sm shadow-xl flex flex-col justify-between space-y-4 sm:space-y-6">
+            <div className="bg-dark-card border border-dark-border p-5 sm:p-8 rounded-sm shadow-sm flex flex-col justify-between space-y-4 sm:space-y-6">
               
               <div className="space-y-3 sm:space-y-4">
                 <div className="flex items-center justify-between border-b border-dark-border pb-3 sm:pb-4">
@@ -259,7 +257,7 @@ export const FullSystemEquip: React.FC<FullSystemEquipProps> = ({ onOpenDemo }) 
                       <span className="font-mono text-[8px] sm:text-[9px] uppercase tracking-widest text-terracota font-bold block">
                         ESTACIÓN 04 // EL DESPACHO DEL DUEÑO
                       </span>
-                      <h4 className="font-serif italic font-bold text-lg sm:text-xl text-paper-pure">
+                      <h4 className="font-serif font-bold text-lg sm:text-xl text-tinta">
                         Cierre X/Z & Demanda Insatisfecha
                       </h4>
                     </div>
@@ -267,7 +265,7 @@ export const FullSystemEquip: React.FC<FullSystemEquipProps> = ({ onOpenDemo }) 
                   <span className="font-mono text-xs font-bold text-bone-muted">04</span>
                 </div>
 
-                <p className="text-xs sm:text-sm text-bone-muted font-sans font-light leading-relaxed">
+                <p className="text-xs sm:text-sm text-bone-muted font-sans font-normal leading-relaxed">
                   Arqueo diario claro de efectivo, transferencias, QR y tarjetas. Y el reporte más valioso: cuánta plata dejaste sobre la mesa por platos que te pidieron y no tenías en stock.
                 </p>
 
@@ -291,7 +289,7 @@ export const FullSystemEquip: React.FC<FullSystemEquipProps> = ({ onOpenDemo }) 
             </div>
 
             {/* Card 5: Puesta en Marcha Llave en Mano en Mendoza */}
-            <div className="bg-paper-pure text-tinta border border-paper-border p-5 sm:p-8 rounded-sm shadow-2xl flex flex-col justify-between space-y-4 sm:space-y-6">
+            <div className="bg-paper-pure text-tinta border border-paper-border p-5 sm:p-8 rounded-sm shadow-sm flex flex-col justify-between space-y-4 sm:space-y-6">
               
               <div className="space-y-3 sm:space-y-4">
                 <div className="flex items-center justify-between border-b border-paper-border pb-3 sm:pb-4">
@@ -303,7 +301,7 @@ export const FullSystemEquip: React.FC<FullSystemEquipProps> = ({ onOpenDemo }) 
                       <span className="font-mono text-[8px] sm:text-[9px] uppercase tracking-widest text-terracota font-bold block">
                         ESTACIÓN 05 // INSTALACIÓN & SOPORTE
                       </span>
-                      <h4 className="font-serif italic font-bold text-lg sm:text-xl text-tinta">
+                      <h4 className="font-serif font-bold text-lg sm:text-xl text-tinta">
                         Puesta en Marcha en 48hs en Mendoza
                       </h4>
                     </div>
@@ -335,25 +333,24 @@ export const FullSystemEquip: React.FC<FullSystemEquipProps> = ({ onOpenDemo }) 
         </div>
 
         {/* Bottom Banner Call to Action (Full width on mobile) */}
-        <div className="mt-12 sm:mt-16 p-6 sm:p-10 bg-dark-card border border-dark-border rounded-sm flex flex-col md:flex-row items-center justify-between gap-5 sm:gap-6 shadow-2xl">
+        <div className="mt-12 sm:mt-16 p-6 sm:p-10 bg-dark-card border border-dark-border rounded-sm flex flex-col md:flex-row items-center justify-between gap-5 sm:gap-6 shadow-sm">
           <div className="space-y-1.5 sm:space-y-2 text-center md:text-left">
             <span className="font-mono text-[9px] sm:text-[10px] uppercase tracking-widest text-terracota font-bold block">
               INSTALACIÓN EN GRAN MENDOZA & VALLE DE UCO
             </span>
-            <h3 className="font-serif italic font-bold text-xl sm:text-3xl text-paper-pure">
+            <h3 className="font-serif font-bold text-xl sm:text-3xl text-tinta">
               ¿Querés equipar tu restaurante o bodega?
             </h3>
-            <p className="text-xs sm:text-sm text-bone-muted max-w-xl font-light">
+            <p className="text-xs sm:text-sm text-bone-muted max-w-xl font-normal">
               Coordinamos una demostración personalizada con la carta real y el esquema de mesas de tu local.
             </p>
           </div>
 
           <button
             onClick={() => {
-              sounds.playKitchenBell();
               onOpenDemo();
             }}
-            className="w-full md:w-auto px-6 py-4 bg-terracota hover:bg-terracota-light text-white font-mono text-xs uppercase font-bold tracking-wider rounded-sm transition-all duration-200 active:scale-95 shadow-xl flex items-center justify-center gap-2 flex-shrink-0 min-h-[48px]"
+            className="w-full md:w-auto px-6 py-4 bg-terracota hover:bg-terracota-light text-white font-mono text-xs uppercase font-bold tracking-wider rounded-sm transition-all duration-200 active:scale-95 shadow-sm flex items-center justify-center gap-2 flex-shrink-0 min-h-[48px]"
           >
             <span>Solicitar Demostración en Mendoza</span>
             <ArrowUpRight className="w-4 h-4" />

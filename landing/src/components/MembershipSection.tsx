@@ -1,6 +1,5 @@
 import React from 'react';
 import { Check, ArrowUpRight } from 'lucide-react';
-import { sounds } from '../utils/audio';
 
 interface MembershipSectionProps {
   onOpenDemo: () => void;
@@ -17,26 +16,26 @@ export const MembershipSection: React.FC<MembershipSectionProps> = ({ onOpenDemo
             <span className="w-1.5 h-1.5 rounded-full bg-terracota" />
             <span>[ 05 // LA PROPUESTA ]</span>
           </div>
-          <h2 className="font-serif italic font-normal text-paper-pure text-2xl xs:text-3xl sm:text-5xl font-bold tracking-tight">
+          <h2 className="font-serif font-semibold text-tinta text-2xl xs:text-3xl sm:text-5xl font-bold tracking-tight">
             Un abono plano y honesto. <br />
-            <span className="font-display font-bold not-italic uppercase tracking-tightest">
+            <span className="font-display font-bold uppercase tracking-tightest">
               Cero comisiones sobre tus ventas.
             </span>
           </h2>
-          <p className="mt-3 sm:mt-4 text-xs sm:text-base text-bone-muted font-sans font-light">
+          <p className="mt-3 sm:mt-4 text-xs sm:text-base text-bone-muted font-sans font-normal">
             Tu facturación es 100% tuya. Sin porcentajes del 30% ni comisiones por reserva o comanda.
           </p>
         </div>
 
         {/* Membership Crisp White Paper Box */}
-        <div className="bg-paper-pure text-tinta border border-paper-border p-5 sm:p-8 lg:p-12 shadow-2xl rounded-sm relative">
+        <div className="bg-paper-pure text-tinta border border-paper-border p-5 sm:p-8 lg:p-12 shadow-sm rounded-sm relative">
           
           <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-4 sm:gap-6 border-b border-paper-border pb-6 sm:pb-8 mb-6 sm:mb-8">
             <div>
               <span className="font-mono text-[9px] sm:text-[10px] text-terracota uppercase tracking-widest font-bold block mb-1">
                 EQUIPAMIENTO COMPLETO // MENDOZA
               </span>
-              <h3 className="font-serif italic font-bold text-xl sm:text-3xl text-tinta">
+              <h3 className="font-serif font-bold text-xl sm:text-3xl text-tinta">
                 Copiloto Gastronómico Blend
               </h3>
               <p className="text-xs text-tinta-muted font-sans mt-0.5 sm:mt-1">
@@ -46,7 +45,7 @@ export const MembershipSection: React.FC<MembershipSectionProps> = ({ onOpenDemo
 
             <div className="text-left sm:text-right pt-2 sm:pt-0">
               <div className="flex items-baseline gap-1.5">
-                <span className="font-serif italic font-bold text-3xl sm:text-5xl text-tinta">
+                <span className="font-serif font-bold text-3xl sm:text-5xl text-tinta">
                   $79.000
                 </span>
                 <span className="font-mono text-xs text-tinta-muted uppercase">
@@ -108,10 +107,9 @@ export const MembershipSection: React.FC<MembershipSectionProps> = ({ onOpenDemo
           <div className="pt-1 sm:pt-2">
             <button
               onClick={() => {
-                sounds.playKitchenBell();
                 onOpenDemo();
               }}
-              className="w-full py-4 bg-terracota hover:bg-terracota-light text-white font-mono text-xs uppercase font-bold tracking-wider flex items-center justify-center gap-2 rounded-sm transition-all active:scale-98 shadow-xl min-h-[48px]"
+              className="w-full py-4 bg-terracota hover:bg-terracota-light text-white font-mono text-xs uppercase font-bold tracking-wider flex items-center justify-center gap-2 rounded-sm transition-all active:scale-98 shadow-sm min-h-[48px]"
             >
               <span>Solicitar Prueba Piloto de 2 Meses</span>
               <ArrowUpRight className="w-4 h-4" />

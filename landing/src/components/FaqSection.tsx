@@ -1,13 +1,11 @@
 import React, { useState } from 'react';
 import { FAQ_DATA } from '../data/faqData';
 import { ChevronDown } from 'lucide-react';
-import { sounds } from '../utils/audio';
 
 export const FaqSection: React.FC = () => {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
   const toggleAccordion = (idx: number) => {
-    sounds.playClick();
     setOpenIndex(openIndex === idx ? null : idx);
   };
 
@@ -21,10 +19,10 @@ export const FaqSection: React.FC = () => {
             <span className="w-1.5 h-1.5 rounded-full bg-terracota" />
             <span>[ 06 // PREGUNTAS DEL MOSTRADOR ]</span>
           </div>
-          <h2 className="font-serif italic font-normal text-paper-pure text-2xl xs:text-3xl sm:text-5xl font-bold tracking-tight">
+          <h2 className="font-serif font-semibold text-tinta text-2xl xs:text-3xl sm:text-5xl font-bold tracking-tight">
             Respuestas sin vueltas.
           </h2>
-          <p className="mt-2 sm:mt-3 text-xs sm:text-sm text-bone-muted font-sans font-light">
+          <p className="mt-2 sm:mt-3 text-xs sm:text-sm text-bone-muted font-sans font-normal">
             Todo lo necesario para equipar tu restaurante o bodega en Mendoza con BlendBot.
           </p>
         </div>
@@ -40,11 +38,11 @@ export const FaqSection: React.FC = () => {
               >
                 <button
                   onClick={() => toggleAccordion(idx)}
-                  className="w-full p-4 sm:p-6 text-left flex items-center justify-between gap-3 font-serif italic font-bold text-sm sm:text-lg text-paper-pure hover:text-terracota transition-colors min-h-[48px]"
+                  className="w-full p-4 sm:p-6 text-left flex items-center justify-between gap-3 font-serif font-bold text-sm sm:text-lg text-tinta hover:text-terracota transition-colors min-h-[48px]"
                   aria-expanded={isOpen}
                 >
                   <span className="flex items-center gap-3 sm:gap-4">
-                    <span className="font-mono text-[11px] sm:text-xs text-terracota font-normal not-italic font-bold">0{idx + 1}</span>
+                    <span className="font-mono text-[11px] sm:text-xs text-terracota font-bold">0{idx + 1}</span>
                     <span>{faq.question}</span>
                   </span>
                   <ChevronDown className={`w-4 h-4 text-bone-muted transition-transform duration-300 flex-shrink-0 ${
@@ -53,7 +51,7 @@ export const FaqSection: React.FC = () => {
                 </button>
 
                 {isOpen && (
-                  <div className="px-4 pb-4 sm:px-6 sm:pb-6 text-xs sm:text-sm text-bone-muted leading-relaxed border-t border-dark-border pt-3 sm:pt-4 font-sans font-light bg-dark-card/50">
+                  <div className="px-4 pb-4 sm:px-6 sm:pb-6 text-xs sm:text-sm text-bone-muted leading-relaxed border-t border-dark-border pt-3 sm:pt-4 font-sans font-normal bg-dark-card/50">
                     <p>{faq.answer}</p>
                   </div>
                 )}

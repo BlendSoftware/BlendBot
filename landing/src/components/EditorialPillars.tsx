@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { sounds } from '../utils/audio';
 import { Power, Check, ShieldCheck, Receipt } from 'lucide-react';
 
 export const EditorialPillars: React.FC = () => {
@@ -7,7 +6,6 @@ export const EditorialPillars: React.FC = () => {
 
   const toggleStock = () => {
     const next = !meatStock;
-    sounds.playSwitch(next);
     setMeatStock(next);
   };
 
@@ -21,13 +19,13 @@ export const EditorialPillars: React.FC = () => {
             <span className="w-1.5 h-1.5 rounded-full bg-terracota" />
             <span>[ 02 // EL CIRCUITO OPERATIVO ]</span>
           </div>
-          <h2 className="font-serif italic font-normal text-paper-pure text-2xl xs:text-3xl sm:text-5xl lg:text-6xl leading-[1.05] tracking-tight">
+          <h2 className="font-serif font-semibold text-tinta text-2xl xs:text-3xl sm:text-5xl lg:text-6xl leading-[1.05] tracking-tight">
             Tres engranajes en sintonía. <br />
-            <span className="font-display font-bold not-italic uppercase tracking-tightest">
+            <span className="font-display font-bold uppercase tracking-tightest">
               Tu restaurante funcionando solo.
             </span>
           </h2>
-          <p className="mt-3 sm:mt-4 text-sm sm:text-lg text-bone-muted font-sans font-light">
+          <p className="mt-3 sm:mt-4 text-sm sm:text-lg text-bone-muted font-sans font-normal">
             La atención por chat, el pase de cocina y la facturación fiscal sincronizados en tiempo real.
           </p>
         </div>
@@ -43,24 +41,24 @@ export const EditorialPillars: React.FC = () => {
             {/* Left: Editorial Text (6 cols) */}
             <div className="lg:col-span-6 space-y-4 sm:space-y-6">
               <div className="flex items-center gap-3 sm:gap-4">
-                <span className="font-mono text-3xl sm:text-5xl font-light text-terracota">01</span>
+                <span className="font-mono text-3xl sm:text-5xl font-semibold text-terracota">01</span>
                 <div className="h-px flex-1 bg-dark-border" />
                 <span className="font-mono text-[9px] sm:text-[10px] uppercase tracking-widest text-bone-muted font-semibold">
                   El Asistente Inteligente
                 </span>
               </div>
 
-              <h3 className="font-serif italic font-semibold text-xl sm:text-4xl text-paper-pure leading-tight">
+              <h3 className="font-serif font-semibold text-xl sm:text-4xl text-tinta leading-tight">
                 Atención 24/7 en tu WhatsApp oficial.
               </h3>
 
-              <p className="text-xs sm:text-base text-bone-muted leading-relaxed font-sans font-light">
+              <p className="text-xs sm:text-base text-bone-muted leading-relaxed font-sans font-normal">
                 No hay menús numéricos rígidos ni bots que confunden.
                 BlendBot atiende consultas de carta y vinos, toma reservas para almuerzos, cenas o degustaciones
                 y arma los pedidos con todo lo que el cliente necesita aclarar.
               </p>
 
-              <div className="space-y-2 pt-1 sm:pt-2 font-mono text-xs text-paper-pure">
+              <div className="space-y-2 pt-1 sm:pt-2 font-mono text-xs text-tinta">
                 <div className="flex items-start gap-2">
                   <Check className="w-3.5 h-3.5 text-terracota mt-0.5 flex-shrink-0" />
                   <span>Entiende audios de WhatsApp y consultas de carta de vinos</span>
@@ -75,14 +73,14 @@ export const EditorialPillars: React.FC = () => {
                 </div>
               </div>
 
-              <blockquote className="p-3 sm:p-4 bg-dark-surface border-l-2 border-terracota font-serif italic text-xs sm:text-sm text-bone-muted">
+              <blockquote className="p-3 sm:p-4 bg-dark-surface border-l-2 border-terracota font-serif text-xs sm:text-sm text-bone-muted">
                 "El comensal local y el turista reciben respuesta inmediata sin hacer esperar a nadie."
               </blockquote>
             </div>
 
             {/* Right: Editorial Dialogue Card (Crisp White Paper, 6 cols) */}
             <div className="lg:col-span-6">
-              <div className="bg-paper-pure text-tinta border border-paper-border p-4 sm:p-8 shadow-2xl font-sans rounded-sm relative">
+              <div className="bg-paper-pure text-tinta border border-paper-border p-4 sm:p-8 shadow-sm font-sans rounded-sm relative">
                 
                 <div className="flex items-center justify-between border-b border-paper-border pb-2.5 sm:pb-3 mb-3 sm:mb-4 font-mono text-[10px] sm:text-[11px] text-tinta-muted">
                   <span className="text-tinta font-bold uppercase">WhatsApp // Servicio Noche</span>
@@ -93,7 +91,7 @@ export const EditorialPillars: React.FC = () => {
                   {/* Guest Message */}
                   <div className="pl-3 sm:pl-4 border-l-2 border-paper-border text-tinta-muted">
                     <span className="font-mono text-[9px] uppercase block mb-0.5 text-tinta-muted">Cliente</span>
-                    <p className="font-serif italic text-tinta text-xs sm:text-base">
+                    <p className="font-serif text-tinta text-xs sm:text-base">
                       «Hola! Tienen mesa para 4 hoy tipo 21:30? Quisiéramos cenar adentro y probar la carta de fuegos.»
                     </p>
                   </div>
@@ -129,10 +127,10 @@ export const EditorialPillars: React.FC = () => {
             
             {/* Visual Column */}
             <div className="lg:col-span-6 order-2 lg:order-1">
-              <div className="bg-dark-surface border border-dark-border p-4 sm:p-8 shadow-2xl rounded-sm">
+              <div className="bg-dark-surface border border-dark-border p-4 sm:p-8 shadow-sm rounded-sm">
                 
                 <div className="flex items-center justify-between border-b border-dark-border pb-2.5 sm:pb-3 mb-4 sm:mb-6 font-mono text-[10px] sm:text-[11px] text-bone-muted">
-                  <span className="text-paper-pure font-bold uppercase">Comandera // Stock en Vivo</span>
+                  <span className="text-tinta font-bold uppercase">Comandera // Stock en Vivo</span>
                   <span className="text-terracota font-bold">TOUCH ≥48PX</span>
                 </div>
 
@@ -140,7 +138,7 @@ export const EditorialPillars: React.FC = () => {
                 <div className="bg-dark-card border border-dark-border p-3.5 sm:p-5 space-y-3 sm:space-y-4 rounded-sm">
                   <div>
                     <span className="font-mono text-[9px] sm:text-[10px] text-bone-muted uppercase tracking-wider block">PLATO DE COCINA</span>
-                    <div className="font-serif italic font-bold text-base sm:text-xl text-paper-pure">
+                    <div className="font-serif font-bold text-base sm:text-xl text-tinta">
                       Ojo de Bife a la Brasa de Quebracho (600g)
                     </div>
                   </div>
@@ -162,7 +160,7 @@ export const EditorialPillars: React.FC = () => {
                       onClick={toggleStock}
                       className={`w-full sm:w-auto px-4 py-3 font-mono text-xs uppercase font-bold tracking-wider transition-all duration-200 active:scale-95 flex items-center justify-center gap-2 rounded-sm min-h-[44px] sm:min-h-[40px] ${
                         meatStock 
-                          ? 'border border-dark-border text-paper-pure hover:border-terracota hover:text-terracota bg-dark' 
+                          ? 'border border-dark-border text-tinta hover:border-terracota hover:text-terracota bg-dark' 
                           : 'bg-terracota text-white shadow-lg'
                       }`}
                     >
@@ -182,24 +180,24 @@ export const EditorialPillars: React.FC = () => {
             {/* Text Column */}
             <div className="lg:col-span-6 order-1 lg:order-2 space-y-4 sm:space-y-6">
               <div className="flex items-center gap-3 sm:gap-4">
-                <span className="font-mono text-3xl sm:text-5xl font-light text-terracota">02</span>
+                <span className="font-mono text-3xl sm:text-5xl font-semibold text-terracota">02</span>
                 <div className="h-px flex-1 bg-dark-border" />
                 <span className="font-mono text-[9px] sm:text-[10px] uppercase tracking-widest text-bone-muted font-semibold">
                   La Comandera Táctil
                 </span>
               </div>
 
-              <h3 className="font-serif italic font-semibold text-xl sm:text-4xl text-paper-pure leading-tight">
+              <h3 className="font-serif font-semibold text-xl sm:text-4xl text-tinta leading-tight">
                 El interruptor que evita vender lo que no hay.
               </h3>
 
-              <p className="text-xs sm:text-base text-bone-muted leading-relaxed font-sans font-light">
+              <p className="text-xs sm:text-base text-bone-muted leading-relaxed font-sans font-normal">
                 En pleno despacho de cocina, si se termina un plato o corte especial, 
                 un solo toque en "SE ACABÓ" apaga el ítem en WhatsApp al segundo. 
                 El bot sugiere alternativas y no tenés que ir a avisarle a los clientes que su pedido se canceló.
               </p>
 
-              <div className="space-y-2 pt-1 sm:pt-2 font-mono text-xs text-paper-pure">
+              <div className="space-y-2 pt-1 sm:pt-2 font-mono text-xs text-tinta">
                 <div className="flex items-start gap-2">
                   <Check className="w-3.5 h-3.5 text-terracota mt-0.5 flex-shrink-0" />
                   <span>Se opera con el pulgar en cualquier tablet de cocina o barra</span>
@@ -222,24 +220,24 @@ export const EditorialPillars: React.FC = () => {
             {/* Left: Text Column (6 cols) */}
             <div className="lg:col-span-6 space-y-4 sm:space-y-6">
               <div className="flex items-center gap-3 sm:gap-4">
-                <span className="font-mono text-3xl sm:text-5xl font-light text-terracota">03</span>
+                <span className="font-mono text-3xl sm:text-5xl font-semibold text-terracota">03</span>
                 <div className="h-px flex-1 bg-dark-border" />
                 <span className="font-mono text-[9px] sm:text-[10px] uppercase tracking-widest text-bone-muted font-semibold">
                   Facturación Fiscal ARCA
                 </span>
               </div>
 
-              <h3 className="font-serif italic font-semibold text-xl sm:text-4xl text-paper-pure leading-tight">
+              <h3 className="font-serif font-semibold text-xl sm:text-4xl text-tinta leading-tight">
                 Cobrás la cuenta y la factura fiscal sale sola.
               </h3>
 
-              <p className="text-xs sm:text-base text-bone-muted leading-relaxed font-sans font-light">
+              <p className="text-xs sm:text-base text-bone-muted leading-relaxed font-sans font-normal">
                 Cumplimiento obligatorio 2026 de factura electrónica para gastronomía en Argentina. 
                 Conectado directo al web service oficial de ARCA: 
                 al tocar "Cobrar", se emite la Factura A, B o C con CAE homologado y código QR en menos de 1 segundo.
               </p>
 
-              <div className="space-y-2 pt-1 sm:pt-2 font-mono text-xs text-paper-pure">
+              <div className="space-y-2 pt-1 sm:pt-2 font-mono text-xs text-tinta">
                 <div className="flex items-start gap-2">
                   <Check className="w-3.5 h-3.5 text-terracota mt-0.5 flex-shrink-0" />
                   <span>Factura A, B y C automática sin entrar a la web de AFIP</span>
@@ -257,7 +255,7 @@ export const EditorialPillars: React.FC = () => {
 
             {/* Right: Thermal Receipt Artwork (Crisp White Paper, 6 cols) */}
             <div className="lg:col-span-6">
-              <div className="max-w-md mx-auto bg-paper-pure text-tinta border border-paper-border p-4 sm:p-8 font-mono text-xs shadow-2xl rounded-sm relative">
+              <div className="max-w-md mx-auto bg-paper-pure text-tinta border border-paper-border p-4 sm:p-8 font-mono text-xs shadow-sm rounded-sm relative">
                 
                 <div className="text-center border-b border-dashed border-paper-border pb-3 sm:pb-4 mb-3 sm:mb-4">
                   <div className="flex items-center justify-center gap-1.5 text-terracota font-bold text-[11px] sm:text-xs uppercase mb-0.5 sm:mb-1">
@@ -267,7 +265,7 @@ export const EditorialPillars: React.FC = () => {
                   <div className="text-[9px] sm:text-[10px] text-tinta-muted">
                     CUIT 30-71849201-9 · Arístides Villanueva, Mendoza
                   </div>
-                  <div className="mt-1.5 sm:mt-2 inline-block px-2.5 py-0.5 bg-dark text-white text-[9px] sm:text-[10px] font-bold uppercase rounded-sm">
+                  <div className="mt-1.5 sm:mt-2 inline-block px-2.5 py-0.5 bg-tinta text-white text-[9px] sm:text-[10px] font-bold uppercase rounded-sm">
                     COMPROBANTE FISCAL CON CAE
                   </div>
                 </div>

@@ -7,48 +7,65 @@ export default {
   theme: {
     extend: {
       colors: {
+        // Paleta del logo de Blend Software sobre fondos claros.
+        // Los nombres vienen del diseño oscuro original: "dark" son las
+        // superficies (ahora claras) y "bone" el texto sobre ellas.
         dark: {
-          DEFAULT: '#0D0D0F',
-          deep: '#080809',
-          surface: '#131316',
-          card: '#18181C',
-          hover: '#222228',
-          border: '#2A2930',
+          DEFAULT: '#FFFFFF',
+          deep: '#F2F2EE',
+          surface: '#F4F4F0',
+          card: '#ECF6F7',
+          hover: '#D7ECEF',
+          border: '#E1E2DC',
         },
         paper: {
-          DEFAULT: '#FAF7F2',
+          DEFAULT: '#FFFFFF',
           pure: '#FFFFFF',
-          warm: '#F3EDE2',
-          border: '#E2DAD0',
+          warm: '#FAF7E6',
+          border: '#E1E2DC',
         },
         tinta: {
-          DEFAULT: '#191816',
-          muted: '#5A564F',
+          DEFAULT: '#141B1D',
+          muted: '#5E6A6D',
         },
         bone: {
-          DEFAULT: '#F5F2EB',
-          light: '#FFFFFF',
-          muted: '#A5A096',
-          faint: '#605C55',
+          DEFAULT: '#3B4649',
+          light: '#141B1D',
+          muted: '#5E6A6D',
+          faint: '#8A9497',
         },
+        // Acento principal: el teal del logo, en el tono que se lee sobre blanco
         terracota: {
-          DEFAULT: '#C85A32',
-          light: '#DE6A40',
-          dark: '#A6431F',
-          pale: '#FBECE6',
+          DEFAULT: '#1C5A61',
+          light: '#4E8F98',
+          dark: '#0F3F45',
+          pale: '#ECF6F7',
         },
         verde: {
-          DEFAULT: '#3B7A57',
-          light: '#4E9B71',
+          DEFAULT: '#1F6B45',
+          light: '#2E8A5C',
         },
         ambar: {
-          DEFAULT: '#D68B2C',
-        }
+          DEFAULT: '#B78801',
+        },
+        logo: {
+          teal: '#73ABB5',
+          olive: '#C4B23D',
+          gold: '#CFB23A',
+          ochre: '#B78801',
+        },
+      },
+      backgroundImage: {
+        // Degradé del logo (teal → oliva → dorado → ocre)
+        brand: 'linear-gradient(100deg, #73ABB5 0%, #C4B23D 45%, #CFB23A 70%, #B78801 100%)',
       },
       fontFamily: {
-        display: ['Syne', 'sans-serif'],
-        serif: ['"Playfair Display"', 'Georgia', 'serif'],
-        sans: ['"Space Grotesk"', 'sans-serif'],
+        // Archivo y Onest son las de blendsoftware. "serif" quedó del diseño
+        // original: hoy los títulos editoriales también van en Archivo, sin
+        // cursivas ni trazos finos.
+        display: ['Archivo', '"Arial Black"', 'sans-serif'],
+        serif: ['Archivo', 'system-ui', 'sans-serif'],
+        sans: ['Onest', 'system-ui', 'sans-serif'],
         mono: ['"JetBrains Mono"', 'monospace'],
       },
       letterSpacing: {
