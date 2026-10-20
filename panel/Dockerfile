@@ -38,7 +38,10 @@ RUN npm ci
 
 COPY landing/. .
 
-RUN npx tsc --noEmit && npx vite build
+# La landing sí va por `npm run build`: además de `vite build` hace el
+# prerender (HTML ya renderizado para crawlers y vistas previas) y emite
+# robots.txt y sitemap.xml. SITE_URL cambia el dominio que llevan.
+RUN npx tsc --noEmit && npm run build
 
 # ──────────────────────────────────────────────────────────────────────────────
 

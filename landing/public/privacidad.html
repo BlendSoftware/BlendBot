@@ -1,65 +1,262 @@
 <!doctype html>
-<html lang="es">
+<html lang="es-AR">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Política de privacidad · BlendBot</title>
+<meta name="description" content="Qué datos trata BlendBot cuando le escribís por WhatsApp a un comercio gastronómico que lo usa, para qué y cómo pedir que se borren.">
+<meta name="theme-color" content="#1C5A61">
+<link rel="icon" type="image/svg+xml" href="/logo-blend-mark.svg">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Onest:wght@400..700&display=swap" rel="stylesheet">
+<!-- Página estática a propósito (Meta la pide para aprobar la app de WhatsApp
+     y tiene que leerse sin JavaScript). Los colores y las fuentes son los de
+     la landing: ver tailwind.config.js. -->
 <style>
-  :root { color-scheme: light dark; }
-  body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; line-height: 1.6; max-width: 760px; margin: 0 auto; padding: 32px 16px; }
-  h1 { font-size: 1.8rem; margin-bottom: .2rem; }
-  h2 { font-size: 1.15rem; margin-top: 2rem; }
-  .meta { opacity: .7; font-size: .9rem; }
+  :root {
+    --fondo: #FFFFFF;
+    --superficie: #F4F4F0;
+    --card: #ECF6F7;
+    --borde: #E1E2DC;
+    --tinta: #141B1D;
+    --texto: #3B4649;
+    --apagado: #5E6A6D;
+    --acento: #1C5A61;
+    --acento-claro: #4E8F98;
+    --degrade: linear-gradient(100deg, #73ABB5 0%, #C4B23D 45%, #CFB23A 70%, #B78801 100%);
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 88px; }
+  body {
+    margin: 0; background: var(--fondo); color: var(--texto);
+    font: 400 16px/1.7 Onest, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--acento); text-underline-offset: 3px; }
+  a:hover { color: var(--acento-claro); }
+  strong { color: var(--tinta); font-weight: 600; }
+
+  .ancha { font-family: Archivo, sans-serif; font-stretch: 125%; font-weight: 600; text-transform: uppercase; letter-spacing: .12em; }
+  .envoltorio { max-width: 1120px; margin: 0 auto; padding: 0 16px; }
+  @media (min-width: 640px) { .envoltorio { padding: 0 32px; } }
+
+  /* ── Cabecera ── */
+  header {
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(255, 255, 255, .94); backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--borde);
+  }
+  header .envoltorio { display: flex; align-items: center; justify-content: space-between; gap: 12px; height: 68px; }
+  .marca { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--tinta); }
+  .marca img { width: 34px; height: 34px; }
+  .marca b { display: block; font: 700 20px/1 Archivo, sans-serif; letter-spacing: -.02em; }
+  .marca span { display: block; font-size: 8px; color: var(--apagado); margin-top: 3px; }
+  .volver {
+    display: inline-flex; align-items: center; gap: 6px; padding: 10px 14px; min-height: 40px;
+    border: 1px solid var(--borde); border-radius: 3px; background: var(--superficie);
+    color: var(--tinta); text-decoration: none; font-size: 10px;
+  }
+  .volver:hover { border-color: var(--acento); color: var(--acento); }
+
+  /* ── Portada ── */
+  .portada { padding: 56px 0 40px; border-bottom: 1px solid var(--borde); position: relative; overflow: hidden; }
+  .portada::before {
+    content: ""; position: absolute; right: -160px; top: -120px; width: 480px; height: 480px;
+    background: rgba(28, 90, 97, .08); border-radius: 50%; filter: blur(90px); pointer-events: none;
+  }
+  .ceja { display: inline-flex; align-items: center; gap: 8px; font-size: 10px; color: var(--acento); }
+  .ceja::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--acento); }
+  h1 {
+    margin: 16px 0 0; color: var(--tinta);
+    font: 700 clamp(2.2rem, 7vw, 4.6rem)/.95 Archivo, sans-serif; letter-spacing: -.035em;
+  }
+  h1 span { display: block; font-weight: 900; font-stretch: 112%; text-transform: uppercase; letter-spacing: -.045em; }
+  .bajada { max-width: 640px; margin: 20px 0 0; font-size: 17px; color: var(--apagado); }
+  .fecha { margin-top: 22px; font-size: 10px; color: var(--apagado); }
+
+  /* ── En corto ── */
+  .corto { display: grid; gap: 12px; margin: 40px 0 0; padding: 0; list-style: none; }
+  @media (min-width: 720px) { .corto { grid-template-columns: repeat(3, 1fr); } }
+  .corto li { background: var(--card); border: 1px solid #D7ECEF; border-radius: 3px; padding: 18px 20px; }
+  .corto .ancha { display: block; font-size: 9px; color: var(--acento); margin-bottom: 6px; }
+  .corto p { margin: 0; color: var(--tinta); font: 600 16px/1.35 Archivo, sans-serif; }
+
+  /* ── Cuerpo con índice ── */
+  .cuerpo { display: grid; gap: 40px; padding: 48px 0 72px; }
+  @media (min-width: 900px) { .cuerpo { grid-template-columns: 240px 1fr; gap: 64px; } }
+  nav.indice { align-self: start; }
+  @media (min-width: 900px) { nav.indice { position: sticky; top: 100px; } }
+  nav.indice .ancha { display: block; font-size: 9px; color: var(--apagado); padding-bottom: 10px; border-bottom: 1px solid var(--borde); }
+  nav.indice ol { list-style: none; margin: 0; padding: 0; }
+  nav.indice a {
+    display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--borde);
+    color: var(--texto); text-decoration: none; font-size: 14px;
+  }
+  nav.indice a:hover { color: var(--acento); }
+  nav.indice a i { font: normal 600 10px/2 Archivo, sans-serif; font-stretch: 125%; color: var(--acento); }
+
+  article { max-width: 720px; }
+  section { padding: 28px 0; border-bottom: 1px solid var(--borde); }
+  section:first-child { padding-top: 0; }
+  section:last-child { border-bottom: 0; }
+  .num { display: block; font-size: 10px; color: var(--acento); margin-bottom: 6px; }
+  h2 { margin: 0 0 12px; color: var(--tinta); font: 700 clamp(1.4rem, 3.4vw, 1.9rem)/1.15 Archivo, sans-serif; letter-spacing: -.025em; }
+  section p { margin: 0 0 12px; }
+  section p:last-child { margin-bottom: 0; }
+  ul.puntos { list-style: none; margin: 0 0 14px; padding: 0; }
+  ul.puntos li { position: relative; padding: 8px 0 8px 22px; border-bottom: 1px dashed var(--borde); }
+  ul.puntos li:last-child { border-bottom: 0; }
+  ul.puntos li::before { content: ""; position: absolute; left: 2px; top: 18px; width: 8px; height: 8px; background: var(--acento); border-radius: 1px; }
+  .nota {
+    margin-top: 14px; padding: 12px 16px; background: var(--superficie);
+    border-left: 3px solid var(--acento); border-radius: 2px; color: var(--tinta); font-weight: 500;
+  }
+  .contacto {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px;
+    margin-top: 16px; padding: 18px 20px; border: 1px solid var(--borde); border-radius: 3px; background: var(--superficie);
+  }
+  .contacto .ancha { display: block; font-size: 9px; color: var(--apagado); }
+  .contacto a.mail { font: 700 18px/1.3 Archivo, sans-serif; text-decoration: none; word-break: break-all; }
+  .boton {
+    display: inline-flex; align-items: center; min-height: 44px; padding: 12px 18px; border-radius: 3px;
+    background: var(--acento); color: #fff; text-decoration: none; font-size: 11px;
+  }
+  .boton:hover { background: var(--acento-claro); color: #fff; }
+
+  /* ── Pie ── */
+  footer { border-top: 1px solid var(--borde); background: var(--superficie); position: relative; }
+  footer::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 6px; background: var(--degrade); }
+  footer .envoltorio { display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; padding-top: 24px; padding-bottom: 34px; font-size: 10px; color: var(--apagado); }
+  footer a { color: var(--apagado); text-decoration: none; }
+  footer a:hover { color: var(--acento); }
 </style>
 </head>
 <body>
-<h1>Política de privacidad de BlendBot</h1>
-<p class="meta">Última actualización: 15 de octubre de 2026</p>
 
-<p>BlendBot es un servicio de BlendSoftware (Mendoza, Argentina) que atiende el WhatsApp de comercios
-gastronómicos: responde consultas sobre la carta, toma pedidos y reservas, y se los pasa al comercio.
-Esta política explica qué datos tratamos cuando le escribís por WhatsApp a un comercio que usa BlendBot.</p>
+<header>
+  <div class="envoltorio">
+    <a class="marca" href="/" aria-label="BlendBot, inicio">
+      <img src="/logo-blend-mark.svg" alt="">
+      <div><b>BlendBot</b><span class="ancha">Mendoza</span></div>
+    </a>
+    <a class="volver ancha" href="/">← Volver al inicio</a>
+  </div>
+</header>
 
-<h2>Quién es responsable</h2>
-<p>Cada comercio es responsable de los datos de sus clientes. BlendSoftware los trata por cuenta del
-comercio, sólo para prestar el servicio. Contacto: <a href="mailto:Blendsoftware1@gmail.com">Blendsoftware1@gmail.com</a>.</p>
+<main>
+  <div class="portada">
+    <div class="envoltorio">
+      <span class="ceja ancha">Legal // Privacidad</span>
+      <h1>Política de privacidad <span>de BlendBot.</span></h1>
+      <p class="bajada">BlendBot es un servicio de BlendSoftware (Mendoza, Argentina) que atiende el WhatsApp de comercios
+        gastronómicos: responde consultas sobre la carta, toma pedidos y reservas, y se los pasa al comercio.
+        Esta política explica qué datos tratamos cuando le escribís por WhatsApp a un comercio que usa BlendBot.</p>
+      <p class="fecha ancha">Última actualización · 15 de octubre de 2026</p>
 
-<h2>Qué datos tratamos</h2>
-<ul>
-  <li>Tu número de WhatsApp y el nombre de tu perfil.</li>
-  <li>Los mensajes que le mandás al comercio por ese canal.</li>
-  <li>Los datos de tu pedido o reserva: lo que pediste, el nombre que diste, la forma de entrega y,
-      si pedís delivery, la dirección.</li>
-</ul>
-<p>No pedimos ni guardamos datos de tarjetas, documentos de identidad ni contraseñas.</p>
+      <ul class="corto" aria-label="En corto">
+        <li><span class="ancha">En corto</span><p>No vendemos tus datos ni los usamos para publicidad.</p></li>
+        <li><span class="ancha">En corto</span><p>No pedimos tarjetas, documentos ni contraseñas.</p></li>
+        <li><span class="ancha">En corto</span><p>Podés pedir verlos, corregirlos o borrarlos cuando quieras.</p></li>
+      </ul>
+    </div>
+  </div>
 
-<h2>Para qué los usamos</h2>
-<ul>
-  <li>Para contestarte y registrar tu pedido o reserva en el sistema del comercio.</li>
-  <li>Para avisarte por WhatsApp novedades de ese pedido (por ejemplo, que está confirmado o listo).</li>
-</ul>
-<p>No usamos tus datos para publicidad ni los vendemos.</p>
+  <div class="envoltorio cuerpo">
+    <nav class="indice" aria-label="Índice">
+      <span class="ancha">Índice</span>
+      <ol>
+        <li><a href="#responsable"><i>01</i>Quién es responsable</a></li>
+        <li><a href="#datos"><i>02</i>Qué datos tratamos</a></li>
+        <li><a href="#uso"><i>03</i>Para qué los usamos</a></li>
+        <li><a href="#compartir"><i>04</i>Con quién se comparten</a></li>
+        <li><a href="#plazo"><i>05</i>Cuánto tiempo los guardamos</a></li>
+        <li><a href="#derechos"><i>06</i>Tus derechos</a></li>
+        <li><a href="#cambios"><i>07</i>Cambios</a></li>
+      </ol>
+    </nav>
 
-<h2>Con quién se comparten</h2>
-<ul>
-  <li><strong>El comercio</strong> al que le escribiste, que ve tu pedido en su panel.</li>
-  <li><strong>Meta (WhatsApp)</strong>, que transporta los mensajes.</li>
-  <li><strong>Proveedores de inteligencia artificial</strong> (a través de OpenRouter), que procesan el
-      texto de la conversación para generar las respuestas. No reciben tus datos para otros fines.</li>
-  <li><strong>Nuestro proveedor de servidores</strong> (Hostinger), donde se aloja el sistema.</li>
-</ul>
+    <article>
+      <section id="responsable">
+        <span class="num ancha">01</span>
+        <h2>Quién es responsable</h2>
+        <p>Cada comercio es responsable de los datos de sus clientes. BlendSoftware los trata por cuenta del
+          comercio, sólo para prestar el servicio. Contacto: <a href="mailto:contacto@blendsoftware.tech">contacto@blendsoftware.tech</a>.</p>
+      </section>
 
-<h2>Cuánto tiempo los guardamos</h2>
-<p>El contexto de la conversación se guarda el tiempo necesario para atenderte. Los pedidos y reservas
-se conservan mientras el comercio los necesite para su gestión y sus obligaciones legales.</p>
+      <section id="datos">
+        <span class="num ancha">02</span>
+        <h2>Qué datos tratamos</h2>
+        <ul class="puntos">
+          <li>Tu número de WhatsApp y el nombre de tu perfil.</li>
+          <li>Los mensajes que le mandás al comercio por ese canal.</li>
+          <li>Los datos de tu pedido o reserva: lo que pediste, el nombre que diste, la forma de entrega y,
+            si pedís delivery, la dirección.</li>
+        </ul>
+        <p class="nota">No pedimos ni guardamos datos de tarjetas, documentos de identidad ni contraseñas.</p>
+      </section>
 
-<h2>Tus derechos</h2>
-<p>Podés pedir acceder a tus datos, corregirlos o borrarlos escribiendo a
-<a href="mailto:Blendsoftware1@gmail.com">Blendsoftware1@gmail.com</a>, conforme a la Ley 25.326 de
-Protección de Datos Personales de Argentina. La Agencia de Acceso a la Información Pública es el órgano
-de control de esa ley.</p>
+      <section id="uso">
+        <span class="num ancha">03</span>
+        <h2>Para qué los usamos</h2>
+        <ul class="puntos">
+          <li>Para contestarte y registrar tu pedido o reserva en el sistema del comercio.</li>
+          <li>Para avisarte por WhatsApp novedades de ese pedido (por ejemplo, que está confirmado o listo).</li>
+        </ul>
+        <p class="nota">No usamos tus datos para publicidad ni los vendemos.</p>
+      </section>
 
-<h2>Cambios</h2>
-<p>Si cambiamos esta política, publicamos la versión nueva en esta misma página con su fecha.</p>
+      <section id="compartir">
+        <span class="num ancha">04</span>
+        <h2>Con quién se comparten</h2>
+        <ul class="puntos">
+          <li><strong>El comercio</strong> al que le escribiste, que ve tu pedido en su panel.</li>
+          <li><strong>Meta (WhatsApp)</strong>, que transporta los mensajes.</li>
+          <li><strong>Proveedores de inteligencia artificial</strong> (a través de OpenRouter), que procesan el
+            texto de la conversación para generar las respuestas. No reciben tus datos para otros fines.</li>
+          <li><strong>Nuestro proveedor de servidores</strong> (Hostinger), donde se aloja el sistema.</li>
+        </ul>
+      </section>
+
+      <section id="plazo">
+        <span class="num ancha">05</span>
+        <h2>Cuánto tiempo los guardamos</h2>
+        <p>El contexto de la conversación se guarda el tiempo necesario para atenderte. Los pedidos y reservas
+          se conservan mientras el comercio los necesite para su gestión y sus obligaciones legales.</p>
+      </section>
+
+      <section id="derechos">
+        <span class="num ancha">06</span>
+        <h2>Tus derechos</h2>
+        <p>Podés pedir acceder a tus datos, corregirlos o borrarlos escribiendo a
+          <a href="mailto:contacto@blendsoftware.tech">contacto@blendsoftware.tech</a>, conforme a la Ley 25.326 de
+          Protección de Datos Personales de Argentina. La Agencia de Acceso a la Información Pública es el órgano
+          de control de esa ley.</p>
+        <div class="contacto">
+          <div>
+            <span class="ancha">Escribinos</span>
+            <a class="mail" href="mailto:contacto@blendsoftware.tech">contacto@blendsoftware.tech</a>
+          </div>
+          <a class="boton ancha" href="mailto:contacto@blendsoftware.tech?subject=Mis%20datos%20en%20BlendBot">Pedir mis datos</a>
+        </div>
+      </section>
+
+      <section id="cambios">
+        <span class="num ancha">07</span>
+        <h2>Cambios</h2>
+        <p>Si cambiamos esta política, publicamos la versión nueva en esta misma página con su fecha.</p>
+      </section>
+    </article>
+  </div>
+</main>
+
+<footer>
+  <div class="envoltorio ancha">
+    <span>© 2026 BlendBot · Mendoza, Argentina</span>
+    <a href="/">blendbot · inicio</a>
+  </div>
+</footer>
+
 </body>
 </html>

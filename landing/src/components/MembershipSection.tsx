@@ -12,7 +12,7 @@ export const MembershipSection: React.FC<MembershipSectionProps> = ({ onOpenDemo
         
         {/* Section Header */}
         <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-16">
-          <div className="font-mono text-[9px] sm:text-xs text-terracota uppercase tracking-widest-editorial mb-2 sm:mb-3 font-bold flex items-center justify-center gap-2">
+          <div className="font-ancha text-[9px] sm:text-xs text-terracota uppercase tracking-widest-editorial mb-2 sm:mb-3 font-bold flex items-center justify-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-terracota" />
             <span>[ 05 // LA PROPUESTA ]</span>
           </div>
@@ -32,7 +32,7 @@ export const MembershipSection: React.FC<MembershipSectionProps> = ({ onOpenDemo
           
           <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-4 sm:gap-6 border-b border-paper-border pb-6 sm:pb-8 mb-6 sm:mb-8">
             <div>
-              <span className="font-mono text-[9px] sm:text-[10px] text-terracota uppercase tracking-widest font-bold block mb-1">
+              <span className="font-ancha text-[9px] sm:text-[10px] text-terracota uppercase tracking-widest font-bold block mb-1">
                 EQUIPAMIENTO COMPLETO // MENDOZA
               </span>
               <h3 className="font-serif font-bold text-xl sm:text-3xl text-tinta">
@@ -48,11 +48,11 @@ export const MembershipSection: React.FC<MembershipSectionProps> = ({ onOpenDemo
                 <span className="font-serif font-bold text-3xl sm:text-5xl text-tinta">
                   $79.000
                 </span>
-                <span className="font-mono text-xs text-tinta-muted uppercase">
+                <span className="font-ancha text-xs text-tinta-muted uppercase">
                   ARS / mes
                 </span>
               </div>
-              <span className="font-mono text-[9px] sm:text-[10px] text-terracota font-bold uppercase block mt-0.5 sm:mt-1">
+              <span className="font-ancha text-[9px] sm:text-[10px] text-terracota font-bold uppercase block mt-0.5 sm:mt-1">
                 0% Comisión x Comanda · + IVA
               </span>
             </div>
@@ -109,12 +109,12 @@ export const MembershipSection: React.FC<MembershipSectionProps> = ({ onOpenDemo
               onClick={() => {
                 onOpenDemo();
               }}
-              className="w-full py-4 bg-terracota hover:bg-terracota-light text-white font-mono text-xs uppercase font-bold tracking-wider flex items-center justify-center gap-2 rounded-sm transition-all active:scale-98 shadow-sm min-h-[48px]"
+              className="w-full py-4 bg-terracota hover:bg-terracota-light text-white font-ancha text-xs uppercase font-bold tracking-wider flex items-center justify-center gap-2 rounded-sm transition-all active:scale-98 shadow-sm min-h-[48px]"
             >
               <span>Solicitar Prueba Piloto de 2 Meses</span>
               <ArrowUpRight className="w-4 h-4" />
             </button>
-            <div className="font-mono text-[9px] sm:text-[10px] text-tinta-muted text-center mt-2">
+            <div className="font-ancha text-[9px] sm:text-[10px] text-tinta-muted text-center mt-2">
               Sin permanencia mínima · Cancelás con un clic
             </div>
           </div>

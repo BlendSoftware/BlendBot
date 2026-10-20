@@ -52,14 +52,14 @@ export const FeaturedDishes: React.FC = () => {
         {/* Section Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16 sm:mb-24">
           <div>
-            <div className="font-mono text-[10px] sm:text-xs text-terracota uppercase tracking-widest-editorial mb-3 font-bold">
+            <div className="font-ancha text-[10px] sm:text-xs text-terracota uppercase tracking-widest-editorial mb-3 font-bold">
               [ 03 // LA COLECCIÓN DE AUTOR ]
             </div>
             <h2 className="font-serif font-normal text-tinta text-3xl sm:text-5xl font-bold tracking-tight">
               Platos que no admiten prisa.
             </h2>
           </div>
-          <p className="font-mono text-xs text-bone-muted max-w-xs">
+          <p className="font-ancha text-xs text-bone-muted max-w-xs">
             Cada plato cuenta con control de stock instantáneo en la tablet de cocina y atención automática en WhatsApp.
           </p>
         </div>
@@ -85,7 +85,7 @@ export const FeaturedDishes: React.FC = () => {
                       className="w-full h-[360px] sm:h-[440px] object-cover filter saturate-[0.9] contrast-[1.08] group-hover:scale-105 transition-transform duration-1000"
                       loading="lazy"
                     />
-                    <div className="p-3.5 bg-paper-pure text-tinta border-t border-paper-border flex justify-between items-center font-mono text-[10px]">
+                    <div className="p-3.5 bg-paper-pure text-tinta border-t border-paper-border flex justify-between items-center font-ancha text-[10px]">
                       <span className="font-bold text-tinta">CÓDIGO DE RECETA // {dish.number}</span>
                       <span className="text-terracota font-bold text-xs">{dish.price}</span>
                     </div>
@@ -94,7 +94,7 @@ export const FeaturedDishes: React.FC = () => {
 
                 {/* Information Column (6 cols) */}
                 <div className={`lg:col-span-6 space-y-6 ${isEven ? '' : 'lg:order-1'}`}>
-                  <div className="flex items-center gap-3 font-mono text-xs text-bone-muted">
+                  <div className="flex items-center gap-3 font-ancha text-xs text-bone-muted">
                     <span className="text-terracota font-bold">{dish.number}</span>
                     <span>/</span>
                     <span className="uppercase tracking-wider text-tinta font-semibold">CARTA NOCTURNA</span>
@@ -104,7 +104,7 @@ export const FeaturedDishes: React.FC = () => {
                     {dish.name}
                   </h3>
 
-                  <p className="font-sans text-sm sm:text-base text-bone-muted leading-relaxed font-light">
+                  <p className="font-sans text-sm sm:text-base text-bone-muted leading-relaxed font-normal">
                     {dish.subtitle}
                   </p>
 
@@ -113,10 +113,10 @@ export const FeaturedDishes: React.FC = () => {
                   </p>
 
                   <div className="pt-2">
-                    <span className="font-mono text-[10px] uppercase tracking-wider text-bone-muted block mb-2 font-semibold">
+                    <span className="font-ancha text-[10px] uppercase tracking-wider text-bone-muted block mb-2 font-semibold">
                       Materia Prima & Origen:
                     </span>
-                    <div className="flex flex-wrap gap-2 font-mono text-[11px] text-tinta">
+                    <div className="flex flex-wrap gap-2 font-ancha text-[11px] text-tinta">
                       {dish.ingredients.map((ing, i) => (
                         <span key={i} className="px-2.5 py-1 bg-dark-card border border-dark-border rounded-sm">
                           {ing}

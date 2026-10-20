@@ -66,7 +66,8 @@ export default {
         display: ['Archivo', '"Arial Black"', 'sans-serif'],
         serif: ['Archivo', 'system-ui', 'sans-serif'],
         sans: ['Onest', 'system-ui', 'sans-serif'],
-        mono: ['"JetBrains Mono"', 'monospace'],
+        // Etiquetas y datos chicos: Archivo ancha (ver .font-ancha en index.css)
+        ancha: ['Archivo', '"Arial Black"', 'sans-serif'],
       },
       letterSpacing: {
         'tightest': '-0.05em',

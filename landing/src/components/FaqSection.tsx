@@ -15,7 +15,7 @@ export const FaqSection: React.FC = () => {
         
         {/* Header */}
         <div className="mb-10 sm:mb-16">
-          <div className="font-mono text-[9px] sm:text-xs text-terracota uppercase tracking-widest-editorial mb-2 sm:mb-3 font-bold flex items-center gap-2">
+          <div className="font-ancha text-[9px] sm:text-xs text-terracota uppercase tracking-widest-editorial mb-2 sm:mb-3 font-bold flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-terracota" />
             <span>[ 06 // PREGUNTAS DEL MOSTRADOR ]</span>
           </div>
@@ -42,7 +42,7 @@ export const FaqSection: React.FC = () => {
                   aria-expanded={isOpen}
                 >
                   <span className="flex items-center gap-3 sm:gap-4">
-                    <span className="font-mono text-[11px] sm:text-xs text-terracota font-bold">0{idx + 1}</span>
+                    <span className="font-ancha text-[11px] sm:text-xs text-terracota font-bold">0{idx + 1}</span>
                     <span>{faq.question}</span>
                   </span>
                   <ChevronDown className={`w-4 h-4 text-bone-muted transition-transform duration-300 flex-shrink-0 ${
@@ -50,11 +50,14 @@ export const FaqSection: React.FC = () => {
                   }`} />
                 </button>
 
-                {isOpen && (
-                  <div className="px-4 pb-4 sm:px-6 sm:pb-6 text-xs sm:text-sm text-bone-muted leading-relaxed border-t border-dark-border pt-3 sm:pt-4 font-sans font-normal bg-dark-card/50">
-                    <p>{faq.answer}</p>
-                  </div>
-                )}
+                {/* Siempre en el HTML (cerrada = hidden): así el prerender la
+                    deja a la vista de los crawlers aunque el acordeón la oculte. */}
+                <div
+                  hidden={!isOpen}
+                  className="px-4 pb-4 sm:px-6 sm:pb-6 text-xs sm:text-sm text-bone-muted leading-relaxed border-t border-dark-border pt-3 sm:pt-4 font-sans font-normal bg-dark-card/50"
+                >
+                  <p>{faq.answer}</p>
+                </div>
               </div>
             );
           })}

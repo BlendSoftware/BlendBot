@@ -10,6 +10,7 @@
 # sobra, y si se está regenerando (o OneDrive lo está sincronizando) mientras
 # se manda el contexto, el build falla con "invalid file request".
 **/dist
+**/dist-ssr
 
 # Secretos: JAMÁS dentro de una imagen.
 .env

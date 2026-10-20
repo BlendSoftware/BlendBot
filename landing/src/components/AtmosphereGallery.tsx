@@ -12,7 +12,7 @@ export const AtmosphereGallery: React.FC = () => {
         {/* Section Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16">
           <div>
-            <div className="font-mono text-[10px] sm:text-xs text-terracota uppercase tracking-widest-editorial mb-3 font-bold flex items-center gap-2">
+            <div className="font-ancha text-[10px] sm:text-xs text-terracota uppercase tracking-widest-editorial mb-3 font-bold flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-terracota" />
               <span>[ 04 // CRÓNICA VISUAL // 35MM ]</span>
             </div>
@@ -20,7 +20,7 @@ export const AtmosphereGallery: React.FC = () => {
               La gastronomía y el vino en Mendoza.
             </h2>
           </div>
-          <div className="font-mono text-xs text-bone-muted max-w-xs leading-relaxed">
+          <div className="font-ancha text-xs text-bone-muted max-w-xs leading-relaxed">
             Registro espontáneo del despacho en bodegas y salones: fuegos de quebracho, copas llenas y comandas cumplidas.
           </div>
         </div>
@@ -37,7 +37,7 @@ export const AtmosphereGallery: React.FC = () => {
               loading="lazy"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-dark/80 via-transparent to-transparent" />
-            <div className="absolute bottom-4 left-4 right-4 bg-paper-pure text-tinta p-3.5 border border-paper-border flex justify-between items-center font-mono text-[10px] rounded-sm shadow-sm">
+            <div className="absolute bottom-4 left-4 right-4 bg-paper-pure text-tinta p-3.5 border border-paper-border flex justify-between items-center font-ancha text-[10px] rounded-sm shadow-sm">
               <span className="font-bold">PASE 01 // SERVICIO DE LAS 21:30 HS</span>
               <span className="text-terracota font-bold">MENDOZA</span>
             </div>
@@ -52,7 +52,7 @@ export const AtmosphereGallery: React.FC = () => {
               loading="lazy"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-dark/80 via-transparent to-transparent" />
-            <div className="absolute bottom-4 left-4 right-4 bg-paper-pure text-tinta p-3.5 border border-paper-border flex justify-between items-center font-mono text-[10px] rounded-sm shadow-sm">
+            <div className="absolute bottom-4 left-4 right-4 bg-paper-pure text-tinta p-3.5 border border-paper-border flex justify-between items-center font-ancha text-[10px] rounded-sm shadow-sm">
               <span className="font-bold">VINOS & DEGUSTACIONES</span>
               <span className="text-terracota font-bold">RESERVAS EN VIVO</span>
             </div>
@@ -67,7 +67,7 @@ export const AtmosphereGallery: React.FC = () => {
               loading="lazy"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-dark/80 via-transparent to-transparent" />
-            <div className="absolute bottom-3 left-3 bg-paper-pure text-tinta px-3 py-1.5 border border-paper-border font-mono text-[10px] font-bold rounded-sm shadow-md">
+            <div className="absolute bottom-3 left-3 bg-paper-pure text-tinta px-3 py-1.5 border border-paper-border font-ancha text-[10px] font-bold rounded-sm shadow-md">
               PASE DE COCINA // DESPACHO TÁCTIL
             </div>
           </div>
@@ -81,7 +81,7 @@ export const AtmosphereGallery: React.FC = () => {
               loading="lazy"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-dark/80 via-transparent to-transparent" />
-            <div className="absolute bottom-3 left-3 bg-paper-pure text-tinta px-3 py-1.5 border border-paper-border font-mono text-[10px] font-bold rounded-sm shadow-md">
+            <div className="absolute bottom-3 left-3 bg-paper-pure text-tinta px-3 py-1.5 border border-paper-border font-ancha text-[10px] font-bold rounded-sm shadow-md">
               COMPROBANTE FISCAL ARCA INMEDIATO
             </div>
           </div>
