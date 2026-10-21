@@ -19,7 +19,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenSimulator, onOpenDemo }) => {
         {/* Top Editorial Index Bar (Mobile Optimized) */}
         <div className="flex items-center justify-between gap-2 border-b border-dark-border/60 pb-3 sm:pb-4 mb-8 sm:mb-12 font-ancha text-[9px] sm:text-[11px] text-bone-muted uppercase tracking-[0.12em]">
           <div className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-terracota animate-pulse" />
+            <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-logo-gold animate-pulse" />
             <span className="text-tinta font-bold tracking-wider">MENDOZA // 2026</span>
           </div>
           <div className="hidden sm:flex items-center gap-4 text-bone-muted/80">
@@ -42,8 +42,8 @@ export const Hero: React.FC<HeroProps> = ({ onOpenSimulator, onOpenDemo }) => {
           <div className="inline-flex items-center gap-2 sm:gap-2.5 mb-4 sm:mb-6 py-1 pl-1 pr-3 sm:pr-4 rounded-full bg-white border border-terracota/20 shadow-sm font-ancha text-[9px] sm:text-[11px] uppercase tracking-wider text-tinta">
             <span className="inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-full bg-terracota text-white font-bold">
               <span className="relative flex h-1.5 w-1.5">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-70" />
-                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-white" />
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-logo-gold opacity-70" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-logo-gold" />
               </span>
               Llave en mano
             </span>
@@ -56,10 +56,12 @@ export const Hero: React.FC<HeroProps> = ({ onOpenSimulator, onOpenDemo }) => {
               de tu restaurante.
             </span>
           </h1>
+          {/* Filete con el degradé del logo: el detalle dorado del título. */}
+          <div className="mt-5 sm:mt-7 h-1 w-20 sm:w-28 rounded-full bg-brand" aria-hidden="true" />
 
           <p className="mt-4 sm:mt-6 text-sm sm:text-lg lg:text-xl text-bone-muted max-w-2xl font-sans font-normal leading-relaxed">
             Atención y reservas 24/7 por WhatsApp para locales y turistas, 
-            comandera táctil de cocina con switch de stock al instante y <strong className="text-tinta font-semibold underline decoration-terracota decoration-2 underline-offset-4">facturación automática de ARCA</strong> al cobrar.
+            comandera táctil de cocina con switch de stock al instante y <strong className="text-tinta font-semibold underline decoration-logo-gold decoration-[3px] underline-offset-4">facturación automática de ARCA</strong> al cobrar.
           </p>
 
           {/* Action Buttons (Full width on mobile, inline on tablet+) */}
@@ -145,7 +147,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenSimulator, onOpenDemo }) => {
               <p className="font-serif text-xs sm:text-sm text-bone-muted leading-relaxed">
                 «Hola! Tienen lugar para 4 hoy a las 21:30 en el patio?»
               </p>
-              <div className="bg-dark-surface p-2.5 sm:p-3 border-l-2 border-terracota rounded-sm text-xs font-sans text-tinta">
+              <div className="bg-dark-surface p-2.5 sm:p-3 border-l-2 border-logo-gold rounded-sm text-xs font-sans text-tinta">
                 <strong className="text-terracota font-ancha block text-[9px] sm:text-[10px] mb-0.5">BLEND ASISTENTE:</strong>
                 «¡Confirmada la Mesa 6 en el patio para 4 personas! Ya está agendada a tu nombre.»
               </div>

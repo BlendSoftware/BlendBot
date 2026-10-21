@@ -20,7 +20,7 @@ export const FullSystemEquip: React.FC<FullSystemEquipProps> = ({ onOpenDemo }) 
         {/* Section Masthead */}
         <div className="max-w-3xl mb-12 sm:mb-24">
           <div className="font-ancha text-[9px] sm:text-xs text-terracota uppercase tracking-widest-editorial mb-2 sm:mb-3 font-bold flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-terracota" />
+            <span className="w-1.5 h-1.5 rounded-full bg-logo-gold" />
             <span>[ 03 // EL EQUIPAMIENTO COMPLETO ]</span>
           </div>
           <h2 className="font-serif font-semibold text-tinta text-2xl xs:text-3xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-tight">
@@ -102,7 +102,7 @@ export const FullSystemEquip: React.FC<FullSystemEquipProps> = ({ onOpenDemo }) 
                     </p>
                   </div>
 
-                  <div className="pl-3 border-l-2 border-terracota bg-paper-pure p-2.5 sm:p-3 rounded-sm text-tinta shadow-sm">
+                  <div className="pl-3 border-l-2 border-logo-gold bg-paper-pure p-2.5 sm:p-3 rounded-sm text-tinta shadow-sm">
                     <div className="flex items-center gap-1.5 font-ancha text-[8px] sm:text-[9px] text-terracota font-bold mb-1">
                       <ShieldCheck className="w-3 h-3" />
                       <span>Respuesta en 1.1s</span>

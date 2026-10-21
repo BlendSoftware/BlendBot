@@ -43,7 +43,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenDemo }) =>
                 PLAN ÚNICO INTEGRAL
               </span>
               <h3 className="font-display text-2xl sm:text-3xl font-extrabold uppercase text-bone">
-                Copiloto Gastronómico Full
+                BlendBot Gastronomía Full
               </h3>
               <p className="text-xs text-bone-muted font-sans mt-1">
                 Para pizzerías, hamburgueserías, cafés, bares y restaurantes de autor.

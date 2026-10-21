@@ -30,6 +30,8 @@ export const Header: React.FC<HeaderProps> = ({ onOpenDemo }) => {
         ? 'bg-dark/95 backdrop-blur-md border-b border-dark-border py-2.5 sm:py-3.5 shadow-sm' 
         : 'bg-gradient-to-b from-dark via-dark/90 to-transparent py-3 sm:py-5'
     }`}>
+      {/* Hilo con el degradé del logo sobre todo el ancho */}
+      <div className="absolute inset-x-0 top-0 h-[3px] bg-brand" aria-hidden="true" />
       <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-10">
         
         {/* Top Micro-Bar (Desktop Only) */}

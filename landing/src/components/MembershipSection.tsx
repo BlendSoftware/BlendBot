@@ -13,7 +13,7 @@ export const MembershipSection: React.FC<MembershipSectionProps> = ({ onOpenDemo
         {/* Section Header */}
         <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-16">
           <div className="font-ancha text-[9px] sm:text-xs text-terracota uppercase tracking-widest-editorial mb-2 sm:mb-3 font-bold flex items-center justify-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-terracota" />
+            <span className="w-1.5 h-1.5 rounded-full bg-logo-gold" />
             <span>[ 05 // LA PROPUESTA ]</span>
           </div>
           <h2 className="font-serif font-semibold text-tinta text-2xl xs:text-3xl sm:text-5xl font-bold tracking-tight">
@@ -28,7 +28,8 @@ export const MembershipSection: React.FC<MembershipSectionProps> = ({ onOpenDemo
         </div>
 
         {/* Membership Crisp White Paper Box */}
-        <div className="bg-paper-pure text-tinta border border-paper-border p-5 sm:p-8 lg:p-12 shadow-sm rounded-sm relative">
+        <div className="bg-paper-pure text-tinta border border-paper-border p-5 sm:p-8 lg:p-12 shadow-sm rounded-sm relative overflow-hidden">
+          <div className="absolute inset-x-0 top-0 h-1 bg-brand" aria-hidden="true" />
           
           <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-4 sm:gap-6 border-b border-paper-border pb-6 sm:pb-8 mb-6 sm:mb-8">
             <div>
@@ -36,7 +37,7 @@ export const MembershipSection: React.FC<MembershipSectionProps> = ({ onOpenDemo
                 EQUIPAMIENTO COMPLETO // MENDOZA
               </span>
               <h3 className="font-serif font-bold text-xl sm:text-3xl text-tinta">
-                Copiloto Gastronómico Blend
+                BlendBot Gastronomía
               </h3>
               <p className="text-xs text-tinta-muted font-sans mt-0.5 sm:mt-1">
                 Para restaurantes, bodegas, bistrós, pizzerías y hamburgueserías.

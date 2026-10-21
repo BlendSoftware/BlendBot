@@ -7,7 +7,7 @@ export const KitchenManifesto: React.FC = () => {
         
         {/* Editorial Subheader */}
         <div className="font-ancha text-[9px] sm:text-xs text-terracota uppercase tracking-widest-editorial mb-6 sm:mb-12 font-bold flex items-center gap-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-terracota" />
+          <span className="w-1.5 h-1.5 rounded-full bg-logo-gold" />
           <span>[ 01 // EL DESAFÍO EN MENDOZA ]</span>
         </div>
 

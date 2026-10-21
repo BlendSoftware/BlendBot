@@ -13,7 +13,7 @@ export const AtmosphereGallery: React.FC = () => {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16">
           <div>
             <div className="font-ancha text-[10px] sm:text-xs text-terracota uppercase tracking-widest-editorial mb-3 font-bold flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-terracota" />
+              <span className="w-1.5 h-1.5 rounded-full bg-logo-gold" />
               <span>[ 04 // CRÓNICA VISUAL // 35MM ]</span>
             </div>
             <h2 className="font-serif font-semibold text-tinta text-3xl sm:text-5xl font-bold tracking-tight">

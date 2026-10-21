@@ -16,7 +16,7 @@ export const FaqSection: React.FC = () => {
         {/* Header */}
         <div className="mb-10 sm:mb-16">
           <div className="font-ancha text-[9px] sm:text-xs text-terracota uppercase tracking-widest-editorial mb-2 sm:mb-3 font-bold flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-terracota" />
+            <span className="w-1.5 h-1.5 rounded-full bg-logo-gold" />
             <span>[ 06 // PREGUNTAS DEL MOSTRADOR ]</span>
           </div>
           <h2 className="font-serif font-semibold text-tinta text-2xl xs:text-3xl sm:text-5xl font-bold tracking-tight">
@@ -42,7 +42,7 @@ export const FaqSection: React.FC = () => {
                   aria-expanded={isOpen}
                 >
                   <span className="flex items-center gap-3 sm:gap-4">
-                    <span className="font-ancha text-[11px] sm:text-xs text-terracota font-bold">0{idx + 1}</span>
+                    <span className="font-ancha text-[11px] sm:text-xs text-oro-tinta font-bold">0{idx + 1}</span>
                     <span>{faq.question}</span>
                   </span>
                   <ChevronDown className={`w-4 h-4 text-bone-muted transition-transform duration-300 flex-shrink-0 ${

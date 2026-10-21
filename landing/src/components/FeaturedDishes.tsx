@@ -108,7 +108,7 @@ export const FeaturedDishes: React.FC = () => {
                     {dish.subtitle}
                   </p>
 
-                  <p className="font-serif text-xs sm:text-sm text-tinta/80 border-l-2 border-terracota pl-4">
+                  <p className="font-serif text-xs sm:text-sm text-tinta/80 border-l-2 border-logo-gold pl-4">
                     "{dish.notes}"
                   </p>
 

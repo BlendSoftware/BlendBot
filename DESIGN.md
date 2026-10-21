@@ -19,31 +19,38 @@ llega en v2 y se resolverá con un modo propio; no diseñar para ella ahora.)
 
 Los estados del compromiso se leen por color y posición (principio 4 de
 PRODUCT.md), así que además del acento hay una paleta semántica deliberada.
-Nada de blanco puro ni negro puro; todos los neutros tintados hacia el acento.
-Evitar el reflejo "salud = blanco + teal": el acento es un **terracota cálido**.
+La paleta es la de la landing y del logo de Blend Software (ver
+`landing/tailwind.config.js`): **teal profundo** como acento, neutros fríos
+apenas tintados hacia el teal, y el degradé teal → oliva → dorado → ocre del
+logo para detalles. Los valores vivos están en `panel/src/estilos/tokens.css`.
 
 ```css
 :root {
-  /* Neutros papel, tintados cálidos (chroma 0.006) */
-  --fondo:        oklch(0.975 0.006 60);
-  --superficie:   oklch(0.99  0.004 60);
-  --borde:        oklch(0.88  0.008 60);
-  --tinta:        oklch(0.24  0.012 55);   /* texto principal */
-  --tinta-suave:  oklch(0.45  0.010 55);
+  /* Neutros de la landing */
+  --fondo:        #F4F4F0;   /* hueso */
+  --superficie:   #FFFFFF;
+  --panel:        #ECF6F7;   /* celeste de las tarjetas de la landing */
+  --borde:        #DCDED7;
+  --tinta:        #141B1D;   /* texto principal */
+  --tinta-suave:  #5E6A6D;
 
-  /* Acento (terracota): acciones primarias, foco, marca. ≤10% de la superficie */
-  --acento:       oklch(0.58 0.13 40);
-  --acento-tinta: oklch(0.99 0.004 60);
+  /* Acento teal del logo: acciones primarias, foco, marca. ≤10% de la superficie */
+  --acento:       #1C5A61;
+  --acento-tinta: #FFFFFF;
 
   /* Estados del compromiso — se leen de lejos */
-  --pendiente:    oklch(0.72 0.15 75);    /* ámbar: reclama atención */
-  --confirmado:   oklch(0.62 0.10 155);   /* verde sobrio */
-  --en-curso:     oklch(0.60 0.10 250);   /* azul actividad */
-  --listo:        oklch(0.55 0.12 300);   /* violeta: listo para salir */
-  --vencido:      oklch(0.55 0.18 25);    /* rojo: contador pasado */
-  --hueco-libre:  oklch(0.93 0.02 130);   /* fondo verdoso pálido: plata por perder */
+  --pendiente:    #CFB23A;   /* dorado del logo: reclama atención (tinta oscura encima) */
+  --confirmado:   #277A51;   /* verde de la landing */
+  --en-curso:     #3B6EA8;   /* azul actividad */
+  --listo:        #6E58A8;   /* violeta: listo para salir */
+  --vencido:      #B83A2E;   /* rojo: contador pasado */
+  --hueco-libre:  #E3F1EA;   /* verde pálido: plata por perder */
 }
 ```
+
+Modo oscuro: fondo #0D1416 (la tinta de la landing), acento en el teal claro
+del logo (#73ABB5) con tinta oscura encima; los colores de estado no cambian.
+Todos los pares texto/fondo pasan contraste AA en los dos modos.
 
 Regla: el color de estado va en **fondos y bloques grandes** (la tarjeta entera
 del turno, la franja de la agenda), no en puntitos ni bordes laterales.

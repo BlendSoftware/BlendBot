@@ -33,7 +33,7 @@
   height: 34px;
   border-radius: 999px;
   background: var(--pista);
-  box-shadow: inset 0 1px 3px oklch(0.24 0.012 55 / 0.15);
+  box-shadow: inset 0 1px 3px rgb(20 27 29 / 0.15);
   transition: background-color var(--transicion);
 }
 
@@ -50,7 +50,7 @@
 }
 
 .interruptor:active .interruptor__perilla {
-  box-shadow: var(--sombra-baja), 0 0 0 6px oklch(0.24 0.012 55 / 0.06);
+  box-shadow: var(--sombra-baja), 0 0 0 6px rgb(20 27 29 / 0.06);
 }
 
 .interruptor--si {
@@ -87,7 +87,7 @@
   gap: var(--e1);
   height: 100%;
   padding: var(--e2) var(--e3) var(--e3);
-  border: 1px solid oklch(0.24 0.012 55 / 0.14);
+  border: 1px solid rgb(20 27 29 / 0.14);
   border-radius: var(--radio);
   position: relative;
   box-shadow: var(--sombra-tarjeta);
@@ -100,8 +100,8 @@
 
 .turno:hover {
   box-shadow:
-    0 4px 10px oklch(0.24 0.012 55 / 0.16),
-    0 28px 56px oklch(0.24 0.012 55 / 0.32);
+    0 4px 10px rgb(20 27 29 / 0.16),
+    0 28px 56px rgb(20 27 29 / 0.32);
   transform: translateY(-3px);
 }
 
@@ -139,8 +139,8 @@
 
 .turno.pedido:hover {
   box-shadow:
-    0 4px 10px oklch(0.24 0.012 55 / 0.16),
-    0 28px 56px oklch(0.24 0.012 55 / 0.32),
+    0 4px 10px rgb(20 27 29 / 0.16),
+    0 28px 56px rgb(20 27 29 / 0.32),
     0 14px 30px color-mix(in oklch, var(--turno-color) 34%, transparent);
 }
 
@@ -160,7 +160,7 @@
 .turno__estado {
   padding: 2px var(--e2);
   border-radius: 999px;
-  background: oklch(0.99 0.004 60 / 0.45);
+  background: rgb(255 255 255 / 0.45);
   font-size: var(--t-mini);
   font-weight: 700;
   letter-spacing: 0.02em;
@@ -200,7 +200,7 @@
 .turno__problema {
   padding: var(--e1) var(--e2);
   border-radius: var(--radio-chico);
-  border-left: 3px solid oklch(0.42 0.16 25 / 0.6);
+  border-left: 3px solid color-mix(in srgb, var(--tinta-error) 60%, transparent);
   background: var(--superficie);
   color: var(--tinta-error);
   font-size: var(--t-mini);
@@ -221,14 +221,14 @@
   min-width: 92px;
   min-height: var(--tacto);
   border-color: transparent;
-  background: oklch(0.99 0.004 60 / 0.9);
+  background: rgb(255 255 255 / 0.9);
   color: var(--tinta);
   font-weight: 700;
 }
 
 .turno__accion:hover:not(:disabled) {
-  background: oklch(0.99 0.004 60);
-  box-shadow: 0 6px 16px oklch(0.24 0.012 55 / 0.18);
+  background: #ffffff;
+  box-shadow: 0 6px 16px rgb(20 27 29 / 0.18);
   transform: translateY(-2px);
 }
 
@@ -237,21 +237,21 @@
   background: var(--superficie);
   color: var(--tinta);
   font-weight: 800;
-  box-shadow: var(--sombra-tarjeta), inset 0 0 0 1.5px oklch(0.99 0.004 60 / 0.6);
+  box-shadow: var(--sombra-tarjeta), inset 0 0 0 1.5px rgb(255 255 255 / 0.6);
 }
 
 /* Rechazar/Cancelar/No vino son la salida: contorno, no relleno, para que no
    compitan en peso visual con la acción principal. */
 .turno__accion--peligro,
 .turno__accion--neutro {
-  background: oklch(0.24 0.012 55 / 0.1);
+  background: rgb(20 27 29 / 0.1);
   color: inherit;
-  box-shadow: inset 0 0 0 1.5px oklch(0.99 0.004 60 / 0.5);
+  box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / 0.5);
 }
 
 .turno__accion--peligro:hover:not(:disabled),
 .turno__accion--neutro:hover:not(:disabled) {
-  background: oklch(0.24 0.012 55 / 0.18);
+  background: rgb(20 27 29 / 0.18);
   color: inherit;
 }
 
@@ -323,7 +323,7 @@
 
 .cobro__hecho::before {
   content: '✓ ';
-  color: oklch(0.5 0.11 155);
+  color: var(--tinta-ok);
 }
 
 .cobro__factura {
@@ -332,7 +332,7 @@
 }
 
 .cobro--bien {
-  border-left: 3px solid oklch(0.62 0.1 155 / 0.6);
+  border-left: 3px solid color-mix(in srgb, var(--confirmado) 60%, transparent);
 }
 
 .cobro--bien .cobro__factura {
@@ -340,7 +340,7 @@
 }
 
 .cobro--problema {
-  border-left: 3px solid oklch(0.55 0.18 25 / 0.5);
+  border-left: 3px solid color-mix(in srgb, var(--vencido) 50%, transparent);
 }
 
 .cobro--problema .cobro__factura {
@@ -348,7 +348,7 @@
 }
 
 .cobro--espera {
-  border-left: 3px solid oklch(0.6 0.1 250 / 0.5);
+  border-left: 3px solid color-mix(in srgb, var(--en-curso) 50%, transparent);
 }
 
 .cobro--espera .cobro__factura {
@@ -489,15 +489,18 @@
   display: flex;
   gap: var(--e1);
   padding: var(--e2) var(--e2) calc(var(--e2) + env(safe-area-inset-bottom));
-  border-top: 1px solid var(--borde);
+  /* Hilo con el degradé del logo, como el header de la landing */
+  border-top: 2px solid transparent;
+  border-image: var(--marca-degrade) 1;
   background: var(--panel);
   background: color-mix(in oklch, var(--panel) 92%, transparent);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  box-shadow: 0 -8px 24px oklch(0.24 0.012 55 / 0.12);
+  box-shadow: 0 -8px 24px rgb(20 27 29 / 0.12);
 }
 
 .barra-inferior__ir {
+  position: relative;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -534,6 +537,17 @@
   color: var(--acento-tinta);
   box-shadow: var(--sombra-baja);
   transform: translateY(-2px);
+}
+
+/* Dónde estás: un trazo dorado corto arriba del ícono. */
+.barra-inferior__ir.es-actual::after {
+  content: '';
+  position: absolute;
+  top: 5px;
+  width: 18px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--oro);
 }
 
 /*
@@ -695,11 +709,11 @@
   align-items: flex-start;
   gap: var(--e2);
   padding: var(--e4);
-  border: 1.5px dashed oklch(0.58 0.13 40 / 0.32);
+  border: 1.5px dashed color-mix(in srgb, var(--acento) 32%, transparent);
   border-radius: var(--radio);
   background:
-    radial-gradient(420px 180px at 0% 0%, oklch(0.58 0.13 40 / 0.08), transparent 70%),
-    oklch(0.58 0.13 40 / 0.04);
+    radial-gradient(420px 180px at 0% 0%, color-mix(in srgb, var(--acento) 8%, transparent), transparent 70%),
+    color-mix(in srgb, var(--acento) 4%, transparent);
 }
 
 .vacio__icono {
@@ -755,7 +769,7 @@
   font-weight: 700;
   border-style: dashed;
   border-width: 1.5px;
-  border-color: oklch(0.58 0.13 40 / 0.35);
+  border-color: color-mix(in srgb, var(--acento) 35%, transparent);
   box-shadow: none;
 }
 
@@ -798,8 +812,8 @@
   margin-bottom: var(--e3);
   padding: var(--e2) var(--e3);
   border-radius: var(--radio-chico);
-  background: oklch(0.72 0.15 75 / 0.16);
-  border: 1px solid oklch(0.72 0.15 75 / 0.4);
+  background: color-mix(in srgb, var(--pendiente) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--pendiente) 40%, transparent);
   color: var(--tinta);
   text-decoration: none;
   font-weight: 700;
@@ -811,7 +825,7 @@
 }
 
 .acceso-consultas:hover {
-  background: oklch(0.72 0.15 75 / 0.24);
+  background: color-mix(in srgb, var(--pendiente) 24%, transparent);
   transform: translateY(-1px);
 }
 
@@ -877,7 +891,7 @@
   padding: var(--e3);
   border-radius: var(--radio);
   background: var(--panel);
-  box-shadow: inset 0 1px 3px oklch(0.24 0.012 55 / 0.06);
+  box-shadow: inset 0 1px 3px rgb(20 27 29 / 0.06);
 }
 
 .receta__bajada {

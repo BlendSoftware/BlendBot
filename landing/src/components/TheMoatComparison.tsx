@@ -34,7 +34,7 @@ export const TheMoatComparison: React.FC = () => {
                 <th className="py-4 px-4 sm:px-6 text-ember font-bold bg-ember/10 border-x border-ember/20 w-1/4">
                   <div className="flex items-center gap-1.5">
                     <Sparkles className="w-3.5 h-3.5" />
-                    <span>BlendBot (Copiloto)</span>
+                    <span>BlendBot</span>
                   </div>
                 </th>
                 <th className="py-4 px-4 sm:px-6 w-1/5 text-stone-400">Apps de Delivery (PedidosYa)</th>

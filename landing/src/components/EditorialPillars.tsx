@@ -16,7 +16,7 @@ export const EditorialPillars: React.FC = () => {
         {/* Section Header */}
         <div className="max-w-3xl mb-12 sm:mb-28">
           <div className="font-ancha text-[9px] sm:text-xs text-terracota uppercase tracking-widest-editorial mb-2 sm:mb-3 font-bold flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-terracota" />
+            <span className="w-1.5 h-1.5 rounded-full bg-logo-gold" />
             <span>[ 02 // EL CIRCUITO OPERATIVO ]</span>
           </div>
           <h2 className="font-serif font-semibold text-tinta text-2xl xs:text-3xl sm:text-5xl lg:text-6xl leading-[1.05] tracking-tight">
@@ -73,7 +73,7 @@ export const EditorialPillars: React.FC = () => {
                 </div>
               </div>
 
-              <blockquote className="p-3 sm:p-4 bg-dark-surface border-l-2 border-terracota font-serif text-xs sm:text-sm text-bone-muted">
+              <blockquote className="p-3 sm:p-4 bg-dark-surface border-l-2 border-logo-gold font-serif text-xs sm:text-sm text-bone-muted">
                 "El comensal local y el turista reciben respuesta inmediata sin hacer esperar a nadie."
               </blockquote>
             </div>
@@ -97,7 +97,7 @@ export const EditorialPillars: React.FC = () => {
                   </div>
 
                   {/* Host Message */}
-                  <div className="pl-3 sm:pl-4 border-l-2 border-terracota text-tinta bg-paper-warm p-3 sm:p-4 rounded-sm">
+                  <div className="pl-3 sm:pl-4 border-l-2 border-logo-gold text-tinta bg-paper-warm p-3 sm:p-4 rounded-sm">
                     <div className="flex items-center gap-1.5 font-ancha text-[9px] sm:text-[10px] uppercase text-terracota font-bold mb-1">
                       <ShieldCheck className="w-3.5 h-3.5" />
                       <span>Respuesta en 1.2s · Mesa Asignada</span>

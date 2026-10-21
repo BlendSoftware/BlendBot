@@ -37,7 +37,10 @@ export function CambiarPassword() {
   return (
     <div className="portada">
       <form className="portada__forma" onSubmit={mandar}>
-        <p className="portada__marca">Copiloto</p>
+        <p className="portada__marca">
+          <img className="portada__logo" src={`${import.meta.env.BASE_URL}logo-blend-mark.svg`} alt="" />
+          BlendBot
+        </p>
         <h1 className="portada__titulo">Elegí una contraseña tuya</h1>
         <p className="portada__bajada">
           La que te dimos es provisoria y sirve una sola vez. Poné una que te acuerdes.
