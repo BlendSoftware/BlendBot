@@ -24,7 +24,7 @@ export const RoiCalculator: React.FC<RoiCalculatorProps> = ({ onOpenDemo }) => {
         
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <div className="inline-flex items-center gap-2 font-mono text-xs text-ember uppercase tracking-widest mb-3">
+          <div className="inline-flex items-center gap-2 font-ancha text-xs text-ember uppercase tracking-widest mb-3">
             <Calculator className="w-4 h-4" />
             <span>Calculadora de Ventas Recuperadas</span>
           </div>
@@ -44,7 +44,7 @@ export const RoiCalculator: React.FC<RoiCalculatorProps> = ({ onOpenDemo }) => {
             
             {/* Slider 1: Ticket Promedio */}
             <div className="space-y-3">
-              <div className="flex justify-between items-center font-mono">
+              <div className="flex justify-between items-center font-ancha">
                 <label className="text-xs uppercase text-bone font-bold tracking-wider">
                   Ticket Promedio de tu Local:
                 </label>
@@ -61,7 +61,7 @@ export const RoiCalculator: React.FC<RoiCalculatorProps> = ({ onOpenDemo }) => {
                 onChange={(e) => handleSliderChange(e, setTicketAvg)}
                 className="w-full h-2 bg-carbon rounded-lg appearance-none cursor-pointer accent-ember"
               />
-              <div className="flex justify-between text-[10px] font-mono text-bone-muted/60">
+              <div className="flex justify-between text-[10px] font-ancha text-bone-muted/60">
                 <span>$8.000 (Café/Sandwich)</span>
                 <span>$25.000 (Burger/Parrilla)</span>
                 <span>$45.000 (Restaurante Autor)</span>
@@ -70,7 +70,7 @@ export const RoiCalculator: React.FC<RoiCalculatorProps> = ({ onOpenDemo }) => {
 
             {/* Slider 2: Pedidos perdidos por fin de semana */}
             <div className="space-y-3">
-              <div className="flex justify-between items-center font-mono">
+              <div className="flex justify-between items-center font-ancha">
                 <label className="text-xs uppercase text-bone font-bold tracking-wider">
                   Consultas perdidas por demora x fin de semana:
                 </label>
@@ -87,7 +87,7 @@ export const RoiCalculator: React.FC<RoiCalculatorProps> = ({ onOpenDemo }) => {
                 onChange={(e) => handleSliderChange(e, setLostOrdersPerWeekend)}
                 className="w-full h-2 bg-carbon rounded-lg appearance-none cursor-pointer accent-ember"
               />
-              <div className="flex justify-between text-[10px] font-mono text-bone-muted/60">
+              <div className="flex justify-between text-[10px] font-ancha text-bone-muted/60">
                 <span>4 pedidos</span>
                 <span>25 pedidos (Pico viernes y sábado)</span>
                 <span>50 pedidos</span>
@@ -95,7 +95,7 @@ export const RoiCalculator: React.FC<RoiCalculatorProps> = ({ onOpenDemo }) => {
             </div>
 
             <div className="p-4 bg-carbon rounded border border-carbon-border text-xs text-bone-muted leading-relaxed font-sans">
-              💡 <strong className="text-bone">Dato real de gastronomía:</strong> Un local con 14 pedidos recuperados por fin de semana suma <strong className="text-white font-mono">{monthlyLostOrders} ventas netas al mes</strong> que hoy se van a la competencia por no contestar en los primeros 3 minutos.
+              💡 <strong className="text-bone">Dato real de gastronomía:</strong> Un local con 14 pedidos recuperados por fin de semana suma <strong className="text-white font-ancha">{monthlyLostOrders} ventas netas al mes</strong> que hoy se van a la competencia por no contestar en los primeros 3 minutos.
             </div>
 
           </div>
@@ -104,20 +104,20 @@ export const RoiCalculator: React.FC<RoiCalculatorProps> = ({ onOpenDemo }) => {
           <div className="lg:col-span-5 bg-gradient-to-br from-ember/20 via-carbon to-carbon border-2 border-ember/50 p-6 sm:p-8 rounded shadow-sm relative flex flex-col justify-between">
             
             <div>
-              <div className="flex items-center justify-between border-b border-carbon-border pb-3 mb-4 font-mono text-xs text-bone-muted">
+              <div className="flex items-center justify-between border-b border-carbon-border pb-3 mb-4 font-ancha text-xs text-bone-muted">
                 <span className="uppercase tracking-widest text-ember font-bold">RECUPERACIÓN ESTIMADA</span>
                 <span>MENSUAL</span>
               </div>
 
               <div className="space-y-1">
-                <span className="font-mono text-xs text-bone-muted uppercase">Facturación Extra Directa:</span>
+                <span className="font-ancha text-xs text-bone-muted uppercase">Facturación Extra Directa:</span>
                 <div className="font-display font-extrabold text-3xl sm:text-4xl text-bone tracking-tight leading-none">
                   +${recoveredSalesMonthly.toLocaleString('es-AR')}
-                  <span className="text-xs font-mono text-bone-muted ml-1">ARS/mes</span>
+                  <span className="text-xs font-ancha text-bone-muted ml-1">ARS/mes</span>
                 </div>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-carbon-border/70 space-y-2 text-xs font-mono text-bone-muted">
+              <div className="mt-4 pt-4 border-t border-carbon-border/70 space-y-2 text-xs font-ancha text-bone-muted">
                 <div className="flex justify-between">
                   <span>Ventas recuperadas:</span>
                   <span className="text-bone font-bold">{monthlyLostOrders} pedidos/mes</span>
@@ -134,12 +134,12 @@ export const RoiCalculator: React.FC<RoiCalculatorProps> = ({ onOpenDemo }) => {
                 onClick={() => {
                   onOpenDemo();
                 }}
-                className="w-full py-3.5 bg-ember hover:bg-ember-glow text-white font-mono text-xs uppercase font-bold tracking-wider flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg shadow-ember/30"
+                className="w-full py-3.5 bg-ember hover:bg-ember-glow text-white font-ancha text-xs uppercase font-bold tracking-wider flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg shadow-ember/30"
               >
                 <span>Recuperar estas ventas hoy</span>
                 <ArrowUpRight className="w-4 h-4" />
               </button>
-              <div className="text-[10px] font-mono text-bone-muted/60 text-center mt-2">
+              <div className="text-[10px] font-ancha text-bone-muted/60 text-center mt-2">
                 BlendBot se amortiza solo en tu primer viernes de servicio
               </div>
             </div>

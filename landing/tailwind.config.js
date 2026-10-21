@@ -45,6 +45,9 @@ export default {
           DEFAULT: '#1F6B45',
           light: '#2E8A5C',
         },
+        // Dorado del logo para TEXTO chico: el gold/ocre de logo.* no llega a
+        // contraste AA sobre blanco, este sí (6:1).
+        'oro-tinta': '#7D5D00',
         ambar: {
           DEFAULT: '#B78801',
         },
@@ -66,7 +69,8 @@ export default {
         display: ['Archivo', '"Arial Black"', 'sans-serif'],
         serif: ['Archivo', 'system-ui', 'sans-serif'],
         sans: ['Onest', 'system-ui', 'sans-serif'],
-        mono: ['"JetBrains Mono"', 'monospace'],
+        // Etiquetas y datos chicos: Archivo ancha (ver .font-ancha en index.css)
+        ancha: ['Archivo', '"Arial Black"', 'sans-serif'],
       },
       letterSpacing: {
         'tightest': '-0.05em',

@@ -9,7 +9,7 @@ export const TheMoatComparison: React.FC = () => {
         
         {/* Section Header */}
         <div className="max-w-3xl mb-14">
-          <div className="inline-flex items-center gap-2 font-mono text-xs text-ember uppercase tracking-widest mb-3">
+          <div className="inline-flex items-center gap-2 font-ancha text-xs text-ember uppercase tracking-widest mb-3">
             <span className="w-2 h-2 bg-ember rounded-full" />
             <span>El Foso Competitivo // Por qué no hay nada igual</span>
           </div>
@@ -29,12 +29,12 @@ export const TheMoatComparison: React.FC = () => {
             
             {/* Table Head */}
             <thead>
-              <tr className="border-b border-carbon-border bg-carbon-deep font-mono text-[11px] uppercase tracking-wider text-bone-muted">
+              <tr className="border-b border-carbon-border bg-carbon-deep font-ancha text-[11px] uppercase tracking-wider text-bone-muted">
                 <th className="py-4 px-4 sm:px-6 font-semibold w-1/3">Capacidad Operativa</th>
                 <th className="py-4 px-4 sm:px-6 text-ember font-bold bg-ember/10 border-x border-ember/20 w-1/4">
                   <div className="flex items-center gap-1.5">
                     <Sparkles className="w-3.5 h-3.5" />
-                    <span>BlendBot (Copiloto)</span>
+                    <span>BlendBot</span>
                   </div>
                 </th>
                 <th className="py-4 px-4 sm:px-6 w-1/5 text-stone-400">Apps de Delivery (PedidosYa)</th>
@@ -50,7 +50,7 @@ export const TheMoatComparison: React.FC = () => {
                   {/* Feature Title */}
                   <td className="py-4 px-4 sm:px-6">
                     <div className="font-semibold text-bone">{row.feature}</div>
-                    <div className="font-mono text-[10px] text-bone-muted/60 uppercase mt-0.5">{row.category}</div>
+                    <div className="font-ancha text-[10px] text-bone-muted/60 uppercase mt-0.5">{row.category}</div>
                   </td>
 
                   {/* BlendBot Column (Highlighted) */}
@@ -97,13 +97,13 @@ export const TheMoatComparison: React.FC = () => {
               <TrendingUp className="w-5 h-5" />
             </div>
             <div>
-              <div className="font-mono text-xs uppercase font-bold text-bone">Tus clientes se quedan en tu WhatsApp</div>
+              <div className="font-ancha text-xs uppercase font-bold text-bone">Tus clientes se quedan en tu WhatsApp</div>
               <p className="text-xs text-bone-muted mt-0.5">
                 No regalás la base de datos de tus comensales ni pagás el 30% de tu esfuerzo a intermediarios.
               </p>
             </div>
           </div>
-          <span className="font-mono text-xs font-bold text-ember uppercase tracking-wider whitespace-nowrap bg-carbon px-3 py-1.5 border border-carbon-border">
+          <span className="font-ancha text-xs font-bold text-ember uppercase tracking-wider whitespace-nowrap bg-carbon px-3 py-1.5 border border-carbon-border">
             100% CANAL PROPIO
           </span>
         </div>

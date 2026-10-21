@@ -15,12 +15,12 @@ body,
 body {
   margin: 0;
   /* Fondo con un poquito de profundidad: dos manchas suaves del mismo tono
-     cálido de --fondo/--panel, fijas a la ventana (no al scroll) para que la
+     de --panel y --acento, fijas a la ventana (no al scroll) para que la
      app no se sienta una plancha de color liso. Ninguna tinta nueva: son los
-     mismos oklch de siempre, sólo con más aire entre ellos. */
+     mismos tokens, sólo con más aire entre ellos. */
   background:
     radial-gradient(1100px 620px at 8% -8%, color-mix(in oklch, var(--panel) 90%, transparent), transparent 60%),
-    radial-gradient(900px 700px at 100% 0%, oklch(0.58 0.13 40 / 0.05), transparent 55%),
+    radial-gradient(900px 700px at 100% 0%, color-mix(in srgb, var(--acento) 5%, transparent), transparent 55%),
     var(--fondo);
   background-attachment: fixed;
   color: var(--tinta);
@@ -140,7 +140,7 @@ a.boton {
 
 .boton:hover:not(:disabled) {
   background: var(--acento-suave);
-  border-color: oklch(0.58 0.13 40 / 0.3);
+  border-color: color-mix(in srgb, var(--acento) 30%, transparent);
   box-shadow: var(--sombra-tarjeta);
   transform: translateY(-1px);
 }
@@ -167,7 +167,7 @@ a.boton {
 }
 
 .boton--primario:hover:not(:disabled) {
-  background: oklch(0.53 0.13 40);
+  background: var(--acento-fuerte);
   box-shadow: var(--sombra-tarjeta);
   transform: translateY(-2px);
 }
@@ -192,15 +192,15 @@ a.boton {
 }
 
 .boton--peligro {
-  background: oklch(0.55 0.18 25 / 0.12);
-  border-color: oklch(0.55 0.18 25 / 0.35);
+  background: color-mix(in srgb, var(--vencido) 12%, transparent);
+  border-color: color-mix(in srgb, var(--vencido) 35%, transparent);
   color: var(--tinta-error);
   box-shadow: none;
 }
 
 .boton--peligro:hover:not(:disabled) {
-  background: oklch(0.55 0.18 25 / 0.2);
-  box-shadow: 0 4px 14px oklch(0.55 0.18 25 / 0.22);
+  background: color-mix(in srgb, var(--vencido) 20%, transparent);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--vencido) 22%, transparent);
   transform: translateY(-1px);
 }
 
@@ -222,7 +222,7 @@ a.boton {
   border: 1px solid var(--borde);
   border-radius: var(--radio);
   background: var(--superficie);
-  box-shadow: inset 0 1px 2px oklch(0.24 0.012 55 / 0.05);
+  box-shadow: inset 0 1px 2px rgb(20 27 29 / 0.05);
   transition:
     border-color var(--transicion),
     box-shadow var(--transicion);
@@ -252,7 +252,7 @@ a.boton {
   border: 1px solid var(--borde);
   border-radius: var(--radio-chico);
   background: var(--superficie);
-  box-shadow: inset 0 1px 2px oklch(0.24 0.012 55 / 0.05);
+  box-shadow: inset 0 1px 2px rgb(20 27 29 / 0.05);
   line-height: 1.45;
   resize: vertical;
   width: 100%;
@@ -272,10 +272,10 @@ a.boton {
 
 .aviso {
   padding: var(--e2) var(--e3);
-  border: 1px solid oklch(0.55 0.18 25 / 0.2);
-  border-left: 4px solid oklch(0.55 0.18 25 / 0.6);
+  border: 1px solid color-mix(in srgb, var(--vencido) 20%, transparent);
+  border-left: 4px solid color-mix(in srgb, var(--vencido) 60%, transparent);
   border-radius: var(--radio-chico);
-  background: oklch(0.55 0.18 25 / 0.1);
+  background: color-mix(in srgb, var(--vencido) 10%, transparent);
   color: var(--tinta-error);
   font-weight: 600;
   font-size: var(--t-mini);
@@ -284,9 +284,9 @@ a.boton {
 }
 
 .aviso--bien {
-  border-color: oklch(0.62 0.1 155 / 0.28);
-  border-left-color: oklch(0.62 0.1 155 / 0.7);
-  background: oklch(0.62 0.1 155 / 0.14);
+  border-color: color-mix(in srgb, var(--confirmado) 28%, transparent);
+  border-left-color: color-mix(in srgb, var(--confirmado) 70%, transparent);
+  background: color-mix(in srgb, var(--confirmado) 14%, transparent);
   color: var(--tinta-ok);
 }
 

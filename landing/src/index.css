@@ -50,12 +50,14 @@
   }
 }
 
-/* Nada en 400 en mono ni en los títulos: las etiquetas mono van chicas
-   y con peso normal se ven finitas. Las utilidades
-   de peso (font-bold, etc.) siguen ganando porque van después. */
+/* Nada en 400 en las etiquetas ni en los títulos: van chicas y con peso
+   normal se ven finitas. Las etiquetas (antes JetBrains Mono) son Archivo en
+   su ancho máximo. Las utilidades de peso (font-bold, etc.) siguen ganando
+   porque van después. */
 @layer components {
-  .font-mono {
-    font-weight: 500;
+  .font-ancha {
+    font-weight: 600;
+    font-stretch: 125%;
   }
   .font-serif {
     font-weight: 500;

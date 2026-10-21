@@ -1,0 +1,44 @@
+<!doctype html>
+<!--
+  Fuente de public/og-image.png (1200×630), la imagen que aparece al compartir
+  el link. Para rehacerla, desde landing/:
+    chrome --headless=new --hide-scrollbars --window-size=1200,630 --virtual-time-budget=5000 --screenshot=public/og-image.png scripts/og-image.html
+-->
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Onest:wght@400..600&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; box-sizing: border-box; }
+  html, body { width: 1200px; height: 630px; overflow: hidden; }
+  body {
+    background: #FFFFFF; color: #141B1D; font-family: Onest, system-ui, sans-serif;
+    padding: 64px 72px; display: flex; flex-direction: column; justify-content: space-between;
+    position: relative;
+  }
+  body::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 14px;
+    background: linear-gradient(100deg, #73ABB5 0%, #C4B23D 45%, #CFB23A 70%, #B78801 100%);
+  }
+  .marca { display: flex; align-items: center; gap: 18px; }
+  .marca img { width: 64px; height: 64px; }
+  .marca b { font-family: Archivo, sans-serif; font-size: 40px; font-weight: 800; letter-spacing: -0.02em; }
+  .marca span { display: block; font-family: Archivo, sans-serif; font-stretch: 125%; font-weight: 600; font-size: 15px; letter-spacing: .2em; color: #5E6A6D; text-transform: uppercase; }
+  h1 { font-family: Archivo, sans-serif; font-weight: 800; font-size: 76px; line-height: 1; letter-spacing: -0.03em; max-width: 1000px; }
+  h1 em { font-style: normal; color: #1C5A61; }
+  .pie { display: flex; gap: 14px; font-family: Archivo, sans-serif; font-stretch: 125%; font-size: 17px; font-weight: 700; white-space: nowrap; text-transform: uppercase; letter-spacing: .06em; }
+  .pie span { border: 2px solid #E1E2DC; padding: 10px 16px; border-radius: 4px; }
+  .pie span.acento { background: #1C5A61; border-color: #1C5A61; color: #fff; }
+</style>
+</head>
+<body>
+  <div class="marca">
+    <img src="../public/logo-blend-mark.svg" alt="">
+    <div><b>BlendBot</b><span>Mendoza · Argentina</span></div>
+  </div>
+  <h1>Tu WhatsApp vende solo y <em>factura por ARCA</em> mientras vos cocinás.</h1>
+  <div class="pie">
+    <span>Pedidos por WhatsApp</span><span>Comandera</span><span>Factura ARCA</span><span class="acento">0% comisión</span>
+  </div>
+</body>
+</html>

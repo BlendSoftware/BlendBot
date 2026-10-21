@@ -16,7 +16,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenDemo }) =>
         
         {/* Header */}
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <div className="inline-flex items-center gap-2 font-mono text-xs text-ember uppercase tracking-widest mb-3">
+          <div className="inline-flex items-center gap-2 font-ancha text-xs text-ember uppercase tracking-widest mb-3">
             <Sparkles className="w-4 h-4" />
             <span>Precios Transparentes // Cero Letra Chica</span>
           </div>
@@ -33,17 +33,17 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenDemo }) =>
         <div className="max-w-3xl mx-auto bg-carbon-surface border-2 border-ember/60 rounded-sm p-8 sm:p-12 shadow-sm relative">
           
           {/* Top Stamp */}
-          <div className="absolute -top-4 right-8 bg-ember text-white px-4 py-1 font-mono text-xs font-bold uppercase tracking-wider shadow-lg">
+          <div className="absolute -top-4 right-8 bg-ember text-white px-4 py-1 font-ancha text-xs font-bold uppercase tracking-wider shadow-lg">
             PILOTO 2 MESES BONIFICADO
           </div>
 
           <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-4 border-b border-carbon-border pb-8 mb-8">
             <div>
-              <span className="font-mono text-xs text-ember uppercase font-bold tracking-widest block mb-1">
+              <span className="font-ancha text-xs text-ember uppercase font-bold tracking-widest block mb-1">
                 PLAN ÚNICO INTEGRAL
               </span>
               <h3 className="font-display text-2xl sm:text-3xl font-extrabold uppercase text-bone">
-                Copiloto Gastronómico Full
+                BlendBot Gastronomía Full
               </h3>
               <p className="text-xs text-bone-muted font-sans mt-1">
                 Para pizzerías, hamburgueserías, cafés, bares y restaurantes de autor.
@@ -55,11 +55,11 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenDemo }) =>
                 <span className="font-display font-black text-4xl sm:text-5xl text-bone tracking-tight">
                   $79.000
                 </span>
-                <span className="font-mono text-xs text-bone-muted uppercase">
+                <span className="font-ancha text-xs text-bone-muted uppercase">
                   ARS / mes
                 </span>
               </div>
-              <span className="text-[11px] font-mono text-gastrono-live font-semibold block mt-1">
+              <span className="text-[11px] font-ancha text-gastrono-live font-semibold block mt-1">
                 + IVA · 0% comisión x comanda
               </span>
             </div>
@@ -118,12 +118,12 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenDemo }) =>
               onClick={() => {
                 onOpenDemo();
               }}
-              className="w-full py-4 bg-ember hover:bg-ember-glow text-white font-mono text-xs sm:text-sm uppercase font-bold tracking-wider flex items-center justify-center gap-2 transition-all active:scale-98 shadow-sm shadow-ember/25"
+              className="w-full py-4 bg-ember hover:bg-ember-glow text-white font-ancha text-xs sm:text-sm uppercase font-bold tracking-wider flex items-center justify-center gap-2 transition-all active:scale-98 shadow-sm shadow-ember/25"
             >
               <span>Solicitar Prueba Piloto Sin Cargo (2 Meses)</span>
               <ArrowUpRight className="w-4 h-4" />
             </button>
-            <div className="flex items-center justify-center gap-2 font-mono text-[11px] text-bone-muted/70">
+            <div className="flex items-center justify-center gap-2 font-ancha text-[11px] text-bone-muted/70">
               <Shield className="w-3.5 h-3.5 text-gastrono-ready" />
               <span>Sin permanencia mínima · Cancelás cuando quieras con 1 click</span>
             </div>

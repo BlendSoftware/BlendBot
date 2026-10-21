@@ -74,7 +74,7 @@ export const LiveSimulator: React.FC = () => {
         {/* Header */}
         <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-12">
           <div>
-            <div className="inline-flex items-center gap-2 font-mono text-xs text-ember uppercase tracking-widest mb-2">
+            <div className="inline-flex items-center gap-2 font-ancha text-xs text-ember uppercase tracking-widest mb-2">
               <Sparkles className="w-4 h-4" />
               <span>Simulador Interactivo en Tiempo Real</span>
             </div>
@@ -87,7 +87,7 @@ export const LiveSimulator: React.FC = () => {
           </div>
 
           {/* Scenario Selector Pills */}
-          <div className="flex flex-wrap gap-2 font-mono text-xs">
+          <div className="flex flex-wrap gap-2 font-ancha text-xs">
             {SIMULATION_SCENARIOS.map((sc, idx) => (
               <button
                 key={sc.id}
@@ -115,7 +115,7 @@ export const LiveSimulator: React.FC = () => {
             <div>
               
               {/* WhatsApp Header */}
-              <div className="flex items-center justify-between pb-3 border-b border-stone-800 font-mono text-xs">
+              <div className="flex items-center justify-between pb-3 border-b border-stone-800 font-ancha text-xs">
                 <div className="flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center text-white font-bold">
                     <MessageSquare className="w-4 h-4" />
@@ -125,7 +125,7 @@ export const LiveSimulator: React.FC = () => {
                       <span>Restaurante Blend</span>
                       <ShieldCheck className="w-3 h-3 text-emerald-400" />
                     </div>
-                    <div className="text-[10px] text-emerald-400 font-mono">IA BlendBot Activa</div>
+                    <div className="text-[10px] text-emerald-400 font-ancha">IA BlendBot Activa</div>
                   </div>
                 </div>
                 <span className="text-[10px] text-stone-500">{currentScenario.badge}</span>
@@ -138,14 +138,14 @@ export const LiveSimulator: React.FC = () => {
                 <div className="flex justify-end">
                   <div className="bg-[#005C4B] text-white p-3 rounded-lg rounded-tr-none max-w-[90%] shadow">
                     <p className="leading-relaxed">{currentScenario.clientMessage}</p>
-                    <span className="block text-[9px] text-stone-300 text-right mt-1 font-mono">21:14 hs ✓✓</span>
+                    <span className="block text-[9px] text-stone-300 text-right mt-1 font-ancha">21:14 hs ✓✓</span>
                   </div>
                 </div>
 
                 {/* Bot typing or reply */}
                 {chatStep === 'typing' ? (
                   <div className="flex justify-start">
-                    <div className="bg-[#202C33] text-stone-300 px-4 py-2.5 rounded-lg rounded-tl-none font-mono text-xs flex items-center gap-2">
+                    <div className="bg-[#202C33] text-stone-300 px-4 py-2.5 rounded-lg rounded-tl-none font-ancha text-xs flex items-center gap-2">
                       <span className="inline-block w-2 h-2 bg-ember rounded-full animate-bounce" />
                       <span className="inline-block w-2 h-2 bg-ember rounded-full animate-bounce [animation-delay:0.2s]" />
                       <span className="inline-block w-2 h-2 bg-ember rounded-full animate-bounce [animation-delay:0.4s]" />
@@ -155,14 +155,14 @@ export const LiveSimulator: React.FC = () => {
                 ) : (
                   <div className="flex justify-start animate-fadeIn">
                     <div className="bg-[#202C33] text-stone-100 p-3.5 rounded-lg rounded-tl-none max-w-[95%] shadow border border-stone-700/60">
-                      <div className="flex items-center gap-1.5 text-ember text-[10px] font-mono font-bold uppercase mb-1.5">
+                      <div className="flex items-center gap-1.5 text-ember text-[10px] font-ancha font-bold uppercase mb-1.5">
                         <Sparkles className="w-3 h-3" />
                         <span>Respuesta en 1.2 seg</span>
                       </div>
                       <p className="leading-relaxed whitespace-pre-line text-stone-200">
                         {currentScenario.botReply}
                       </p>
-                      <span className="block text-[9px] text-stone-400 text-right mt-2 font-mono">21:14 hs</span>
+                      <span className="block text-[9px] text-stone-400 text-right mt-2 font-ancha">21:14 hs</span>
                     </div>
                   </div>
                 )}
@@ -174,7 +174,7 @@ export const LiveSimulator: React.FC = () => {
             <div className="mt-4 pt-3 border-t border-stone-800 space-y-2">
               <button
                 onClick={handleTriggerMessage}
-                className="w-full py-2.5 px-3 bg-stone-800 hover:bg-stone-700 text-stone-200 rounded font-mono text-xs uppercase flex items-center justify-center gap-2 transition-colors active:scale-98"
+                className="w-full py-2.5 px-3 bg-stone-800 hover:bg-stone-700 text-stone-200 rounded font-ancha text-xs uppercase flex items-center justify-center gap-2 transition-colors active:scale-98"
               >
                 <RefreshCw className="w-3.5 h-3.5 text-ember" />
                 <span>Re-ejecutar mensaje del cliente</span>
@@ -191,7 +191,7 @@ export const LiveSimulator: React.FC = () => {
             <div>
               
               {/* Tablet Header */}
-              <div className="flex items-center justify-between pb-3 border-b border-carbon-border font-mono text-xs">
+              <div className="flex items-center justify-between pb-3 border-b border-carbon-border font-ancha text-xs">
                 <div className="flex items-center gap-2">
                   <Tablet className="w-4 h-4 text-ember" />
                   <span className="font-bold text-bone uppercase">Tablet Cocina // Despacho</span>
@@ -203,7 +203,7 @@ export const LiveSimulator: React.FC = () => {
               </div>
 
               {/* Ticket View */}
-              <div className="mt-4 bg-carbon p-4 rounded border border-carbon-border space-y-3 font-mono">
+              <div className="mt-4 bg-carbon p-4 rounded border border-carbon-border space-y-3 font-ancha">
                 
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-bone">{currentScenario.order.id}</span>
@@ -253,7 +253,7 @@ export const LiveSimulator: React.FC = () => {
               </div>
 
               {/* Stock Switch Showcase */}
-              <div className="mt-4 p-3 bg-carbon rounded border border-carbon-border text-xs font-mono">
+              <div className="mt-4 p-3 bg-carbon rounded border border-carbon-border text-xs font-ancha">
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="font-bold text-bone">Switch "SE ACABÓ":</div>
@@ -281,7 +281,7 @@ export const LiveSimulator: React.FC = () => {
             <div className="mt-4 pt-3 border-t border-carbon-border">
               <button
                 onClick={handleAdvanceTabletStatus}
-                className="w-full py-3 px-4 bg-ember hover:bg-ember-glow text-white font-mono text-xs uppercase font-bold tracking-wider rounded-sm transition-all active:scale-98 flex items-center justify-center gap-2 shadow-lg shadow-ember/20"
+                className="w-full py-3 px-4 bg-ember hover:bg-ember-glow text-white font-ancha text-xs uppercase font-bold tracking-wider rounded-sm transition-all active:scale-98 flex items-center justify-center gap-2 shadow-lg shadow-ember/20"
               >
                 {tabletStatus === 'pendiente' && <span>Marchando a Cocina →</span>}
                 {tabletStatus === 'en-marcha' && <span>Marcar Plato Listo →</span>}
@@ -296,7 +296,7 @@ export const LiveSimulator: React.FC = () => {
           {/* =========================================================================
               COLUMN 3: LA FACTURA FISCAL ARCA (4 cols)
              ========================================================================= */}
-          <div className="lg:col-span-4 bg-ticket-paper text-ticket-ink rounded-lg border border-stone-300 p-4 sm:p-5 shadow-sm flex flex-col justify-between h-full min-h-[520px] font-mono relative overflow-hidden">
+          <div className="lg:col-span-4 bg-ticket-paper text-ticket-ink rounded-lg border border-stone-300 p-4 sm:p-5 shadow-sm flex flex-col justify-between h-full min-h-[520px] font-ancha relative overflow-hidden">
             
             {/* Top Bar */}
             <div>

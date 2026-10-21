@@ -38,7 +38,7 @@
   bottom: -3px;
   width: 64px;
   height: 3px;
-  background: var(--tinta);
+  background: var(--oro);
   border-radius: 999px;
 }
 
@@ -83,7 +83,7 @@
   height: 520px;
   top: -220px;
   left: -180px;
-  background: radial-gradient(circle, oklch(0.58 0.13 40 / 0.16), transparent 70%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--acento) 16%, transparent), transparent 70%);
 }
 
 .portada::after {
@@ -91,7 +91,8 @@
   height: 420px;
   bottom: -200px;
   right: -160px;
-  background: radial-gradient(circle, oklch(0.58 0.13 40 / 0.12), transparent 70%);
+  /* La segunda, en el dorado del logo: las dos puntas de su degradé. */
+  background: radial-gradient(circle, color-mix(in srgb, var(--pendiente) 18%, transparent), transparent 70%);
 }
 
 .portada__forma {
@@ -100,13 +101,22 @@
   gap: var(--e3);
   width: min(420px, 100%);
   padding: var(--e5);
-  border-top: 6px solid var(--acento);
+  overflow: hidden;
   border-radius: var(--radio);
   background: var(--superficie);
   box-shadow: var(--sombra-flotante);
   position: relative;
   z-index: 1;
   animation: aparecer-arriba 260ms var(--curva);
+}
+
+/* El filete de arriba de la tarjeta: el degradé del logo, de teal a ocre. */
+.portada__forma::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 6px;
+  background: var(--marca-degrade);
 }
 
 .portada__marca {
@@ -120,15 +130,12 @@
   color: var(--acento);
 }
 
+/* El logo de Blend Software tal cual (trae su propio degradé): sin caja de
+   color detrás, que le pelearía al teal y al dorado. */
 .portada__logo {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radio-chico);
-  background: var(--acento);
-  color: var(--acento-tinta);
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
   flex-shrink: 0;
 }
 
@@ -158,9 +165,9 @@
   color: var(--acento);
 }
 
-/* La portada es oscura siempre, tenga el sistema el tema que tenga: viene de
-   una landing oscura y el fogonazo blanco en el medio se nota. Su paleta se
-   define junto a la del tema oscuro (tokens.css): es la misma, una sola vez. */
+/* La portada sigue el tema como el resto del panel. Antes era oscura siempre
+   porque venía de una landing oscura; la landing ahora es clara, así que el
+   login arranca claro y no hay fogonazo en ningún sentido. */
 .portada {
   color: var(--tinta);
 }
@@ -184,10 +191,26 @@
   background: color-mix(in oklch, var(--fondo) 88%, transparent);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  box-shadow: 0 4px 16px oklch(0.24 0.012 55 / 0.1);
+  box-shadow: 0 4px 16px rgb(20 27 29 / 0.1);
+}
+
+/* El mismo trazo dorado que el encabezado de las otras vistas. */
+.barra-dia::after {
+  content: '';
+  position: absolute;
+  left: var(--e3);
+  bottom: -3px;
+  width: 64px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--oro);
 }
 
 @media (min-width: 900px) {
+  .barra-dia::after {
+    left: var(--e5);
+  }
+
   .barra-dia {
     margin: calc(var(--e4) * -1) calc(var(--e5) * -1) var(--e4);
     padding: var(--e3) var(--e5);
@@ -340,7 +363,7 @@
   align-items: flex-start;
   gap: var(--e2);
   padding: var(--e2) var(--e3);
-  border: 1px solid oklch(0.75 0.07 130);
+  border: 1px solid color-mix(in srgb, var(--sobre-hueco) 35%, transparent);
   border-radius: var(--radio);
   background: var(--hueco-libre);
   color: var(--sobre-hueco);
@@ -452,7 +475,7 @@
   border-radius: var(--radio);
   background: var(--superficie);
   box-shadow: var(--sombra-baja);
-  border: 1px solid oklch(0.24 0.012 55 / 0.06);
+  border: 1px solid rgb(20 27 29 / 0.06);
   transition: box-shadow var(--transicion);
 }
 
@@ -534,7 +557,7 @@
   list-style: none;
   border-radius: var(--radio);
   background: var(--panel);
-  box-shadow: inset 0 1px 3px oklch(0.24 0.012 55 / 0.06);
+  box-shadow: inset 0 1px 3px rgb(20 27 29 / 0.06);
 }
 
 .precios__fila {
@@ -581,7 +604,7 @@
   border-radius: var(--radio);
   background: var(--superficie);
   box-shadow: var(--sombra-baja);
-  border: 1px solid oklch(0.24 0.012 55 / 0.06);
+  border: 1px solid rgb(20 27 29 / 0.06);
 }
 
 .equipo__lista {
@@ -622,7 +645,7 @@
 
 .persona--elegida,
 .persona--elegida:hover {
-  background: oklch(0.58 0.13 40 / 0.12);
+  background: color-mix(in srgb, var(--acento) 12%, transparent);
   box-shadow: inset 3px 0 0 var(--acento);
 }
 
@@ -734,7 +757,7 @@
 
 .franja__sacar:hover {
   color: var(--vencido);
-  background: oklch(0.55 0.18 25 / 0.12);
+  background: color-mix(in srgb, var(--vencido) 12%, transparent);
 }
 
 .dia__disparador {
@@ -815,7 +838,7 @@
   border-radius: var(--radio);
   background: var(--superficie);
   box-shadow: var(--sombra-baja);
-  border: 1px solid oklch(0.24 0.012 55 / 0.06);
+  border: 1px solid rgb(20 27 29 / 0.06);
 }
 
 .clientes__campo {
@@ -843,7 +866,7 @@
   border-radius: var(--radio);
   background: var(--superficie);
   box-shadow: var(--sombra-baja);
-  border: 1px solid oklch(0.24 0.012 55 / 0.06);
+  border: 1px solid rgb(20 27 29 / 0.06);
   animation: aparecer 200ms var(--curva);
 }
 
@@ -900,7 +923,7 @@
   overflow: hidden;
   background: var(--superficie);
   box-shadow: var(--sombra-baja);
-  border: 1px solid oklch(0.24 0.012 55 / 0.06);
+  border: 1px solid rgb(20 27 29 / 0.06);
 }
 
 .clientes__fila {
@@ -909,7 +932,7 @@
   justify-content: space-between;
   gap: var(--e3);
   padding: var(--e3);
-  border-bottom: 1px solid oklch(0.24 0.012 55 / 0.06);
+  border-bottom: 1px solid rgb(20 27 29 / 0.06);
 }
 
 .clientes__fila:last-child {
@@ -1188,7 +1211,7 @@
   border-radius: var(--radio);
   background: var(--superficie);
   box-shadow: var(--sombra-baja);
-  border: 1px solid oklch(0.24 0.012 55 / 0.06);
+  border: 1px solid rgb(20 27 29 / 0.06);
   transition: box-shadow var(--transicion);
 }
 
@@ -1272,7 +1295,7 @@
 }
 
 .caja--abierta {
-  border-color: oklch(0.62 0.1 155 / 0.5);
+  border-color: color-mix(in srgb, var(--confirmado) 50%, transparent);
 }
 
 .caja__estado {
@@ -1290,7 +1313,7 @@
 
 .caja--abierta .caja__punto {
   background: var(--confirmado);
-  box-shadow: 0 0 0 4px oklch(0.62 0.1 155 / 0.18);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--confirmado) 18%, transparent);
 }
 
 .caja__texto {
@@ -1612,7 +1635,7 @@
   background: color-mix(in oklch, var(--fondo) 88%, transparent);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  box-shadow: 0 4px 16px oklch(0.24 0.012 55 / 0.1);
+  box-shadow: 0 4px 16px rgb(20 27 29 / 0.1);
 }
 
 @media (min-width: 900px) {
@@ -2016,7 +2039,7 @@
  * El único papel del sistema. En pantalla es una hoja centrada sobre el fondo;
  * al imprimir desaparece todo lo demás (barra, botones, encabezado) y queda
  * sólo la hoja, en blanco y negro: una impresora térmica de local no tiene
- * tinta de color y el terracota sale gris sucio.
+ * tinta de color y el teal sale gris sucio.
  */
 .papel {
   width: min(680px, 100%);
@@ -2455,7 +2478,7 @@
   padding: var(--e3);
   border-radius: var(--radio-chico);
   background: var(--panel);
-  box-shadow: inset 0 1px 3px oklch(0.24 0.012 55 / 0.06);
+  box-shadow: inset 0 1px 3px rgb(20 27 29 / 0.06);
 }
 
 .insumos__alta {

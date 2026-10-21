@@ -30,11 +30,13 @@ export const Header: React.FC<HeaderProps> = ({ onOpenDemo }) => {
         ? 'bg-dark/95 backdrop-blur-md border-b border-dark-border py-2.5 sm:py-3.5 shadow-sm' 
         : 'bg-gradient-to-b from-dark via-dark/90 to-transparent py-3 sm:py-5'
     }`}>
+      {/* Hilo con el degradé del logo sobre todo el ancho */}
+      <div className="absolute inset-x-0 top-0 h-[3px] bg-brand" aria-hidden="true" />
       <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-10">
         
         {/* Top Micro-Bar (Desktop Only) */}
         {!isScrolled && (
-          <div className="hidden md:flex items-center justify-between pb-2.5 mb-2.5 border-b border-dark-border/40 font-mono text-[9px] uppercase tracking-widest text-bone-muted/80">
+          <div className="hidden md:flex items-center justify-between pb-2.5 mb-2.5 border-b border-dark-border/40 font-ancha text-[9px] uppercase tracking-widest text-bone-muted/80">
             <div className="flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-verde animate-pulse" />
               <span>SISTEMA GASTRONÓMICO OPERATIVO</span>
@@ -50,7 +52,8 @@ export const Header: React.FC<HeaderProps> = ({ onOpenDemo }) => {
           
           {/* Brand Seal */}
           <a 
-            href="#" 
+            href="/"
+            aria-label="BlendBot, inicio"
             className="flex items-center gap-2 sm:gap-3 group flex-shrink-0"
           >
             <img
@@ -62,14 +65,14 @@ export const Header: React.FC<HeaderProps> = ({ onOpenDemo }) => {
               <span className="font-serif font-bold text-lg sm:text-2xl text-tinta tracking-tight leading-none group-hover:text-terracota transition-colors">
                 BlendBot
               </span>
-              <span className="font-mono text-[8px] sm:text-[9px] uppercase tracking-[0.2em] text-bone-muted mt-0.5">
+              <span className="font-ancha text-[8px] sm:text-[9px] uppercase tracking-[0.2em] text-bone-muted mt-0.5">
                 Mendoza
               </span>
             </div>
           </a>
 
           {/* Clean Navigation Actions (Mobile-Optimized Touch Targets) */}
-          <div className="flex items-center gap-2 sm:gap-4 font-mono text-xs">
+          <div className="flex items-center gap-2 sm:gap-4 font-ancha text-xs">
             
             {/* Ingresar Button (Login to Panel) */}
             <button

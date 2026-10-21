@@ -27,7 +27,7 @@ export const SystemPillars: React.FC<SystemPillarsProps> = ({ onOpenSimulator })
         
         {/* Section Header */}
         <div className="max-w-3xl mb-16 sm:mb-24">
-          <div className="inline-flex items-center gap-2 font-mono text-xs text-ember uppercase tracking-widest mb-3">
+          <div className="inline-flex items-center gap-2 font-ancha text-xs text-ember uppercase tracking-widest mb-3">
             <span className="w-2 h-2 bg-ember rounded-full" />
             <span>Los Tres Engranajes del Sistema</span>
           </div>
@@ -50,9 +50,9 @@ export const SystemPillars: React.FC<SystemPillarsProps> = ({ onOpenSimulator })
             {/* Text column (6 cols) */}
             <div className="lg:col-span-6 space-y-6">
               <div className="flex items-center gap-3">
-                <span className="font-mono text-4xl sm:text-5xl font-black text-ember">01</span>
+                <span className="font-ancha text-4xl sm:text-5xl font-black text-ember">01</span>
                 <div className="h-px flex-1 bg-carbon-border" />
-                <span className="font-mono text-xs uppercase tracking-widest text-bone-muted/80 bg-carbon-surface px-3 py-1 border border-carbon-border">
+                <span className="font-ancha text-xs uppercase tracking-widest text-bone-muted/80 bg-carbon-surface px-3 py-1 border border-carbon-border">
                   El Asistente Inteligente
                 </span>
               </div>
@@ -80,7 +80,7 @@ export const SystemPillars: React.FC<SystemPillarsProps> = ({ onOpenSimulator })
               {/* Quote box */}
               <div className="p-4 bg-carbon-surface border-l-2 border-ember font-serif text-sm text-bone-muted mt-6">
                 "{PILLARS_DATA[0].quote}"
-                <span className="block font-sans font-mono text-[10px] text-ember uppercase mt-1 tracking-wider">
+                <span className="block font-sans font-ancha text-[10px] text-ember uppercase mt-1 tracking-wider">
                   — {PILLARS_DATA[0].quoteAuthor}
                 </span>
               </div>
@@ -91,7 +91,7 @@ export const SystemPillars: React.FC<SystemPillarsProps> = ({ onOpenSimulator })
               <div className="bg-[#0B141A] rounded-xl border border-stone-800 shadow-sm p-4 sm:p-6 text-stone-100 font-sans max-w-lg mx-auto relative overflow-hidden">
                 
                 {/* Chat Top Bar */}
-                <div className="flex items-center justify-between pb-3 border-b border-stone-800 mb-4 font-mono text-xs">
+                <div className="flex items-center justify-between pb-3 border-b border-stone-800 mb-4 font-ancha text-xs">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-ember flex items-center justify-center text-white font-bold text-sm">
                       BB
@@ -128,7 +128,7 @@ export const SystemPillars: React.FC<SystemPillarsProps> = ({ onOpenSimulator })
                         <div className="h-1 bg-white/30 rounded-full w-full mb-1">
                           <div className="h-full bg-white rounded-full w-2/3" />
                         </div>
-                        <div className="flex justify-between text-[9px] text-stone-300 font-mono">
+                        <div className="flex justify-between text-[9px] text-stone-300 font-ancha">
                           <span>0:07</span>
                           <span>"Mandámelo a Gurruchaga 1750"</span>
                         </div>
@@ -139,7 +139,7 @@ export const SystemPillars: React.FC<SystemPillarsProps> = ({ onOpenSimulator })
                   {/* Bot Reply */}
                   <div className="flex justify-start">
                     <div className="bg-[#202C33] text-stone-100 p-3.5 rounded-lg rounded-tl-none max-w-[90%] shadow-sm border border-stone-700/60">
-                      <div className="flex items-center gap-1.5 text-ember text-[10px] font-mono font-bold uppercase mb-1">
+                      <div className="flex items-center gap-1.5 text-ember text-[10px] font-ancha font-bold uppercase mb-1">
                         <Sparkles className="w-3 h-3" />
                         <span>Comanda Armada en 1.1s</span>
                       </div>
@@ -148,7 +148,7 @@ export const SystemPillars: React.FC<SystemPillarsProps> = ({ onOpenSimulator })
                         • 1x Doble Cheddar clásica<br />
                         • 1x Doble Cheddar <strong className="text-amber-400">SIN CEBOLLA</strong><br />
                         • 1x Papas Rústicas<br />
-                        <strong className="text-white font-mono block mt-1">Total: $24.800 (Envío bonificado)</strong>
+                        <strong className="text-white font-ancha block mt-1">Total: $24.800 (Envío bonificado)</strong>
                       </p>
                       <p className="mt-2 text-stone-300 text-[11px]">
                         ¿Abonás con transferencia (Alias) o efectivo al repartidor?
@@ -160,7 +160,7 @@ export const SystemPillars: React.FC<SystemPillarsProps> = ({ onOpenSimulator })
                 </div>
 
                 {/* Micro Footer Badge */}
-                <div className="mt-4 pt-3 border-t border-stone-800/80 flex items-center justify-between text-[10px] font-mono text-stone-400">
+                <div className="mt-4 pt-3 border-t border-stone-800/80 flex items-center justify-between text-[10px] font-ancha text-stone-400">
                   <span>CANAL: WHATSAPP CLOUD API OFICIAL</span>
                   <span className="text-emerald-400">0% ERRORES DE COMANDA</span>
                 </div>
@@ -181,7 +181,7 @@ export const SystemPillars: React.FC<SystemPillarsProps> = ({ onOpenSimulator })
               <div className="bg-carbon-surface rounded-xl border border-carbon-border p-4 sm:p-6 shadow-sm">
                 
                 {/* Tablet Top Bar */}
-                <div className="flex items-center justify-between pb-4 border-b border-carbon-border mb-4 font-mono">
+                <div className="flex items-center justify-between pb-4 border-b border-carbon-border mb-4 font-ancha">
                   <div className="flex items-center gap-2">
                     <Tablet className="w-4 h-4 text-ember" />
                     <span className="text-xs font-bold text-bone uppercase">Panel de Despacho // Vista Cocina</span>
@@ -194,7 +194,7 @@ export const SystemPillars: React.FC<SystemPillarsProps> = ({ onOpenSimulator })
 
                 {/* Interactive Stock Switch Showcase */}
                 <div className="space-y-3">
-                  <div className="text-xs font-mono text-bone-muted uppercase tracking-wider mb-2">
+                  <div className="text-xs font-ancha text-bone-muted uppercase tracking-wider mb-2">
                     Control de Disponibilidad Instantánea (Probá tocar el botón):
                   </div>
 
@@ -203,8 +203,8 @@ export const SystemPillars: React.FC<SystemPillarsProps> = ({ onOpenSimulator })
                     burgerStock ? 'bg-carbon border-carbon-border' : 'bg-red-950/20 border-ember/40'
                   }`}>
                     <div>
-                      <div className="font-mono text-sm font-bold text-bone">Doble Smash Wagyu 180g</div>
-                      <div className="text-[11px] font-mono mt-0.5">
+                      <div className="font-ancha text-sm font-bold text-bone">Doble Smash Wagyu 180g</div>
+                      <div className="text-[11px] font-ancha mt-0.5">
                         {burgerStock ? (
                           <span className="text-gastrono-ready font-semibold">● DISPONIBLE EN EL BOT</span>
                         ) : (
@@ -214,7 +214,7 @@ export const SystemPillars: React.FC<SystemPillarsProps> = ({ onOpenSimulator })
                     </div>
                     <button
                       onClick={() => toggleStock('burger')}
-                      className={`px-4 py-2.5 rounded font-mono text-xs uppercase font-bold flex items-center gap-2 transition-all active:scale-95 min-h-[48px] ${
+                      className={`px-4 py-2.5 rounded font-ancha text-xs uppercase font-bold flex items-center gap-2 transition-all active:scale-95 min-h-[48px] ${
                         burgerStock 
                           ? 'bg-gastrono-ready/20 text-emerald-400 border border-emerald-500/40 hover:bg-gastrono-ready hover:text-white' 
                           : 'bg-ember text-white shadow-lg shadow-ember/30'
@@ -230,8 +230,8 @@ export const SystemPillars: React.FC<SystemPillarsProps> = ({ onOpenSimulator })
                     ribStock ? 'bg-carbon border-carbon-border' : 'bg-red-950/20 border-ember/40'
                   }`}>
                     <div>
-                      <div className="font-mono text-sm font-bold text-bone">Ojo de Bife Madurado 600g</div>
-                      <div className="text-[11px] font-mono mt-0.5">
+                      <div className="font-ancha text-sm font-bold text-bone">Ojo de Bife Madurado 600g</div>
+                      <div className="text-[11px] font-ancha mt-0.5">
                         {ribStock ? (
                           <span className="text-gastrono-ready font-semibold">● DISPONIBLE EN EL BOT</span>
                         ) : (
@@ -241,7 +241,7 @@ export const SystemPillars: React.FC<SystemPillarsProps> = ({ onOpenSimulator })
                     </div>
                     <button
                       onClick={() => toggleStock('rib')}
-                      className={`px-4 py-2.5 rounded font-mono text-xs uppercase font-bold flex items-center gap-2 transition-all active:scale-95 min-h-[48px] ${
+                      className={`px-4 py-2.5 rounded font-ancha text-xs uppercase font-bold flex items-center gap-2 transition-all active:scale-95 min-h-[48px] ${
                         ribStock 
                           ? 'bg-gastrono-ready/20 text-emerald-400 border border-emerald-500/40 hover:bg-gastrono-ready hover:text-white' 
                           : 'bg-ember text-white shadow-lg shadow-ember/30'
@@ -255,7 +255,7 @@ export const SystemPillars: React.FC<SystemPillarsProps> = ({ onOpenSimulator })
                 </div>
 
                 {/* Delay Selector */}
-                <div className="mt-4 p-3 bg-carbon rounded border border-carbon-border flex items-center justify-between font-mono text-xs">
+                <div className="mt-4 p-3 bg-carbon rounded border border-carbon-border flex items-center justify-between font-ancha text-xs">
                   <div>
                     <span className="text-bone-muted">Demora global de cocina:</span>
                     <span className="text-bone font-bold ml-2">20–30 min</span>
@@ -269,9 +269,9 @@ export const SystemPillars: React.FC<SystemPillarsProps> = ({ onOpenSimulator })
             {/* Text Column */}
             <div className="lg:col-span-6 order-1 lg:order-2 space-y-6">
               <div className="flex items-center gap-3">
-                <span className="font-mono text-4xl sm:text-5xl font-black text-ember">02</span>
+                <span className="font-ancha text-4xl sm:text-5xl font-black text-ember">02</span>
                 <div className="h-px flex-1 bg-carbon-border" />
-                <span className="font-mono text-xs uppercase tracking-widest text-bone-muted/80 bg-carbon-surface px-3 py-1 border border-carbon-border">
+                <span className="font-ancha text-xs uppercase tracking-widest text-bone-muted/80 bg-carbon-surface px-3 py-1 border border-carbon-border">
                   El Panel Operativo
                 </span>
               </div>
@@ -299,7 +299,7 @@ export const SystemPillars: React.FC<SystemPillarsProps> = ({ onOpenSimulator })
               {/* Quote box */}
               <div className="p-4 bg-carbon-surface border-l-2 border-ember font-serif text-sm text-bone-muted mt-6">
                 "{PILLARS_DATA[1].quote}"
-                <span className="block font-sans font-mono text-[10px] text-ember uppercase mt-1 tracking-wider">
+                <span className="block font-sans font-ancha text-[10px] text-ember uppercase mt-1 tracking-wider">
                   — {PILLARS_DATA[1].quoteAuthor}
                 </span>
               </div>
@@ -316,9 +316,9 @@ export const SystemPillars: React.FC<SystemPillarsProps> = ({ onOpenSimulator })
             {/* Text Column (6 cols) */}
             <div className="lg:col-span-6 space-y-6">
               <div className="flex items-center gap-3">
-                <span className="font-mono text-4xl sm:text-5xl font-black text-ember">03</span>
+                <span className="font-ancha text-4xl sm:text-5xl font-black text-ember">03</span>
                 <div className="h-px flex-1 bg-carbon-border" />
-                <span className="font-mono text-xs uppercase tracking-widest text-bone-muted/80 bg-carbon-surface px-3 py-1 border border-carbon-border">
+                <span className="font-ancha text-xs uppercase tracking-widest text-bone-muted/80 bg-carbon-surface px-3 py-1 border border-carbon-border">
                   Normativa Fiscal 2026
                 </span>
               </div>
@@ -349,7 +349,7 @@ export const SystemPillars: React.FC<SystemPillarsProps> = ({ onOpenSimulator })
                   onClick={() => {
                     onOpenSimulator();
                   }}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-carbon-surface hover:bg-carbon-hover border border-ember/40 text-ember font-mono text-xs uppercase tracking-wider transition-colors"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-carbon-surface hover:bg-carbon-hover border border-ember/40 text-ember font-ancha text-xs uppercase tracking-wider transition-colors"
                 >
                   <Receipt className="w-4 h-4" />
                   <span>Ver cómo emite la factura en el Simulador</span>
@@ -360,7 +360,7 @@ export const SystemPillars: React.FC<SystemPillarsProps> = ({ onOpenSimulator })
 
             {/* Visual Column: Authentic Thermal Ticket with ARCA CAE (6 cols) */}
             <div className="lg:col-span-6 relative">
-              <div className="max-w-md mx-auto bg-ticket-paper text-ticket-ink font-mono p-6 sm:p-8 rounded-sm shadow-sm relative">
+              <div className="max-w-md mx-auto bg-ticket-paper text-ticket-ink font-ancha p-6 sm:p-8 rounded-sm shadow-sm relative">
                 
                 {/* Serrated edge styling */}
                 <div className="text-center border-b-2 border-dashed border-ticket-ink/30 pb-4 mb-4">

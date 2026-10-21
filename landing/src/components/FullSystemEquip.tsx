@@ -19,8 +19,8 @@ export const FullSystemEquip: React.FC<FullSystemEquipProps> = ({ onOpenDemo }) 
         
         {/* Section Masthead */}
         <div className="max-w-3xl mb-12 sm:mb-24">
-          <div className="font-mono text-[9px] sm:text-xs text-terracota uppercase tracking-widest-editorial mb-2 sm:mb-3 font-bold flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-terracota" />
+          <div className="font-ancha text-[9px] sm:text-xs text-terracota uppercase tracking-widest-editorial mb-2 sm:mb-3 font-bold flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-logo-gold" />
             <span>[ 03 // EL EQUIPAMIENTO COMPLETO ]</span>
           </div>
           <h2 className="font-serif font-semibold text-tinta text-2xl xs:text-3xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-tight">
@@ -52,7 +52,7 @@ export const FullSystemEquip: React.FC<FullSystemEquipProps> = ({ onOpenDemo }) 
                     <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5" />
                   </div>
                   <div>
-                    <span className="font-mono text-[9px] sm:text-[10px] uppercase tracking-widest text-terracota font-bold block">
+                    <span className="font-ancha text-[9px] sm:text-[10px] uppercase tracking-widest text-terracota font-bold block">
                       ESTACIÓN 01 // FRONT-OF-HOUSE
                     </span>
                     <h3 className="font-serif font-bold text-xl sm:text-3xl text-tinta leading-snug">
@@ -89,21 +89,21 @@ export const FullSystemEquip: React.FC<FullSystemEquipProps> = ({ onOpenDemo }) 
 
               {/* Right Column: Live Chat Simulation Plate (5 cols) */}
               <div className="lg:col-span-5 bg-paper-warm border border-paper-border p-4 sm:p-6 rounded-sm space-y-3 sm:space-y-4 text-xs font-sans shadow-inner">
-                <div className="flex items-center justify-between border-b border-paper-border pb-2.5 sm:pb-3 font-mono text-[9px] sm:text-[10px] text-tinta-muted">
+                <div className="flex items-center justify-between border-b border-paper-border pb-2.5 sm:pb-3 font-ancha text-[9px] sm:text-[10px] text-tinta-muted">
                   <span className="font-bold uppercase text-tinta">CHAT EN VIVO // LÍNEA OFICIAL</span>
                   <span className="text-verde font-bold">● ONLINE</span>
                 </div>
 
                 <div className="space-y-2.5 sm:space-y-3">
                   <div className="pl-3 border-l-2 border-paper-border text-tinta-muted">
-                    <span className="font-mono text-[8px] sm:text-[9px] uppercase block text-tinta-muted/80">Comensal · 20:45 hs</span>
+                    <span className="font-ancha text-[8px] sm:text-[9px] uppercase block text-tinta-muted/80">Comensal · 20:45 hs</span>
                     <p className="font-serif text-tinta text-xs">
                       «Hola! Tienen lugar para 6 personas hoy tipo 21:30? Quisiéramos hacer la degustación de pasos.»
                     </p>
                   </div>
 
-                  <div className="pl-3 border-l-2 border-terracota bg-paper-pure p-2.5 sm:p-3 rounded-sm text-tinta shadow-sm">
-                    <div className="flex items-center gap-1.5 font-mono text-[8px] sm:text-[9px] text-terracota font-bold mb-1">
+                  <div className="pl-3 border-l-2 border-logo-gold bg-paper-pure p-2.5 sm:p-3 rounded-sm text-tinta shadow-sm">
+                    <div className="flex items-center gap-1.5 font-ancha text-[8px] sm:text-[9px] text-terracota font-bold mb-1">
                       <ShieldCheck className="w-3 h-3" />
                       <span>Respuesta en 1.1s</span>
                     </div>
@@ -114,7 +114,7 @@ export const FullSystemEquip: React.FC<FullSystemEquipProps> = ({ onOpenDemo }) 
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-paper-border flex justify-between items-center font-mono text-[8px] sm:text-[9px] text-tinta-muted">
+                <div className="pt-2 border-t border-paper-border flex justify-between items-center font-ancha text-[8px] sm:text-[9px] text-tinta-muted">
                   <span>CANAL EXCLUSIVO DE TU LOCAL</span>
                   <span className="text-terracota font-bold">0% COMISIÓN</span>
                 </div>
@@ -140,7 +140,7 @@ export const FullSystemEquip: React.FC<FullSystemEquipProps> = ({ onOpenDemo }) 
                       <Tablet className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </div>
                     <div>
-                      <span className="font-mono text-[8px] sm:text-[9px] uppercase tracking-widest text-terracota font-bold block">
+                      <span className="font-ancha text-[8px] sm:text-[9px] uppercase tracking-widest text-terracota font-bold block">
                         ESTACIÓN 02 // COCINA & BARRA
                       </span>
                       <h4 className="font-serif font-bold text-lg sm:text-xl text-tinta">
@@ -148,7 +148,7 @@ export const FullSystemEquip: React.FC<FullSystemEquipProps> = ({ onOpenDemo }) 
                       </h4>
                     </div>
                   </div>
-                  <span className="font-mono text-xs font-bold text-bone-muted">02</span>
+                  <span className="font-ancha text-xs font-bold text-bone-muted">02</span>
                 </div>
 
                 <p className="text-xs sm:text-sm text-bone-muted font-sans font-normal leading-relaxed">
@@ -157,7 +157,7 @@ export const FullSystemEquip: React.FC<FullSystemEquipProps> = ({ onOpenDemo }) 
 
                 {/* Interactive Switch Demo */}
                 <div className="bg-dark-surface border border-dark-border p-3.5 sm:p-4 rounded-sm space-y-2.5 sm:space-y-3">
-                  <div className="flex justify-between items-center font-mono text-[9px] sm:text-[10px] text-bone-muted">
+                  <div className="flex justify-between items-center font-ancha text-[9px] sm:text-[10px] text-bone-muted">
                     <span>PLATO EN DESPACHO:</span>
                     <span className={kitchenStock ? 'text-verde font-bold' : 'text-terracota font-bold'}>
                       {kitchenStock ? '● ACTIVO EN CARTA' : '● PAUSADO EN WHATSAPP'}
@@ -168,7 +168,7 @@ export const FullSystemEquip: React.FC<FullSystemEquipProps> = ({ onOpenDemo }) 
                   </div>
                   <button
                     onClick={toggleKitchenStock}
-                    className={`w-full py-2.5 sm:py-3 font-mono text-xs uppercase font-bold tracking-wider transition-all duration-200 active:scale-95 flex items-center justify-center gap-2 rounded-sm min-h-[44px] ${
+                    className={`w-full py-2.5 sm:py-3 font-ancha text-xs uppercase font-bold tracking-wider transition-all duration-200 active:scale-95 flex items-center justify-center gap-2 rounded-sm min-h-[44px] ${
                       kitchenStock 
                         ? 'border border-dark-border text-tinta hover:border-terracota hover:text-terracota bg-dark' 
                         : 'bg-terracota text-white shadow-lg'
@@ -180,7 +180,7 @@ export const FullSystemEquip: React.FC<FullSystemEquipProps> = ({ onOpenDemo }) 
                 </div>
               </div>
 
-              <div className="pt-2.5 sm:pt-3 border-t border-dark-border font-mono text-[9px] sm:text-[10px] text-bone-muted flex justify-between">
+              <div className="pt-2.5 sm:pt-3 border-t border-dark-border font-ancha text-[9px] sm:text-[10px] text-bone-muted flex justify-between">
                 <span>TOUCHSCREEN ≥48PX</span>
                 <span className="text-terracota font-bold">TIEMPO REAL</span>
               </div>
@@ -197,7 +197,7 @@ export const FullSystemEquip: React.FC<FullSystemEquipProps> = ({ onOpenDemo }) 
                       <Receipt className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </div>
                     <div>
-                      <span className="font-mono text-[8px] sm:text-[9px] uppercase tracking-widest text-terracota font-bold block">
+                      <span className="font-ancha text-[8px] sm:text-[9px] uppercase tracking-widest text-terracota font-bold block">
                         ESTACIÓN 03 // FACTURACIÓN FISCAL
                       </span>
                       <h4 className="font-serif font-bold text-lg sm:text-xl text-tinta">
@@ -205,7 +205,7 @@ export const FullSystemEquip: React.FC<FullSystemEquipProps> = ({ onOpenDemo }) 
                       </h4>
                     </div>
                   </div>
-                  <span className="font-mono text-xs font-bold text-bone-muted">03</span>
+                  <span className="font-ancha text-xs font-bold text-bone-muted">03</span>
                 </div>
 
                 <p className="text-xs sm:text-sm text-bone-muted font-sans font-normal leading-relaxed">
@@ -213,7 +213,7 @@ export const FullSystemEquip: React.FC<FullSystemEquipProps> = ({ onOpenDemo }) 
                 </p>
 
                 {/* Thermal Ticket Preview */}
-                <div className="bg-paper-pure text-tinta border border-paper-border p-3.5 sm:p-4 rounded-sm font-mono text-[9px] sm:text-[10px] space-y-1 sm:space-y-1.5 shadow-md">
+                <div className="bg-paper-pure text-tinta border border-paper-border p-3.5 sm:p-4 rounded-sm font-ancha text-[9px] sm:text-[10px] space-y-1 sm:space-y-1.5 shadow-md">
                   <div className="flex justify-between font-bold border-b border-dashed border-paper-border pb-1.5 text-terracota">
                     <span>FACTURA B #0004-001948</span>
                     <span>CAE APROBADO</span>
@@ -229,7 +229,7 @@ export const FullSystemEquip: React.FC<FullSystemEquipProps> = ({ onOpenDemo }) 
                 </div>
               </div>
 
-              <div className="pt-2.5 sm:pt-3 border-t border-dark-border font-mono text-[9px] sm:text-[10px] text-bone-muted flex justify-between">
+              <div className="pt-2.5 sm:pt-3 border-t border-dark-border font-ancha text-[9px] sm:text-[10px] text-bone-muted flex justify-between">
                 <span>NORMATIVA 2026 ARCA</span>
                 <span className="text-verde font-bold">100% HOMOLOGADO</span>
               </div>
@@ -254,7 +254,7 @@ export const FullSystemEquip: React.FC<FullSystemEquipProps> = ({ onOpenDemo }) 
                       <BarChart3 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </div>
                     <div>
-                      <span className="font-mono text-[8px] sm:text-[9px] uppercase tracking-widest text-terracota font-bold block">
+                      <span className="font-ancha text-[8px] sm:text-[9px] uppercase tracking-widest text-terracota font-bold block">
                         ESTACIÓN 04 // EL DESPACHO DEL DUEÑO
                       </span>
                       <h4 className="font-serif font-bold text-lg sm:text-xl text-tinta">
@@ -262,7 +262,7 @@ export const FullSystemEquip: React.FC<FullSystemEquipProps> = ({ onOpenDemo }) 
                       </h4>
                     </div>
                   </div>
-                  <span className="font-mono text-xs font-bold text-bone-muted">04</span>
+                  <span className="font-ancha text-xs font-bold text-bone-muted">04</span>
                 </div>
 
                 <p className="text-xs sm:text-sm text-bone-muted font-sans font-normal leading-relaxed">
@@ -281,7 +281,7 @@ export const FullSystemEquip: React.FC<FullSystemEquipProps> = ({ onOpenDemo }) 
                 </div>
               </div>
 
-              <div className="pt-2.5 sm:pt-3 border-t border-dark-border font-mono text-[9px] sm:text-[10px] text-bone-muted flex justify-between">
+              <div className="pt-2.5 sm:pt-3 border-t border-dark-border font-ancha text-[9px] sm:text-[10px] text-bone-muted flex justify-between">
                 <span>VISTA PRIVADA DEL DUEÑO</span>
                 <span className="text-terracota font-bold">CONTROL TOTAL</span>
               </div>
@@ -298,7 +298,7 @@ export const FullSystemEquip: React.FC<FullSystemEquipProps> = ({ onOpenDemo }) 
                       <Wrench className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </div>
                     <div>
-                      <span className="font-mono text-[8px] sm:text-[9px] uppercase tracking-widest text-terracota font-bold block">
+                      <span className="font-ancha text-[8px] sm:text-[9px] uppercase tracking-widest text-terracota font-bold block">
                         ESTACIÓN 05 // INSTALACIÓN & SOPORTE
                       </span>
                       <h4 className="font-serif font-bold text-lg sm:text-xl text-tinta">
@@ -306,7 +306,7 @@ export const FullSystemEquip: React.FC<FullSystemEquipProps> = ({ onOpenDemo }) 
                       </h4>
                     </div>
                   </div>
-                  <span className="font-mono text-xs font-bold text-tinta-muted">05</span>
+                  <span className="font-ancha text-xs font-bold text-tinta-muted">05</span>
                 </div>
 
                 <p className="text-xs sm:text-sm text-tinta-muted font-sans font-normal leading-relaxed">
@@ -321,7 +321,7 @@ export const FullSystemEquip: React.FC<FullSystemEquipProps> = ({ onOpenDemo }) 
                 </div>
               </div>
 
-              <div className="pt-2.5 sm:pt-3 border-t border-paper-border font-mono text-[9px] sm:text-[10px] text-tinta-muted flex justify-between">
+              <div className="pt-2.5 sm:pt-3 border-t border-paper-border font-ancha text-[9px] sm:text-[10px] text-tinta-muted flex justify-between">
                 <span>GRAN MENDOZA & VALLE DE UCO</span>
                 <span className="text-verde font-bold">LISTO EN 48HS</span>
               </div>
@@ -335,7 +335,7 @@ export const FullSystemEquip: React.FC<FullSystemEquipProps> = ({ onOpenDemo }) 
         {/* Bottom Banner Call to Action (Full width on mobile) */}
         <div className="mt-12 sm:mt-16 p-6 sm:p-10 bg-dark-card border border-dark-border rounded-sm flex flex-col md:flex-row items-center justify-between gap-5 sm:gap-6 shadow-sm">
           <div className="space-y-1.5 sm:space-y-2 text-center md:text-left">
-            <span className="font-mono text-[9px] sm:text-[10px] uppercase tracking-widest text-terracota font-bold block">
+            <span className="font-ancha text-[9px] sm:text-[10px] uppercase tracking-widest text-terracota font-bold block">
               INSTALACIÓN EN GRAN MENDOZA & VALLE DE UCO
             </span>
             <h3 className="font-serif font-bold text-xl sm:text-3xl text-tinta">
@@ -350,7 +350,7 @@ export const FullSystemEquip: React.FC<FullSystemEquipProps> = ({ onOpenDemo }) 
             onClick={() => {
               onOpenDemo();
             }}
-            className="w-full md:w-auto px-6 py-4 bg-terracota hover:bg-terracota-light text-white font-mono text-xs uppercase font-bold tracking-wider rounded-sm transition-all duration-200 active:scale-95 shadow-sm flex items-center justify-center gap-2 flex-shrink-0 min-h-[48px]"
+            className="w-full md:w-auto px-6 py-4 bg-terracota hover:bg-terracota-light text-white font-ancha text-xs uppercase font-bold tracking-wider rounded-sm transition-all duration-200 active:scale-95 shadow-sm flex items-center justify-center gap-2 flex-shrink-0 min-h-[48px]"
           >
             <span>Solicitar Demostración en Mendoza</span>
             <ArrowUpRight className="w-4 h-4" />
