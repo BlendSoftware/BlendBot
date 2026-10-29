@@ -184,37 +184,25 @@
   flex-wrap: wrap;
   gap: var(--e3);
   min-height: var(--alto-barra);
-  margin: calc(var(--e3) * -1) calc(var(--e3) * -1) var(--e3);
-  padding: var(--e2) var(--e3);
+  /* Misma caja que .encabezado: el ancho del contenido, la línea teal con el
+     trazo dorado, el mismo aire abajo. Lo único que agrega es quedarse
+     pegada arriba al scrollear, con el fondo de la página detrás. */
+  margin-bottom: var(--e4);
+  padding: var(--e2) 0 var(--e3);
   border-bottom: 3px solid var(--acento);
   background: var(--fondo);
-  background: color-mix(in oklch, var(--fondo) 88%, transparent);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  box-shadow: 0 4px 16px rgb(20 27 29 / 0.1);
 }
 
 /* El mismo trazo dorado que el encabezado de las otras vistas. */
 .barra-dia::after {
   content: '';
   position: absolute;
-  left: var(--e3);
+  left: 0;
   bottom: -3px;
   width: 64px;
   height: 3px;
   border-radius: 999px;
   background: var(--oro);
-}
-
-@media (min-width: 900px) {
-  .barra-dia::after {
-    left: var(--e5);
-  }
-
-  .barra-dia {
-    margin: calc(var(--e4) * -1) calc(var(--e5) * -1) var(--e4);
-    padding: var(--e3) var(--e5);
-  }
 }
 
 .barra-dia__dia {
@@ -1628,21 +1616,22 @@
   flex-wrap: wrap;
   gap: var(--e3);
   min-height: var(--alto-barra);
-  margin: calc(var(--e3) * -1) calc(var(--e3) * -1) var(--e3);
-  padding: var(--e2) var(--e3);
+  /* Misma caja que .encabezado y .barra-dia (ver ahí). */
+  margin-bottom: var(--e4);
+  padding: var(--e2) 0 var(--e3);
   border-bottom: 3px solid var(--acento);
   background: var(--fondo);
-  background: color-mix(in oklch, var(--fondo) 88%, transparent);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  box-shadow: 0 4px 16px rgb(20 27 29 / 0.1);
 }
 
-@media (min-width: 900px) {
-  .tablero__barra {
-    margin: calc(var(--e4) * -1) calc(var(--e5) * -1) var(--e4);
-    padding: var(--e3) var(--e5);
-  }
+.tablero__barra::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -3px;
+  width: 64px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--oro);
 }
 
 .tablero__marca {

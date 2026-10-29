@@ -14,15 +14,11 @@ body,
 
 body {
   margin: 0;
-  /* Fondo con un poquito de profundidad: dos manchas suaves del mismo tono
-     de --panel y --acento, fijas a la ventana (no al scroll) para que la
-     app no se sienta una plancha de color liso. Ninguna tinta nueva: son los
-     mismos tokens, sólo con más aire entre ellos. */
-  background:
-    radial-gradient(1100px 620px at 8% -8%, color-mix(in oklch, var(--panel) 90%, transparent), transparent 60%),
-    radial-gradient(900px 700px at 100% 0%, color-mix(in srgb, var(--acento) 5%, transparent), transparent 55%),
-    var(--fondo);
-  background-attachment: fixed;
+  /* Fondo liso a propósito. Tuvo dos manchas de color fijas arriba, pero las
+     barras pegajosas (día, tablero) llevan var(--fondo) detrás y se recortaban
+     como una banda distinta justo encima de ellas. La profundidad la dan las
+     tarjetas y sus sombras. */
+  background: var(--fondo);
   color: var(--tinta);
   font-family: Manrope, ui-sans-serif, system-ui, sans-serif;
   font-size: var(--t-cuerpo);

@@ -99,6 +99,22 @@ function IconoStock() {
   )
 }
 
+function IconoSitio() {
+  return (
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" {...trazo}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M3 12h18M12 3c2.5 2.7 3.6 5.7 3.6 9s-1.1 6.3-3.6 9c-2.5-2.7-3.6-5.7-3.6-9S9.5 5.7 12 3z" />
+    </svg>
+  )
+}
+
+/**
+ * La landing vive en la raíz del mismo servidor (el panel está en /panel/,
+ * ver nginx.conf). En `npm run dev` cada una corre en su puerto, como hace el
+ * botón "Ingresar" de la landing al revés.
+ */
+const URL_SITIO = import.meta.env.DEV ? 'http://localhost:5173/' : '/'
+
 function IconoAdmin() {
   return (
     <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" {...trazo}>
@@ -145,6 +161,11 @@ export function BarraInferior({ rol }: Props) {
           <span>{d.texto}</span>
         </NavLink>
       ))}
+      {/* Volver al sitio sin cerrar sesión: es un enlace común (fuera del
+          router), con el mismo formato que el botón del tema. */}
+      <a className="barra-inferior__tema" href={URL_SITIO} aria-label="Ir al sitio de BlendBot" title="Ir al sitio">
+        <IconoSitio />
+      </a>
       <BotonTema />
     </nav>
   )

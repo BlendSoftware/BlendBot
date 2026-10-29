@@ -16,11 +16,28 @@ export const Header: React.FC<HeaderProps> = ({ onOpenDemo }) => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Si ya hay sesión del panel en este navegador, el botón lleva directo
+  // adentro en vez de invitar a "ingresar" de nuevo. El panel guarda el token
+  // en localStorage con esta clave (panel/src/api/sesion.ts) y comparte origen
+  // con la landing en producción. Se lee en un efecto: el prerender no tiene
+  // window y el HTML inicial siempre dice "Ingresar".
+  const [conSesion, setConSesion] = useState<boolean>(false);
+
+  useEffect(() => {
+    try {
+      setConSesion(Boolean(window.localStorage.getItem('copiloto.acceso')));
+    } catch {
+      setConSesion(false);
+    }
+  }, []);
+
   const handleLoginClick = () => {
+    // A la raíz del panel, no a /login: sin sesión el panel manda solo al
+    // login, y con sesión entra directo.
     if (window.location.port === '5173') {
-      window.location.href = 'http://localhost:5174/login';
+      window.location.href = 'http://localhost:5174/';
     } else {
-      window.location.href = '/panel/login';
+      window.location.href = '/panel/';
     }
   };
 
@@ -78,10 +95,10 @@ export const Header: React.FC<HeaderProps> = ({ onOpenDemo }) => {
             <button
               onClick={handleLoginClick}
               className="flex items-center gap-1 px-2.5 sm:px-3.5 py-2 text-tinta hover:text-terracota hover:border-terracota border border-dark-border/80 rounded-sm transition-all duration-200 bg-dark-surface/80 active:scale-95 text-[11px] sm:text-xs min-h-[38px] sm:min-h-[40px]"
-              aria-label="Ingresar al Panel"
+              aria-label={conSesion ? 'Ir al panel' : 'Ingresar al panel'}
             >
               <LogIn className="w-3.5 h-3.5 text-terracota flex-shrink-0" />
-              <span>Ingresar</span>
+              <span>{conSesion ? 'Ir al panel' : 'Ingresar'}</span>
             </button>
 
             {/* Pedir Prueba / Equipar CTA */}

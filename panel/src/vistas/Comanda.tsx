@@ -25,16 +25,21 @@ export function Comanda() {
 
   return (
     <section className="comanda">
-      <header className="tablero__barra">
-        <div className="tablero__marca">
-          <h1 className="tablero__negocio">Comanda</h1>
-          <p className="tablero__resumen">
+      {/* El mismo encabezado que Carta, Clientes y el resto: la barra fija del
+          tablero es sólo de Pedidos, que scrollea largo y necesita el resumen
+          siempre a la vista. */}
+      <header className="encabezado">
+        <div>
+          <h1>Comanda</h1>
+          <p className="encabezado__bajada">
             {enCocina.length === 1 ? '1 pedido en cocina' : `${enCocina.length} pedidos en cocina`}
           </p>
         </div>
-        <Link className="boton boton--fantasma" to="/">
-          Volver al tablero
-        </Link>
+        <div className="encabezado__acciones">
+          <Link className="boton boton--fantasma" to="/">
+            Volver al tablero
+          </Link>
+        </div>
       </header>
 
       <Aviso texto={problema} alCerrar={limpiarProblema} />

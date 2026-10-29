@@ -118,58 +118,59 @@
  * las 9:30, luz de ventana de frente); esto es el modo nocturno, que entra
  * sólo si lo eligen.
  *
- * La landing no tiene modo oscuro: este sale de su tinta (#141B1D) como fondo
- * y del teal claro del logo (#73ABB5) como acento, con tinta oscura encima.
+ * No es un negro neutro: es el petróleo profundo del logo (el teal llevado a
+ * noche), con tinta crema cálida en vez de blanco frío y el dorado como luz.
+ * Un negro casi puro con grises se veía clínico; esto tiene que sentirse como
+ * el salón de noche, no como una consola.
  * Los colores de estado no se tocan: un pendiente tiene que seguir siendo
  * dorado y leerse de lejos, sea la hora que sea.
  */
 [data-tema='oscuro'] {
-  --fondo: #0d1416;
-  --superficie: #172124;
-  --panel: #111a1d;
-  --panel-hover: #1e2b2f;
-  --borde: #29383c;
-  --tinta: #eef2f1;
-  --tinta-suave: #9aa7aa;
+  --fondo: #0a2126;
+  --superficie: #113139;
+  --panel: #0d2a30;
+  --panel-hover: #173e47;
+  --borde: #1f4a53;
+  --tinta: #f4efe2;
+  --tinta-suave: #a9c0c1;
 
-  --borde-fuerte: #3d5157;
-  --scroll: #2e3e42;
+  --borde-fuerte: #3b6b74;
+  --scroll: #1f4a53;
   --scroll-hover: #4e8f98;
-  --esqueleto-brillo: #1e2a2d;
-  --pista: #33454a;
+  --esqueleto-brillo: #173e47;
+  --pista: #24525c;
 
-  --apagado-fondo: #3a2420;
-  --apagado-borde: #6b3a31;
-  --apagado-tinta: #f0a595;
+  --apagado-fondo: #3a2621;
+  --apagado-borde: #75402f;
+  --apagado-tinta: #f2a893;
 
   /* Las tintas semánticas se dan vuelta: sobre fondo oscuro tienen que ser
      CLARAS. Mismo tono, otra luminosidad. */
-  --tinta-error: #f0907f;
-  --tinta-ok: #7fcfa3;
-  --tinta-espera: #8db4e2;
-  --tinta-libre: #9fd3b8;
+  --tinta-error: #f39a86;
+  --tinta-ok: #8fd8ae;
+  --tinta-espera: #9cc0ea;
+  --tinta-libre: #a6dcbf;
   /* Sobre fondo oscuro el dorado de origen ya se lee: no hace falta bajarlo. */
   --tinta-pendiente: var(--pendiente);
 
-  /* El teal profundo se pierde sobre fondo oscuro: el acento pasa al teal
+  /* El teal profundo desaparece sobre el petróleo: el acento pasa al teal
      claro del logo y la tinta encima se vuelve oscura. */
-  --acento: #73abb5;
-  --acento-tinta: #0b1416;
-  --acento-fuerte: #8fc0c8;
-  --halo-acento: 0 0 0 5px rgb(115 171 181 / 0.35);
-  --acento-suave: rgb(115 171 181 / 0.18);
+  --acento: #7fbac3;
+  --acento-tinta: #082027;
+  --acento-fuerte: #9dcdd4;
+  --halo-acento: 0 0 0 5px rgb(127 186 195 / 0.35);
+  --acento-suave: rgb(127 186 195 / 0.16);
 
-  /* El dorado sube un punto para que brille sobre el fondo oscuro. */
-  --oro: #d9bf4a;
-  --oro-tinta: #e3c964;
+  /* El dorado es la luz de este modo: un punto más brillante. */
+  --oro: #e0c453;
+  --oro-tinta: #e8cf6a;
 
-  /* El hueco libre es un bloque grande: en claro es verde pálido, en oscuro
-     tiene que ser verde noche o encandila. */
-  --hueco-libre: #16302a;
-  --sobre-hueco: #9fd3b8;
+  /* El hueco libre es un bloque grande: verde noche, no pálido, o encandila. */
+  --hueco-libre: #133a30;
+  --sobre-hueco: #a6dcbf;
 
   /* Sombras negras de verdad: la tinta no se ve sobre fondo oscuro. */
-  --sombra-baja: 0 3px 8px rgb(0 0 0 / 0.5);
-  --sombra-tarjeta: 0 3px 8px rgb(0 0 0 / 0.4), 0 22px 48px rgb(0 0 0 / 0.55);
-  --sombra-flotante: 0 20px 56px rgb(0 0 0 / 0.6);
+  --sombra-baja: 0 3px 8px rgb(0 0 0 / 0.45);
+  --sombra-tarjeta: 0 3px 8px rgb(0 0 0 / 0.35), 0 22px 48px rgb(0 0 0 / 0.5);
+  --sombra-flotante: 0 20px 56px rgb(0 0 0 / 0.55);
 }

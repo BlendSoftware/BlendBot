@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { App } from './App'
 import { guardarSesion, reiniciarSesionParaTests } from './api/sesion'
@@ -150,12 +150,20 @@ describe('guard de rutas', () => {
     montar('/')
 
     const barra = await screen.findByRole('navigation', { name: 'Secciones del panel' })
-    expect(Array.from(barra.querySelectorAll('a')).map((a) => a.textContent)).toEqual([
+    expect(Array.from(barra.querySelectorAll('a.barra-inferior__ir')).map((a) => a.textContent)).toEqual([
       'Agenda',
       'Catálogo',
       'Equipo',
       'Clientes',
     ])
+  })
+
+  it('desde cualquier pantalla se vuelve al sitio sin cerrar sesión', async () => {
+    entrarComo('operador')
+    montar('/')
+
+    const barra = await screen.findByRole('navigation', { name: 'Secciones del panel' })
+    expect(within(barra).getByRole('link', { name: 'Ir al sitio de BlendBot' })).toHaveAttribute('href')
   })
 
   it('el dueño sí entra al cierre y lo tiene en la barra', async () => {
@@ -165,7 +173,7 @@ describe('guard de rutas', () => {
     expect(await screen.findByText('Este día no pasó nada todavía.')).toBeInTheDocument()
 
     const barra = screen.getByRole('navigation', { name: 'Secciones del panel' })
-    expect(Array.from(barra.querySelectorAll('a')).map((a) => a.textContent)).toContain('Cierre')
+    expect(Array.from(barra.querySelectorAll('a.barra-inferior__ir')).map((a) => a.textContent)).toContain('Cierre')
   })
 
   it('la lista de espera es de los dos: el operador la abre igual', async () => {

@@ -48,8 +48,8 @@ logo para detalles. Los valores vivos están en `panel/src/estilos/tokens.css`.
 }
 ```
 
-Modo oscuro: fondo #0D1416 (la tinta de la landing), acento en el teal claro
-del logo (#73ABB5) con tinta oscura encima; los colores de estado no cambian.
+Modo oscuro: petróleo profundo del logo (#0A2126), tinta crema #F4EFE2, acento en el teal claro
+del logo (#7FBAC3) con tinta oscura encima y el dorado como luz; los estados no cambian.
 Todos los pares texto/fondo pasan contraste AA en los dos modos.
 
 Regla: el color de estado va en **fondos y bloques grandes** (la tarjeta entera

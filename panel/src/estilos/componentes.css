@@ -134,14 +134,14 @@
   border-radius: var(--radio-chico) var(--radio) var(--radio) var(--radio-chico);
   box-shadow:
     var(--sombra-tarjeta),
-    0 10px 22px color-mix(in oklch, var(--turno-color) 28%, transparent);
+    0 10px 22px color-mix(in srgb, var(--turno-color) 28%, transparent);
 }
 
 .turno.pedido:hover {
   box-shadow:
     0 4px 10px rgb(20 27 29 / 0.16),
     0 28px 56px rgb(20 27 29 / 0.32),
-    0 14px 30px color-mix(in oklch, var(--turno-color) 34%, transparent);
+    0 14px 30px color-mix(in srgb, var(--turno-color) 34%, transparent);
 }
 
 .turno__cabeza {
@@ -493,7 +493,7 @@
   border-top: 2px solid transparent;
   border-image: var(--marca-degrade) 1;
   background: var(--panel);
-  background: color-mix(in oklch, var(--panel) 92%, transparent);
+  background: color-mix(in srgb, var(--panel) 92%, transparent);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   box-shadow: 0 -8px 24px rgb(20 27 29 / 0.12);
@@ -571,6 +571,13 @@
   transition:
     background-color var(--transicion),
     color var(--transicion);
+}
+
+/* "Ir al sitio" y el tema van juntos detrás de una sola línea divisoria. */
+.barra-inferior__tema + .barra-inferior__tema {
+  margin-left: 0;
+  padding-left: 0;
+  border-left: 0;
 }
 
 .barra-inferior__tema:hover {
